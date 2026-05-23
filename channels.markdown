@@ -26,15 +26,15 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la — Louisiana</span>
+    <span class="channel-region">gc-la | Louisiana</span>
   </div>
   <div class="channel-card">
-    <div class="channel-name">#lft</div>
+    <div class="channel-name">#lftlafayette</div>
     <p>Lafayette area local chat for nodes in the greater Lafayette area.</p>
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la-lft — Lafayette</span>
+    <span class="channel-region">gc-la-lft | Lafayette</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#emergency</div>
@@ -42,7 +42,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la — Louisiana</span>
+    <span class="channel-region">gc-la | Louisiana</span>
   </div>
 </div>
 
