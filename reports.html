@@ -6,10 +6,10 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
 
 <div class="page-container">
   <h1 class="page-title">Network Reports</h1>
-  <p class="section-subtitle" style="text-align:left; margin-bottom: 2rem;">Live data pulled from <a href="https://analyzer.acadianamesh.com" target="_blank">CoreScope</a>. Updates every time you load this page.</p>
+  <p style="color: var(--text-muted); margin-bottom: 2rem;">Live data pulled from <a href="https://analyzer.acadianamesh.com" target="_blank">CoreScope</a>. Updates every time you load this page.</p>
 
   <!-- Summary Cards -->
-  <div class="report-summary" id="summary">
+  <div class="report-summary">
     <div class="summary-card">
       <div class="summary-number" id="total-nodes">—</div>
       <div class="summary-label">Total Nodes</div>
@@ -41,7 +41,8 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
     <div class="report-section">
       <div class="report-section-header">
         <h2>No Location Set <span class="report-badge badge-warn" id="no-location-count"></span></h2>
-        <p>These repeaters have not configured a location. A general area is enough — it helps the community understand network coverage and identify gaps.</p>
+        <span class="action-tag action-recommended">Action Recommended</span>
+        <p>These repeaters have not configured a location (GPS coordinates are 0,0 or missing). Operators don't need to set a precise GPS coordinate — a general nearby area is enough. A location helps other operators understand network coverage and lets the community identify gaps.</p>
       </div>
       <div class="table-wrap">
         <table class="report-table">
@@ -59,26 +60,40 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
       </div>
     </div>
 
-    <!-- Needs Firmware Update -->
+    <!-- Not on Firmware 1.14+ -->
     <div class="report-section">
       <div class="report-section-header">
-        <h2>Firmware Attention Needed <span class="report-badge badge-urgent" id="firmware-count"></span></h2>
-        <p>These repeaters are not confirmed to be forwarding multi-byte packets. They may be running older firmware and could silently drop traffic. Please update to the latest MeshCore firmware.</p>
+        <h2>Not on Firmware 1.14+ <span class="report-badge badge-urgent" id="firmware-count"></span></h2>
+        <span class="action-tag action-important">Action Important</span>
+        <p>These repeaters were observed sending only 1-byte path hash adverts and were not observed forwarding any multi-byte packets. This likely means they are running firmware older than 1.14 and will <strong>silently drop</strong> 2-byte and 3-byte packets. Once the switch to 2-byte and 3-byte packets on Companion nodes is made, these repeaters will no longer forward traffic to help the mesh.</p>
+        <p style="margin-top: 0.75rem;">Operators should update to firmware 1.14 or later. <a href="https://flasher.meshcore.io" target="_blank">Flash your device →</a></p>
+
+        <div class="callout callout-note">
+          <strong>Note:</strong> Some repeaters in this list may already be on firmware 1.14+ with <code>path.hash.mode</code> left at the default of 0. They simply weren't observed forwarding a multi-byte packet during the data window. Updating and setting <code>path.hash.mode</code> to <code>1</code> or <code>2</code> will help get you off this list. We also recommend that users periodically set their companion nodes to use 2-byte or 3-byte and send a message in the #test channel. This will generate multibyte traffic and allow us to see which repeaters are forwarding the traffic, indicating that they're updated and multibyte capable.
+        </div>
+
+        <div class="callout callout-warning">
+          <strong>Firmware Version Notes:</strong> There is a known bug in <strong>1.14.0</strong> where multibyte adverts are not sent automatically, even if you have run the <code>set path.hash.mode</code> command on your repeater. The multibyte adverts only go out when triggered manually. This means a repeater on 1.14.0 may still appear on this list even if it's set to send out multibyte adverts. <strong style="color: var(--accent);">Upgrading to 1.14.1+ is recommended.</strong> However, 1.14.1 introduces a new issue where <code>rxgain</code> is disabled by default, which can reduce receive sensitivity. Re-enable it after upgrading with: <code>set radio.rxgain on</code>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Repeater Name</th>
-              <th>Public Key Prefix</th>
-              <th>Status</th>
-              <th>Last Seen</th>
-              <th>Adverts</th>
-            </tr>
-          </thead>
-          <tbody id="firmware-body"></tbody>
-        </table>
-      </div>
+
+      <details class="report-details">
+        <summary>▶ Click to view all repeaters not confirmed on firmware 1.14+</summary>
+        <div class="table-wrap" style="margin-top: 1rem;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Repeater Name</th>
+                <th>Public Key Prefix</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+                <th>Adverts</th>
+              </tr>
+            </thead>
+            <tbody id="firmware-body"></tbody>
+          </table>
+        </div>
+      </details>
     </div>
 
     <!-- All Repeaters -->
@@ -93,7 +108,7 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
             <tr>
               <th>Repeater Name</th>
               <th>Public Key Prefix</th>
-              <th>Firmware</th>
+              <th>Firmware Status</th>
               <th>Location</th>
               <th>Last Seen</th>
               <th>Adverts</th>
@@ -170,6 +185,8 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
 
 .report-section {
   margin-bottom: 4rem;
+  border-top: 1px solid var(--border);
+  padding-top: 2.5rem;
 }
 
 .report-section-header {
@@ -177,26 +194,50 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
 }
 
 .report-section-header h2 {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .report-section-header p {
   color: var(--text-muted);
   font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.action-recommended {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.action-important {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .report-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
   border-radius: 4px;
-  letter-spacing: 0.03em;
 }
 
 .badge-warn {
@@ -215,6 +256,60 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
   background: var(--accent-dim);
   color: var(--accent);
   border: 1px solid var(--border-hover);
+}
+
+.callout {
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.callout-note {
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: var(--text-muted);
+}
+
+.callout-note strong {
+  color: #fbbf24;
+}
+
+.callout-warning {
+  background: rgba(249, 77, 0, 0.07);
+  border: 1px solid var(--border-hover);
+  color: var(--text-muted);
+}
+
+.callout-warning strong {
+  color: var(--accent);
+}
+
+.callout code {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+
+.report-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  padding: 0.75rem 0;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.report-details summary:hover {
+  color: var(--text);
+}
+
+.report-details[open] summary {
+  color: var(--text);
 }
 
 .table-wrap {
@@ -263,25 +358,11 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
   color: var(--text);
 }
 
-.status-confirmed {
-  color: #4ade80;
-}
-
-.status-suspected {
-  color: #fbbf24;
-}
-
-.status-unknown {
-  color: #ef4444;
-}
-
-.location-set {
-  color: #4ade80;
-}
-
-.location-missing {
-  color: #ef4444;
-}
+.status-confirmed { color: #4ade80; }
+.status-suspected { color: #fbbf24; }
+.status-unknown   { color: #ef4444; }
+.location-set     { color: #4ade80; }
+.location-missing { color: #ef4444; }
 </style>
 
 <script>
@@ -308,6 +389,12 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
 
   function hasLocation(node) {
     return node.lat && node.lon && !(node.lat === 0 && node.lon === 0);
+  }
+
+  function firmwareLabel(node) {
+    if (node.multi_byte_status === 'confirmed') return '✓ 1.14+';
+    if (node.multi_byte_status === 'suspected') return '~ Suspected 1.14+';
+    return '✗ Likely pre-1.14';
   }
 
   fetch(API)
@@ -338,17 +425,16 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
         </tr>`;
       });
 
-      // Firmware attention
-      const firmwareNeeded = repeaters.filter(n => n.multi_byte_status !== 'confirmed');
+      // Firmware — only hash_size 1 and unknown status (likely pre-1.14)
+      const firmwareNeeded = repeaters.filter(n => n.hash_size === 1 && n.multi_byte_status === 'unknown');
       document.getElementById('firmware-count').textContent = firmwareNeeded.length;
       document.getElementById('needs-attention').textContent = noLocation.length + firmwareNeeded.length;
       const firmwareBody = document.getElementById('firmware-body');
       firmwareNeeded.forEach(n => {
-        const statusClass = n.multi_byte_status === 'suspected' ? 'status-suspected' : 'status-unknown';
         firmwareBody.innerHTML += `<tr>
           <td class="node-name">${n.name}</td>
           <td>${pubkeyPrefix(n.public_key)}</td>
-          <td class="${statusClass}">${n.multi_byte_status}</td>
+          <td class="status-unknown">Likely pre-1.14</td>
           <td>${timeAgo(n.last_seen)}</td>
           <td>${n.advert_count}</td>
         </tr>`;
@@ -367,7 +453,7 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
           allBody.innerHTML += `<tr>
             <td class="node-name">${n.name}</td>
             <td>${pubkeyPrefix(n.public_key)}</td>
-            <td class="${statusClass}">${n.multi_byte_status}</td>
+            <td class="${statusClass}">${firmwareLabel(n)}</td>
             <td class="${locClass}">${locText}</td>
             <td>${timeAgo(n.last_seen)}</td>
             <td>${n.advert_count}</td>
