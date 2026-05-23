@@ -570,3 +570,10 @@ ul { list-style: none; }
   background: var(--accent-dim);
   color: var(--text);
 }
+.nav-brand-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
