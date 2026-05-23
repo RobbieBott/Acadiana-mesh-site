@@ -56,9 +56,23 @@ ul { list-style: none; }
   height: 64px;
 }
 
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
 .nav-logo img {
-  height: 40px;
+  height: 36px;
   width: auto;
+}
+
+.nav-brand-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
 }
 
 .nav-links {
