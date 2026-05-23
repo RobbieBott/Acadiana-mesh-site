@@ -16,4 +16,6 @@ header_pages:
   - connect.markdown
   - devices.markdown
   - settings.markdown
-  - channels.markdownpermalink: pretty
+  - channels.markdown
+
+permalink: pretty
