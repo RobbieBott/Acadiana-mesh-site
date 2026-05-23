@@ -592,3 +592,39 @@ ul { list-style: none; }
   margin-left: 0.5rem;
   white-space: nowrap;
 }
+/* ── Channel Cards ─────────────────────────────────────────── */
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.channel-card {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-hover);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  transition: all 0.3s;
+}
+
+.channel-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.channel-name {
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: monospace;
+  margin-bottom: 0.75rem;
+}
+
+.channel-meta {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}

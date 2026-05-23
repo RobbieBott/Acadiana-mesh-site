@@ -7,6 +7,33 @@ permalink: /channels/
 Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.
 
 ## Core Channels
+<div class="channel-grid">
+  <div class="channel-card">
+    <div class="channel-name">Public</div>
+    <p>General chat for all mesh users. Uses a well-known shared key.</p>
+    <div class="channel-meta">Well-known key · No region</div>
+  </div>
+  <div class="channel-card">
+    <div class="channel-name">#test</div>
+    <p>Connection testing. Send <code>test</code>, <code>ping</code>, or <code>path</code>.</p>
+    <div class="channel-meta">Hashtag derived · No region</div>
+  </div>
+  <div class="channel-card">
+    <div class="channel-name">#acadiana</div>
+    <p>Acadiana Region general chat for all mesh users across South Louisiana.</p>
+    <div class="channel-meta">Hashtag derived · gc-la</div>
+  </div>
+  <div class="channel-card">
+    <div class="channel-name">#lft</div>
+    <p>Lafayette area local chat for nodes in the greater Lafayette area.</p>
+    <div class="channel-meta">Hashtag derived · gc-la-lft</div>
+  </div>
+  <div class="channel-card">
+    <div class="channel-name">#emergency</div>
+    <p>Emergency communications only. Please keep clear for urgent traffic.</p>
+    <div class="channel-meta">Hashtag derived · gc-la</div>
+  </div>
+</div>
 
 | Channel | Key Type | Region | Purpose |
 |---|---|---|---|
