@@ -11,27 +11,38 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
   <div class="channel-card">
     <div class="channel-name">Public</div>
     <p>General chat for all mesh users. Uses a well-known shared key.</p>
-    <div class="channel-meta">Well-known key · No region</div>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Well-known</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#test</div>
     <p>Connection testing. Send <code>test</code>, <code>ping</code>, or <code>path</code>.</p>
-    <div class="channel-meta">Hashtag derived · No region</div>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#acadiana</div>
     <p>Acadiana Region general chat for all mesh users across South Louisiana.</p>
-    <div class="channel-meta">Hashtag derived · gc-la</div>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">gc-la — Louisiana</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#lft</div>
     <p>Lafayette area local chat for nodes in the greater Lafayette area.</p>
-    <div class="channel-meta">Hashtag derived · gc-la-lft</div>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">gc-la-lft — Lafayette</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#emergency</div>
     <p>Emergency communications only. Please keep clear for urgent traffic.</p>
-    <div class="channel-meta">Hashtag derived · gc-la</div>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">gc-la — Louisiana</span>
   </div>
 </div>
 
