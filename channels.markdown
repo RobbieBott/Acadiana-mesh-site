@@ -68,6 +68,24 @@ Private channels use a custom key that you set manually. Only people you share t
 ### Direct Messages
 Direct messages are encrypted end-to-end between two nodes. Only the intended recipient can read them.
 
+### Channel Regions & Scopes
+
+Regions control which repeaters will forward a channel's messages. When you send a message on a scoped channel, repeaters check if they have that region configured — if not, the message stops there.
+
+**Why this matters:** Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.
+
+**How to read the scope:** `gc-la-lft` breaks down as:
+- `gc` — Gulf Coast (broad regional scope)
+- `gc-la` — Louisiana (state scope)  
+- `gc-la-lft` — Lafayette (local scope)
+
+**Choosing the right scope:**
+- Use a **wider scope** (`gc-la`) to reach more people across Louisiana
+- Use a **narrower scope** (`gc-la-lft`) to keep traffic local to Lafayette
+- Channels with **no scope** flood the entire mesh — use sparingly
+
+**Discovering local regions:** In the MeshCore app tap **Discover → Discover Regions** to see what region scopes are active on nearby repeaters.
+
 ## Adding a Channel
 
 1. Open the MeshCore app
