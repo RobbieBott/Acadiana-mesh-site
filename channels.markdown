@@ -13,12 +13,14 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <p>General chat for all mesh users. Uses a well-known shared key.</p>
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Well-known</span>
+    <span class="channel-region">No Region/Scope</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#test</div>
     <p>Connection testing. Send <code>test</code>, <code>ping</code>, or <code>path</code>.</p>
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
+    <span class="channel-region">No Region/Scope</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#acadiana</div>
@@ -26,7 +28,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la</span>
+    <span class="channel-region">gc-la-lft</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#lafayette</div>
