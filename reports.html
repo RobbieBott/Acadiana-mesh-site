@@ -1,0 +1,382 @@
+---
+layout: default
+title: Network Reports
+description: Live network health reports for the Acadiana Mesh, pulled directly from CoreScope.
+---
+
+<div class="page-container">
+  <h1 class="page-title">Network Reports</h1>
+  <p class="section-subtitle" style="text-align:left; margin-bottom: 2rem;">Live data pulled from <a href="https://analyzer.acadianamesh.com" target="_blank">CoreScope</a>. Updates every time you load this page.</p>
+
+  <!-- Summary Cards -->
+  <div class="report-summary" id="summary">
+    <div class="summary-card">
+      <div class="summary-number" id="total-nodes">—</div>
+      <div class="summary-label">Total Nodes</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-repeaters">—</div>
+      <div class="summary-label">Repeaters</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-companions">—</div>
+      <div class="summary-label">Companions</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="needs-attention">—</div>
+      <div class="summary-label">Need Attention</div>
+    </div>
+  </div>
+
+  <div id="loading" class="report-loading">
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    Fetching live data from CoreScope...
+  </div>
+
+  <div id="report-content" style="display:none;">
+
+    <!-- No Location -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>No Location Set <span class="report-badge badge-warn" id="no-location-count"></span></h2>
+        <p>These repeaters have not configured a location. A general area is enough — it helps the community understand network coverage and identify gaps.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th>Public Key Prefix</th>
+              <th>First Seen</th>
+              <th>Last Seen</th>
+              <th>Adverts</th>
+            </tr>
+          </thead>
+          <tbody id="no-location-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Needs Firmware Update -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>Firmware Attention Needed <span class="report-badge badge-urgent" id="firmware-count"></span></h2>
+        <p>These repeaters are not confirmed to be forwarding multi-byte packets. They may be running older firmware and could silently drop traffic. Please update to the latest MeshCore firmware.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th>Public Key Prefix</th>
+              <th>Status</th>
+              <th>Last Seen</th>
+              <th>Adverts</th>
+            </tr>
+          </thead>
+          <tbody id="firmware-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- All Repeaters -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>All Repeaters <span class="report-badge badge-ok" id="all-repeaters-count"></span></h2>
+        <p>All repeaters seen on the network, sorted by most recently active.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th>Public Key Prefix</th>
+              <th>Firmware</th>
+              <th>Location</th>
+              <th>Last Seen</th>
+              <th>Adverts</th>
+            </tr>
+          </thead>
+          <tbody id="all-repeaters-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.summary-card:hover {
+  border-color: var(--border-hover);
+}
+
+.summary-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.summary-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  padding: 3rem 0;
+}
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: blink 1.4s infinite both;
+}
+
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}
+
+.report-section {
+  margin-bottom: 4rem;
+}
+
+.report-section-header {
+  margin-bottom: 1.5rem;
+}
+
+.report-section-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.report-section-header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.report-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.badge-warn {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.badge-urgent {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-ok {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--border-hover);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.report-table th {
+  background: var(--bg-surface);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.report-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.report-table tr:last-child td {
+  border-bottom: none;
+}
+
+.report-table tr:hover td {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+.report-table td.node-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.status-confirmed {
+  color: #4ade80;
+}
+
+.status-suspected {
+  color: #fbbf24;
+}
+
+.status-unknown {
+  color: #ef4444;
+}
+
+.location-set {
+  color: #4ade80;
+}
+
+.location-missing {
+  color: #ef4444;
+}
+</style>
+
+<script>
+(function() {
+  const API = 'https://analyzer.acadianamesh.com/api/nodes';
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '—';
+    const diff = (Date.now() - new Date(dateStr)) / 1000;
+    if (diff < 60) return Math.floor(diff) + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function pubkeyPrefix(key) {
+    return key ? key.substring(0, 8) : '—';
+  }
+
+  function hasLocation(node) {
+    return node.lat && node.lon && !(node.lat === 0 && node.lon === 0);
+  }
+
+  fetch(API)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('report-content').style.display = 'block';
+
+      const nodes = data.nodes || [];
+      const repeaters = nodes.filter(n => n.role === 'repeater');
+
+      // Summary
+      document.getElementById('total-nodes').textContent = data.total || nodes.length;
+      document.getElementById('total-repeaters').textContent = data.counts?.repeaters || repeaters.length;
+      document.getElementById('total-companions').textContent = data.counts?.companions || 0;
+
+      // No location
+      const noLocation = repeaters.filter(n => !hasLocation(n));
+      document.getElementById('no-location-count').textContent = noLocation.length;
+      const noLocBody = document.getElementById('no-location-body');
+      noLocation.forEach(n => {
+        noLocBody.innerHTML += `<tr>
+          <td class="node-name">${n.name}</td>
+          <td>${pubkeyPrefix(n.public_key)}</td>
+          <td>${formatDate(n.first_seen)}</td>
+          <td>${timeAgo(n.last_seen)}</td>
+          <td>${n.advert_count}</td>
+        </tr>`;
+      });
+
+      // Firmware attention
+      const firmwareNeeded = repeaters.filter(n => n.multi_byte_status !== 'confirmed');
+      document.getElementById('firmware-count').textContent = firmwareNeeded.length;
+      document.getElementById('needs-attention').textContent = noLocation.length + firmwareNeeded.length;
+      const firmwareBody = document.getElementById('firmware-body');
+      firmwareNeeded.forEach(n => {
+        const statusClass = n.multi_byte_status === 'suspected' ? 'status-suspected' : 'status-unknown';
+        firmwareBody.innerHTML += `<tr>
+          <td class="node-name">${n.name}</td>
+          <td>${pubkeyPrefix(n.public_key)}</td>
+          <td class="${statusClass}">${n.multi_byte_status}</td>
+          <td>${timeAgo(n.last_seen)}</td>
+          <td>${n.advert_count}</td>
+        </tr>`;
+      });
+
+      // All repeaters
+      document.getElementById('all-repeaters-count').textContent = repeaters.length;
+      const allBody = document.getElementById('all-repeaters-body');
+      repeaters
+        .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
+        .forEach(n => {
+          const statusClass = n.multi_byte_status === 'confirmed' ? 'status-confirmed' :
+                              n.multi_byte_status === 'suspected' ? 'status-suspected' : 'status-unknown';
+          const locClass = hasLocation(n) ? 'location-set' : 'location-missing';
+          const locText = hasLocation(n) ? '✓ Set' : '✗ Missing';
+          allBody.innerHTML += `<tr>
+            <td class="node-name">${n.name}</td>
+            <td>${pubkeyPrefix(n.public_key)}</td>
+            <td class="${statusClass}">${n.multi_byte_status}</td>
+            <td class="${locClass}">${locText}</td>
+            <td>${timeAgo(n.last_seen)}</td>
+            <td>${n.advert_count}</td>
+          </tr>`;
+        });
+    })
+    .catch(err => {
+      document.getElementById('loading').textContent = 'Failed to load data from CoreScope. Please try again later.';
+      console.error(err);
+    });
+})();
+</script>
