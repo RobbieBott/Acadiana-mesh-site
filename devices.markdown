@@ -7,8 +7,15 @@ permalink: /devices/
 Here are the recommended devices for joining the Acadiana Mesh network. All devices listed are compatible with MeshCore firmware.
 
 ## Recommended Beginner Devices
+### Heltec T096
+Ultra-compact device with a small built-in display. Great for portable use and easy to carry.
 
-### Heltec WiFi LoRa 32 V3
+- **Price:** ~$25-35
+- **Connection:** USB, Bluetooth
+- **Display:** Yes (0.96" OLED)
+- **Battery:** External required
+
+### Heltec WiFi LoRa 32 V4
 The most popular choice for getting started. Compact, affordable, and widely supported.
 
 - **Price:** ~$20-30
