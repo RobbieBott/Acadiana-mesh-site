@@ -27,9 +27,9 @@ Apply the Acadiana Mesh radio settings using the [MeshCore Config Tool](https://
 
 | Setting | Value |
 |---|---|
-| Frequency | 915.0 MHz |
-| Bandwidth | 250 kHz |
-| Spreading Factor | 11 |
+| Frequency | 910.525 MHz |
+| Bandwidth | 62.5 kHz |
+| Spreading Factor | 9 |
 | Coding Rate | 5 |
 
 See the full [Settings](/settings) page for more details.

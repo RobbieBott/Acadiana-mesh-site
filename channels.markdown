@@ -8,13 +8,13 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
 
 ## Core Channels
 
-| Channel | Key Type | Purpose |
-|---|---|---|
-| Public | Well-known | General chat for all mesh users |
-| #test | Hashtag derived | Connection testing — send `test`, `ping`, or `path` |
-| #acadiana | Hashtag derived | Acadiana Region general chat |
-| #lft | Hashtag derived | Lafayette area chat |
-| #emergency | Hashtag derived | Emergency communications only |
+| Channel | Key Type | Region | Purpose |
+|---|---|---|---|
+| Public | Well-known | None | General chat for all mesh users |
+| #test | Hashtag derived | None | Connection testing — send `test`, `ping`, or `path` |
+| #acadiana | Hashtag derived | gc-la | Acadiana Region general chat |
+| #lft | Hashtag derived | gc-la-lft | Lafayette area chat |
+| #emergency | Hashtag derived | gc-la | Emergency communications only |
 
 ## How Channels Work
 
