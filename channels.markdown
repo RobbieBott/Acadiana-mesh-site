@@ -29,7 +29,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <span class="channel-region">gc-la</span>
   </div>
   <div class="channel-card">
-    <div class="channel-name">#lftlafayette</div>
+    <div class="channel-name">#lafayette</div>
     <p>Lafayette area local chat for nodes in the greater Lafayette area.</p>
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
