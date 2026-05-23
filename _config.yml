@@ -1,0 +1,19 @@
+title: Acadiana Mesh
+email: info@acadianamesh.com
+description: An off-grid text based communications network in the Acadiana Region based on license-free LoRa radios.
+baseurl: ""
+url: "https://acadianamesh.com"
+discord_url: "https://discord.gg/your-invite"
+analyzer_url: "https://analyzer.acadianamesh.com"
+docs_url: "https://docs.acadianamesh.com"
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+header_pages:
+  - about.markdown
+  - connect.markdown
+  - devices.markdown
+  - settings.markdown
+  - channels.markdown

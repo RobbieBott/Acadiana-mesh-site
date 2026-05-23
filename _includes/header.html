@@ -1,0 +1,21 @@
+<header class="site-header">
+  <nav class="nav-container">
+    <a href="{{ '/' | relative_url }}" class="nav-logo">
+      <img src="{{ '/assets/images/logo.png' | relative_url }}" alt="{{ site.title }}">
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="{{ '/' | relative_url }}" {% if page.url == '/' %}class="active"{% endif %}>Home</a></li>
+      <li><a href="{{ '/about' | relative_url }}" {% if page.url contains 'about' %}class="active"{% endif %}>Info</a></li>
+      <li><a href="{{ '/connect' | relative_url }}" {% if page.url contains 'connect' %}class="active"{% endif %}>Get Connected</a></li>
+      <li><a href="{{ '/devices' | relative_url }}" {% if page.url contains 'devices' %}class="active"{% endif %}>Devices</a></li>
+      <li><a href="{{ '/settings' | relative_url }}" {% if page.url contains 'settings' %}class="active"{% endif %}>Settings</a></li>
+      <li><a href="{{ '/channels' | relative_url }}" {% if page.url contains 'channels' %}class="active"{% endif %}>Channels</a></li>
+      <li><a href="https://analyzer.acadianamesh.com/#/live" target="_blank">Live</a></li>
+    </ul>
+  </nav>
+</header>
