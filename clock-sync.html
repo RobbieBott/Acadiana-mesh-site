@@ -1,0 +1,469 @@
+---
+layout: default
+title: Clock Sync Report
+description: Live clock synchronization health report for Acadiana Mesh repeaters.
+---
+
+<div class="page-container">
+  <h1 class="page-title">Clock Sync Report</h1>
+  <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Live data pulled from <a href="https://analyzer.acadianamesh.com" target="_blank">CoreScope</a>. Clock offset is calculated by comparing the timestamp embedded in each repeater's advert packet against the time the observer received it.</p>
+  <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 2rem;">← <a href="{{ '/reports/' | relative_url }}">Back to Network Reports</a></p>
+
+  <!-- Summary Cards -->
+  <div class="report-summary">
+    <div class="summary-card">
+      <div class="summary-number" id="total-checked">—</div>
+      <div class="summary-label">Repeaters Checked</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-synced" style="color: #4ade80;">—</div>
+      <div class="summary-label">Clock OK</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-warning" style="color: #fbbf24;">—</div>
+      <div class="summary-label">Minor Drift</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-critical" style="color: #ef4444;">—</div>
+      <div class="summary-label">Clock Out of Sync</div>
+    </div>
+  </div>
+
+  <div id="loading" class="report-loading">
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    Fetching packets from CoreScope and calculating clock offsets...
+  </div>
+
+  <div id="report-content" style="display:none;">
+
+    <!-- Out of Sync -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>Clock Out of Sync <span class="report-badge badge-urgent" id="critical-count"></span></h2>
+        <span class="action-tag action-important">Action Important</span>
+        <p>These repeaters have a clock offset greater than 5 minutes. A badly drifted clock can cause packet deduplication failures and timestamp confusion across the mesh. To fix, connect to the repeater via the MeshCore app or CLI and sync the clock.</p>
+        <div class="callout callout-note">
+          <strong>How to fix:</strong> Connect to your repeater via the MeshCore companion app and tap <strong>Sync Clock</strong>, or via CLI run: <code>set time [unix timestamp]</code>. After syncing, the repeater should disappear from this list within one advert cycle (~10 minutes).
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th>Clock Offset</th>
+              <th>Repeater Clock Says</th>
+              <th>Observer Received At</th>
+              <th>Public Key Prefix</th>
+            </tr>
+          </thead>
+          <tbody id="critical-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Minor Drift -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>Minor Clock Drift <span class="report-badge badge-warn" id="warning-count"></span></h2>
+        <p>These repeaters have a clock offset between 1 and 5 minutes. This is worth monitoring but not immediately critical. Normal propagation delay and advert interval can account for small offsets.</p>
+      </div>
+      <details class="report-details">
+        <summary>▶ Click to view repeaters with minor drift</summary>
+        <div class="table-wrap" style="margin-top: 1rem;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Repeater Name</th>
+                <th>Clock Offset</th>
+                <th>Repeater Clock Says</th>
+                <th>Observer Received At</th>
+                <th>Public Key Prefix</th>
+              </tr>
+            </thead>
+            <tbody id="warning-body"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <!-- All Checked -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>All Repeaters Checked <span class="report-badge badge-ok" id="all-count"></span></h2>
+        <p>All repeaters for which a recent advert packet was found, sorted by clock offset (worst first).</p>
+      </div>
+      <details class="report-details">
+        <summary>▶ Click to view all checked repeaters</summary>
+        <div class="table-wrap" style="margin-top: 1rem;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Repeater Name</th>
+                <th>Clock Offset</th>
+                <th>Status</th>
+                <th>Last Advert</th>
+                <th>Public Key Prefix</th>
+              </tr>
+            </thead>
+            <tbody id="all-body"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.report-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.summary-card:hover { border-color: var(--border-hover); }
+
+.summary-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.summary-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  padding: 3rem 0;
+}
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: blink 1.4s infinite both;
+}
+
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}
+
+.report-section {
+  margin-bottom: 4rem;
+  border-top: 1px solid var(--border);
+  padding-top: 2.5rem;
+}
+
+.report-section-header { margin-bottom: 1.5rem; }
+
+.report-section-header h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.report-section-header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.action-important {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.report-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 4px;
+}
+
+.badge-urgent {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-warn {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.badge-ok {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--border-hover);
+}
+
+.callout {
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.callout-note {
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: var(--text-muted);
+}
+
+.callout-note strong { color: #fbbf24; }
+.callout-note code {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+
+.report-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  padding: 0.75rem 0;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+.report-details summary:hover { color: var(--text); }
+.report-details[open] summary { color: var(--text); }
+
+.table-wrap { overflow-x: auto; }
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.report-table th {
+  background: var(--bg-surface);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.report-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.report-table tr:last-child td { border-bottom: none; }
+.report-table tr:hover td { background: var(--accent-dim); color: var(--text); }
+.report-table td.node-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.offset-critical { color: #ef4444; font-weight: 600; }
+.offset-warning  { color: #fbbf24; font-weight: 600; }
+.offset-ok       { color: #4ade80; }
+</style>
+
+<script>
+(function() {
+  const API = 'https://analyzer.acadianamesh.com/api/packets?limit=2000';
+  const WARN_THRESHOLD  = 60;       // 1 minute in seconds
+  const CRIT_THRESHOLD  = 300;      // 5 minutes in seconds
+
+  function formatOffset(seconds) {
+    const abs = Math.abs(seconds);
+    const sign = seconds < 0 ? '-' : '+';
+    if (abs < 60) return sign + abs + 's';
+    if (abs < 3600) return sign + Math.floor(abs / 60) + 'm ' + (abs % 60) + 's';
+    if (abs < 86400) return sign + Math.floor(abs / 3600) + 'h ' + Math.floor((abs % 3600) / 60) + 'm';
+    return sign + Math.floor(abs / 86400) + 'd ' + Math.floor((abs % 86400) / 3600) + 'h';
+  }
+
+  function formatDateTime(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '—';
+    const diff = (Date.now() - new Date(dateStr)) / 1000;
+    if (diff < 60) return Math.floor(diff) + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function pubkeyPrefix(key) {
+    return key ? key.substring(0, 8) : '—';
+  }
+
+  fetch(API)
+    .then(r => r.json())
+    .then(data => {
+      const packets = data.packets || [];
+
+      // Filter to ADVERT packets only (payload_type 4) and parse decoded_json
+      const adverts = packets
+        .filter(p => p.payload_type === 4)
+        .map(p => {
+          try {
+            const decoded = JSON.parse(p.decoded_json);
+            if (!decoded.timestampISO || !decoded.name || !decoded.flags?.repeater) return null;
+            const nodeTime = new Date(decoded.timestampISO);
+            const rxTime = new Date(p.timestamp);
+            const offsetSeconds = Math.round((nodeTime - rxTime) / 1000);
+            return {
+              name: decoded.name,
+              pubkey: decoded.pubKey,
+              nodeTime: decoded.timestampISO,
+              rxTime: p.timestamp,
+              offsetSeconds,
+              absOffset: Math.abs(offsetSeconds)
+            };
+          } catch (e) { return null; }
+        })
+        .filter(Boolean);
+
+      // Deduplicate — keep the most recent advert per node (by pubkey)
+      const seen = new Map();
+      adverts.forEach(a => {
+        if (!seen.has(a.pubkey) || new Date(a.rxTime) > new Date(seen.get(a.pubkey).rxTime)) {
+          seen.set(a.pubkey, a);
+        }
+      });
+
+      const nodes = Array.from(seen.values())
+        .sort((a, b) => b.absOffset - a.absOffset);
+
+      const critical = nodes.filter(n => n.absOffset >= CRIT_THRESHOLD);
+      const warning  = nodes.filter(n => n.absOffset >= WARN_THRESHOLD && n.absOffset < CRIT_THRESHOLD);
+      const ok       = nodes.filter(n => n.absOffset < WARN_THRESHOLD);
+
+      // Update summary
+      document.getElementById('total-checked').textContent  = nodes.length;
+      document.getElementById('total-synced').textContent   = ok.length;
+      document.getElementById('total-warning').textContent  = warning.length;
+      document.getElementById('total-critical').textContent = critical.length;
+      document.getElementById('critical-count').textContent = critical.length;
+      document.getElementById('warning-count').textContent  = warning.length;
+      document.getElementById('all-count').textContent      = nodes.length;
+
+      // Critical table
+      const critBody = document.getElementById('critical-body');
+      if (critical.length === 0) {
+        critBody.innerHTML = `<tr><td colspan="5" style="color:var(--text-dim);text-align:center;padding:2rem;">
+          No repeaters with critical clock drift detected ✓</td></tr>`;
+      } else {
+        critical.forEach(n => {
+          critBody.innerHTML += `<tr>
+            <td class="node-name">${n.name}</td>
+            <td class="offset-critical">${formatOffset(n.offsetSeconds)}</td>
+            <td>${formatDateTime(n.nodeTime)}</td>
+            <td>${formatDateTime(n.rxTime)}</td>
+            <td>${pubkeyPrefix(n.pubkey)}</td>
+          </tr>`;
+        });
+      }
+
+      // Warning table
+      const warnBody = document.getElementById('warning-body');
+      if (warning.length === 0) {
+        warnBody.innerHTML = `<tr><td colspan="5" style="color:var(--text-dim);text-align:center;padding:2rem;">
+          No repeaters with minor drift detected ✓</td></tr>`;
+      } else {
+        warning.forEach(n => {
+          warnBody.innerHTML += `<tr>
+            <td class="node-name">${n.name}</td>
+            <td class="offset-warning">${formatOffset(n.offsetSeconds)}</td>
+            <td>${formatDateTime(n.nodeTime)}</td>
+            <td>${formatDateTime(n.rxTime)}</td>
+            <td>${pubkeyPrefix(n.pubkey)}</td>
+          </tr>`;
+        });
+      }
+
+      // All table
+      const allBody = document.getElementById('all-body');
+      nodes.forEach(n => {
+        const cls = n.absOffset >= CRIT_THRESHOLD ? 'offset-critical' :
+                    n.absOffset >= WARN_THRESHOLD  ? 'offset-warning'  : 'offset-ok';
+        const status = n.absOffset >= CRIT_THRESHOLD ? '✗ Out of sync' :
+                       n.absOffset >= WARN_THRESHOLD  ? '⚠ Minor drift'  : '✓ OK';
+        allBody.innerHTML += `<tr>
+          <td class="node-name">${n.name}</td>
+          <td class="${cls}">${formatOffset(n.offsetSeconds)}</td>
+          <td class="${cls}">${status}</td>
+          <td>${timeAgo(n.rxTime)}</td>
+          <td>${pubkeyPrefix(n.pubkey)}</td>
+        </tr>`;
+      });
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('report-content').style.display = 'block';
+    })
+    .catch(err => {
+      document.getElementById('loading').textContent = 'Failed to load data from CoreScope. Please try again later.';
+      console.error(err);
+    });
+})();
+</script>
