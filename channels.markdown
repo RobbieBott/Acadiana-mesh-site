@@ -48,6 +48,14 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">gc-la</span>
   </div>
+   <div class="channel-card">
+    <div class="channel-name">#wx</div>
+    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">gc-la-lft</span>
+  </div>
 </div>
 
 ## How Channels Work
