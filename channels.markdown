@@ -14,7 +14,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Well-known</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">No Region/Scope</span>
+    <span class="channel-region">No Region Scope</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#test</div>
@@ -22,7 +22,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">No Region/Scope</span>
+    <span class="channel-region">No Region Scope</span>
   </div>
   <div class="channel-card">
     <div class="channel-name">#acadiana</div>
