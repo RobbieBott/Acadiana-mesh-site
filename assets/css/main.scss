@@ -64,8 +64,9 @@ ul { list-style: none; }
 }
 
 .nav-logo img {
-  height: 36px;
-  width: auto;
+  height: 36px !important;
+  width: auto !important;
+  max-width: none !important;
 }
 
 .nav-brand-text {
