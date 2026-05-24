@@ -72,9 +72,11 @@ Apply these region commands to your repeater:
 region put gc
 region put gc-la gc
 region put gc-la-lft gc-la
+region put gc-la-lft-mm gc-la
 region allowf gc
 region allowf gc-la
 region allowf gc-la-lft
+region allowf gc-la-lft-mm
 region save
 {% endhighlight %}
 
