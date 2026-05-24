@@ -53,7 +53,7 @@ description: Live network health reports for the Acadiana Mesh.
               <th>Public Key Prefix</th>
               <th>First Seen</th>
               <th>Last Seen</th>
-              <th>Adverts</th>
+              <th>Adverts (lifetime)</th>
             </tr>
           </thead>
           <tbody id="no-location-body"></tbody>
@@ -88,7 +88,7 @@ description: Live network health reports for the Acadiana Mesh.
                 <th>Public Key Prefix</th>
                 <th>Status</th>
                 <th>Last Seen</th>
-                <th>Adverts</th>
+                <th>Adverts (lifetime)</th>
               </tr>
             </thead>
             <tbody id="firmware-body"></tbody>
@@ -128,14 +128,13 @@ description: Live network health reports for the Acadiana Mesh.
         <div id="cs-critical-list"></div>
       </div>
     </div>
-   
+
     <!-- All Repeaters -->
     <div class="report-section">
       <div class="report-section-header">
         <h2>All Repeaters <span class="report-badge badge-ok" id="all-repeaters-count"></span></h2>
         <p>All repeaters heard by our observers in the Acadiana area, sorted by most recently active.</p>
-        <p><span style="color: var(--accent);">Note:</span> If yor repeater is not in this list it may simply be because an observer has not heard it. 
-        Want to host and observer to help the mesh visit here.</p>
+        <p><span style="color: var(--accent);">Note:</span> If your repeater is not in this list it may simply be because an observer has not heard it. Want to host an observer to help the mesh? Visit our <a href="{{ '/connect/' | relative_url }}">Get Connected</a> page.</p>
       </div>
       <div class="table-wrap">
         <table class="report-table">
@@ -327,11 +326,9 @@ description: Live network health reports for the Acadiana Mesh.
 .report-table tbody tr:nth-child(even) td {
   background: var(--bg-surface);
 }
-
 .report-table tbody tr:nth-child(even):hover td {
   background: var(--accent-dim);
 }
-
 .report-table td {
   padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -402,6 +399,7 @@ description: Live network health reports for the Acadiana Mesh.
   }
 
   function firmwareLabel(node) {
+    if (node.hash_size >= 2) return '✓ 1.14+';
     if (node.multi_byte_status === 'confirmed') return '✓ 1.14+';
     if (node.multi_byte_status === 'suspected') return '~ Suspected 1.14+';
     return '✗ Likely pre-1.14';
@@ -456,7 +454,7 @@ description: Live network health reports for the Acadiana Mesh.
       repeaters
         .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
         .forEach(n => {
-          const statusClass = n.multi_byte_status === 'confirmed' ? 'status-confirmed' :
+          const statusClass = (n.hash_size >= 2 || n.multi_byte_status === 'confirmed') ? 'status-confirmed' :
                               n.multi_byte_status === 'suspected' ? 'status-suspected' : 'status-unknown';
           const locClass = hasLocation(n) ? 'location-set' : 'location-missing';
           const locText = hasLocation(n) ? '✓ Set' : '✗ Missing';
@@ -474,8 +472,8 @@ description: Live network health reports for the Acadiana Mesh.
       document.getElementById('loading').textContent = 'Failed to load data from CoreScope. Please try again later.';
       console.error(err);
     });
-  
-    // Clock sync summary
+
+  // Clock sync summary
   fetch('https://analyzer.acadianamesh.com/api/packets?limit=2000')
     .then(r => r.json())
     .then(data => {
