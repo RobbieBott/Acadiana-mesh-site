@@ -97,6 +97,38 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
       </details>
     </div>
 
+    <!-- Clock Sync -->
+    <div class="report-section">
+      <div class="report-section-header">
+        <h2>Clock Synchronization</h2>
+        <span class="action-tag action-recommended">Action Recommended</span>
+        <p>Repeater clocks that drift out of sync can cause packet deduplication failures, inaccurate network maps, and signature validation errors. We check clock health by comparing the timestamp embedded in each repeater's advert packet against the time the observer received it.</p>
+        <p style="margin-top: 0.75rem;">
+          <a href="{{ '/clock-sync/' | relative_url }}" class="btn btn-secondary">→ View Full Clock Sync Report</a>
+        </p>
+      </div>
+      <div id="clock-summary-loading" style="color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">
+        Checking clock sync status...
+      </div>
+      <div id="clock-summary" style="display:none;">
+        <div class="report-summary" style="margin-bottom: 1rem;">
+          <div class="summary-card">
+            <div class="summary-number" id="cs-ok" style="color: #4ade80;">—</div>
+            <div class="summary-label">Clock OK</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-number" id="cs-warn" style="color: #fbbf24;">—</div>
+            <div class="summary-label">Minor Drift</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-number" id="cs-crit" style="color: #ef4444;">—</div>
+            <div class="summary-label">Out of Sync</div>
+          </div>
+        </div>
+        <div id="cs-critical-list"></div>
+      </div>
+    </div>
+   
     <!-- All Repeaters -->
     <div class="report-section">
       <div class="report-section-header">
@@ -431,6 +463,49 @@ description: Live network health reports for the Acadiana Mesh, pulled directly 
     .catch(err => {
       document.getElementById('loading').textContent = 'Failed to load data from CoreScope. Please try again later.';
       console.error(err);
+    });
+  
+    // Clock sync summary
+  fetch('https://analyzer.acadianamesh.com/api/packets?limit=2000')
+    .then(r => r.json())
+    .then(data => {
+      const WARN = 10, CRIT = 30;
+      const packets = data.packets || [];
+      const seen = new Map();
+      packets
+        .filter(p => p.payload_type === 4)
+        .forEach(p => {
+          try {
+            const d = JSON.parse(p.decoded_json);
+            if (!d.timestampISO || !d.name || !d.flags?.repeater) return;
+            if (d.lat && d.lon && !pointInPolygon(d.lat, d.lon, ACADIANA_POLYGON)) return;
+            const offset = Math.abs(Math.round((new Date(d.timestampISO) - new Date(p.timestamp)) / 1000));
+            if (!seen.has(d.pubKey) || new Date(p.timestamp) > new Date(seen.get(d.pubKey).rxTime)) {
+              seen.set(d.pubKey, { name: d.name, offset, rxTime: p.timestamp });
+            }
+          } catch(e) {}
+        });
+
+      const nodes = Array.from(seen.values());
+      const crit  = nodes.filter(n => n.offset >= CRIT);
+      const warn  = nodes.filter(n => n.offset >= WARN && n.offset < CRIT);
+      const ok    = nodes.filter(n => n.offset < WARN);
+
+      document.getElementById('cs-ok').textContent   = ok.length;
+      document.getElementById('cs-warn').textContent  = warn.length;
+      document.getElementById('cs-crit').textContent  = crit.length;
+
+      if (crit.length > 0) {
+        document.getElementById('cs-critical-list').innerHTML =
+          `<p style="color:#ef4444; font-size:0.9rem; margin-bottom:0.5rem;"><strong>Repeaters out of sync (≥30s):</strong></p>` +
+          crit.map(n => `<span style="display:inline-block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:0.2rem 0.6rem;margin:0.2rem;font-size:0.85rem;color:#ef4444;">${n.name}</span>`).join('');
+      }
+
+      document.getElementById('clock-summary-loading').style.display = 'none';
+      document.getElementById('clock-summary').style.display = 'block';
+    })
+    .catch(() => {
+      document.getElementById('clock-summary-loading').textContent = 'Could not load clock sync data.';
     });
 })();
 </script>
