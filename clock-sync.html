@@ -331,6 +331,14 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
+.report-table tbody tr:nth-child(even) td {
+  background: var(--bg-surface);
+}
+
+.report-table tbody tr:nth-child(even):hover td {
+  background: var(--accent-dim);
+}
+
 .report-table td {
   padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--border);
