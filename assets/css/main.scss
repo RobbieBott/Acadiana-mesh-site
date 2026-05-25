@@ -762,3 +762,10 @@ ul { list-style: none; }
   .footer-container { grid-template-columns: 1fr; }
   .hero-buttons, .cta-buttons, .community-links { flex-direction: column; align-items: center; }
 }
+.report-table td.node-name {
+  white-space: nowrap;
+}
+
+.report-table td {
+  white-space: nowrap;
+}
