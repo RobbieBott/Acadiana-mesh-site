@@ -8,11 +8,24 @@
       <div class="form-row">
         <input type="text" name="name" placeholder="Name (optional)" />
         <input type="email" name="email" required placeholder="E-mail" />
-        <input type="tel" name="attribs[phone]" placeholder="Phone (optional)" />
+        <input type="tel" name="attribs[phone]" placeholder="(555) 555-5555" id="phone-input" maxlength="14" autocomplete="tel" />
         <button type="submit">Subscribe</button>
       </div>
       <altcha-widget challengeurl="https://mail.acadianamesh.com/api/public/captcha/altcha"></altcha-widget>
       <script type="module" src="https://mail.acadianamesh.com/public/static/altcha.umd.js" async defer></script>
     </form>
   </div>
+  <script>
+    document.getElementById('phone-input').addEventListener('input', function(e) {
+      let val = e.target.value.replace(/\D/g, '').substring(0, 10);
+      if (val.length >= 6) {
+        val = '(' + val.substring(0,3) + ') ' + val.substring(3,6) + '-' + val.substring(6);
+      } else if (val.length >= 3) {
+        val = '(' + val.substring(0,3) + ') ' + val.substring(3);
+      } else if (val.length > 0) {
+        val = '(' + val;
+      }
+      e.target.value = val;
+    });
+  </script>
 </section>
