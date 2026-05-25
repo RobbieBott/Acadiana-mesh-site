@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Devices
+title: MeshCore Compatible Devices — Acadiana Mesh
+description: Recommended LoRa devices for joining the Acadiana Mesh network. Includes prebuilt options like the Seeed Wio Tracker L1 Pro, LilyGO T-Deck Plus and Pro, plus repeater hardware like the RAK WisMesh 1W and Raspberry Pi HATs.
 permalink: /devices/
 ---
 

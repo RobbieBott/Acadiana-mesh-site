@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Get Connected
+title: Get Connected — Join the Acadiana Mesh Network
+description: Step-by-step guide to joining the Acadiana Mesh LoRa network. Flash MeshCore firmware, configure radio settings, and get on the mesh in about 10 minutes. Learn how to host an observer too.
 permalink: /connect/
 ---
 

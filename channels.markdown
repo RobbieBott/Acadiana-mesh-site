@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Channels
+title: Channels — Acadiana Mesh Communication Groups
+description: Browse Acadiana Mesh channels including #acadiana, #lafayette, #emergency, and #wx. Learn how MeshCore hashtag channels, region scopes, and encrypted messaging work.
 permalink: /channels/
 ---
 

@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Settings
+title: Radio Settings — Acadiana Mesh Network Configuration
+description: Exact radio and MQTT settings to join the Acadiana Mesh network. Includes frequency, bandwidth, spreading factor, region configuration, and recommended repeater CLI settings for MeshCore.
 permalink: /settings/
 ---
 

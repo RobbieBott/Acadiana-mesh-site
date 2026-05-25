@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Info
+title: About Acadiana Mesh — Off-Grid LoRa Mesh Network in South Louisiana
+description: Learn about Acadiana Mesh, a community-built off-grid text messaging network across the Acadiana Region using MeshCore and license-free LoRa radios. No cell towers, no internet required.
 permalink: /about/
 ---
 
