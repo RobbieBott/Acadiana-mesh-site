@@ -133,7 +133,7 @@ description: Live network health reports for the Acadiana Mesh.
     <div class="report-section">
       <div class="report-section-header">
         <h2>Recently Active Repeaters <span class="report-badge badge-ok" id="all-repeaters-count"></span></h2>
-         <p>Repeaters currently in the Acadiana area that have been recently heard by our observers, sorted by most recently active. Low-activity repeaters may not appear if they haven't been heard recently.</p>
+        <p>Repeaters currently in the Acadiana area that have been recently heard by our observers, sorted by most recently active. Low-activity repeaters may not appear if they haven't been heard recently.</p>
         <p><span style="color: var(--accent);">Note:</span> If your repeater is not in this list it may simply be because an observer has not heard it, or it has not been active. Want to host an observer to help the mesh? Visit our <a href="{{ '/connect/' | relative_url }}">Get Connected</a> page.</p>
       </div>
       <div class="table-wrap">
@@ -335,6 +335,7 @@ description: Live network health reports for the Acadiana Mesh.
   color: var(--text-muted);
   font-family: monospace;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 .report-table tr:last-child td { border-bottom: none; }
 .report-table tr:hover td { background: var(--accent-dim); color: var(--text); }
@@ -342,15 +343,14 @@ description: Live network health reports for the Acadiana Mesh.
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   color: var(--text);
+  white-space: normal;
+  min-width: 140px;
 }
-.status-confirmed { color: #4ade80; }
-.status-suspected { color: #fbbf24; }
-.status-unknown   { color: #ef4444; }
-.location-set     { color: #4ade80; }
-.location-missing { color: #ef4444; }
-.report-table td {
-  white-space: nowrap;
-}
+.report-table td.status-confirmed { color: #4ade80 !important; }
+.report-table td.status-suspected { color: #fbbf24 !important; }
+.report-table td.status-unknown   { color: #ef4444 !important; }
+.report-table td.location-set     { color: #4ade80 !important; }
+.report-table td.location-missing { color: #ef4444 !important; }
 </style>
 
 <script>
