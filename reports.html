@@ -4,7 +4,7 @@ title: Network Reports
 description: Live network health reports for the Acadiana Mesh.
 ---
 
-<div class="page-container">
+<div class="page-container" style="max-width: 1200px;">
   <h1 class="page-title">Network Reports</h1>
   <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Live data pulled from <a href="https://analyzer.acadianamesh.com" target="_blank">Acadiana Mesh</a>. Updates every time you load this page.</p>
   <p style="color: var(--text-muted); margin-bottom: 2rem;">Additional reports: <a href="{{ '/clock-sync/' | relative_url }}">→ Clock Sync Report</a></p>
@@ -50,10 +50,10 @@ description: Live network health reports for the Acadiana Mesh.
           <thead>
             <tr>
               <th>Repeater Name</th>
-              <th>Public Key Prefix</th>
-              <th>First Seen</th>
+              <th class="hide-mobile">Public Key Prefix</th>
+              <th class="hide-mobile">First Seen</th>
               <th>Last Seen</th>
-              <th>Adverts (lifetime)</th>
+              <th class="hide-mobile">Adverts (lifetime)</th>
             </tr>
           </thead>
           <tbody id="no-location-body"></tbody>
@@ -85,10 +85,10 @@ description: Live network health reports for the Acadiana Mesh.
             <thead>
               <tr>
                 <th>Repeater Name</th>
-                <th>Public Key Prefix</th>
+                <th class="hide-mobile">Public Key Prefix</th>
                 <th>Status</th>
                 <th>Last Seen</th>
-                <th>Adverts (lifetime)</th>
+                <th class="hide-mobile">Adverts (lifetime)</th>
               </tr>
             </thead>
             <tbody id="firmware-body"></tbody>
@@ -141,11 +141,11 @@ description: Live network health reports for the Acadiana Mesh.
           <thead>
             <tr>
               <th>Repeater Name</th>
-              <th>Public Key Prefix</th>
+              <th class="hide-mobile">Public Key Prefix</th>
               <th>Firmware Status</th>
               <th>Location</th>
               <th>Last Seen</th>
-              <th>Adverts (lifetime)</th>
+              <th class="hide-mobile">Adverts (lifetime)</th>
             </tr>
           </thead>
           <tbody id="all-repeaters-body"></tbody>
@@ -351,6 +351,12 @@ description: Live network health reports for the Acadiana Mesh.
 .report-table td.status-unknown   { color: #ef4444 !important; }
 .report-table td.location-set     { color: #4ade80 !important; }
 .report-table td.location-missing { color: #ef4444 !important; }
+@media (max-width: 640px) {
+  .report-table th.hide-mobile,
+  .report-table td.hide-mobile {
+    display: none;
+  }
+}
 </style>
 
 <script>
@@ -377,7 +383,6 @@ description: Live network health reports for the Acadiana Mesh.
     if (!node.lat || !node.lon) return true;
     return pointInPolygon(node.lat, node.lon, ACADIANA_POLYGON);
   }
-  // ─────────────────────────────────────────────────────────────────
 
   function timeAgo(dateStr) {
     if (!dateStr) return '—';
@@ -417,7 +422,6 @@ description: Live network health reports for the Acadiana Mesh.
       const nodes = data.nodes || [];
       const repeaters = nodes.filter(n => n.role === 'repeater' && inAcadiana(n));
 
-      // Summary
       document.getElementById('total-nodes').textContent = data.total || nodes.length;
       document.getElementById('total-repeaters').textContent = repeaters.length;
       document.getElementById('total-companions').textContent = data.counts?.companions || 0;
@@ -429,10 +433,10 @@ description: Live network health reports for the Acadiana Mesh.
       noLocation.forEach(n => {
         noLocBody.innerHTML += `<tr>
           <td class="node-name">${n.name}</td>
-          <td>${pubkeyPrefix(n.public_key)}</td>
-          <td>${formatDate(n.first_seen)}</td>
+          <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
+          <td class="hide-mobile">${formatDate(n.first_seen)}</td>
           <td>${timeAgo(n.last_seen)}</td>
-          <td>${n.advert_count}</td>
+          <td class="hide-mobile">${n.advert_count}</td>
         </tr>`;
       });
 
@@ -444,10 +448,10 @@ description: Live network health reports for the Acadiana Mesh.
       firmwareNeeded.forEach(n => {
         firmwareBody.innerHTML += `<tr>
           <td class="node-name">${n.name}</td>
-          <td>${pubkeyPrefix(n.public_key)}</td>
+          <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
           <td class="status-unknown">Likely pre-1.14</td>
           <td>${timeAgo(n.last_seen)}</td>
-          <td>${n.advert_count}</td>
+          <td class="hide-mobile">${n.advert_count}</td>
         </tr>`;
       });
 
@@ -463,11 +467,11 @@ description: Live network health reports for the Acadiana Mesh.
           const locText = hasLocation(n) ? '✓ Set' : '✗ Missing';
           allBody.innerHTML += `<tr>
             <td class="node-name">${n.name}</td>
-            <td>${pubkeyPrefix(n.public_key)}</td>
+            <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
             <td class="${statusClass}">${firmwareLabel(n)}</td>
             <td class="${locClass}">${locText}</td>
             <td>${timeAgo(n.last_seen)}</td>
-            <td>${n.advert_count}</td>
+            <td class="hide-mobile">${n.advert_count}</td>
           </tr>`;
         });
     })
