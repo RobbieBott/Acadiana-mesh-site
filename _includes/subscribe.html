@@ -36,9 +36,7 @@
       msg.style.background = success ? 'rgba(74, 222, 128, 0.1)' : 'rgba(239, 68, 68, 0.1)';
       msg.style.border = success ? '1px solid rgba(74, 222, 128, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)';
       msg.style.color = success ? '#4ade80' : '#ef4444';
-      setTimeout(function() {
-        msg.style.display = 'none';
-      }, 4000);
+      setTimeout(function() { msg.style.display = 'none'; }, 4000);
     }
 
     document.getElementById('subscribe-btn').addEventListener('click', function() {
@@ -54,7 +52,12 @@
       btn.textContent = 'Subscribing...';
       btn.disabled = true;
 
+      const phone = document.getElementById('phone-input').value;
       const data = new FormData(form);
+      if (phone) {
+        data.delete('attribs[phone]');
+        data.append('attribs', JSON.stringify({ phone: phone }));
+      }
 
       fetch('https://mail.acadianamesh.com/subscription/form', {
         method: 'POST',
