@@ -2,35 +2,17 @@
   <div class="container">
     <h2>Stay Connected</h2>
     <p>Keep up with network growth, events, projects, and community news.</p>
-    <form method="post" action="https://mail.acadianamesh.com/subscription/form" class="listmonk-form" id="subscribe-form">
+    <form method="post" action="https://mail.acadianamesh.com/subscription/form" class="listmonk-form">
       <input type="hidden" name="nonce" />
       <input type="hidden" name="l" value="3519b3bd-ecc8-4266-84f0-6723df7ff02d" />
       <div class="form-row">
         <input type="text" name="name" placeholder="Name (optional)" />
         <input type="email" name="email" required placeholder="E-mail" />
         <input type="tel" name="attribs[phone]" placeholder="Phone (optional)" />
-        <button type="submit" id="subscribe-btn">Subscribe</button>
+        <button type="submit">Subscribe</button>
       </div>
-      <altcha-widget id="altcha" challengeurl="https://mail.acadianamesh.com/api/public/captcha/altcha"></altcha-widget>
+      <altcha-widget challengeurl="https://mail.acadianamesh.com/api/public/captcha/altcha"></altcha-widget>
       <script type="module" src="https://mail.acadianamesh.com/public/static/altcha.umd.js" async defer></script>
     </form>
   </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const form = document.getElementById('subscribe-form');
-      if (form) {
-        form.addEventListener('submit', function(e) {
-          const altcha = document.getElementById('altcha');
-          if (altcha && !altcha.value) {
-            e.preventDefault();
-            altcha.addEventListener('statechange', function(ev) {
-              if (ev.detail && ev.detail.state === 'verified') {
-                form.submit();
-              }
-            }, { once: true });
-          }
-        });
-      }
-    });
-  </script>
 </section>
