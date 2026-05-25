@@ -39,4 +39,40 @@
     document.getElementById('subscribe-btn').addEventListener('click', function() {
       const form = document.getElementById('subscribe-form');
       const btn = document.getElementById('subscribe-btn');
-      const email =
+      const email = form.querySelector('input[type="email"]').value;
+      const name = form.querySelector('input[name="name"]').value;
+      const phone = document.getElementById('phone-input').value;
+
+      if (!email) {
+        showMessage('Please enter your email address.', false);
+        return;
+      }
+
+      btn.textContent = 'Subscribing...';
+      btn.disabled = true;
+
+      fetch('https://subscribe.acadianamesh.com/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, name: name, phone: phone })
+      })
+      .then(function(res) {
+        if (res.ok) {
+          showMessage('Thanks for subscribing! Check your email to confirm.', true);
+          form.reset();
+        } else {
+          return res.json().then(function(data) {
+            showMessage(data.message || 'Something went wrong. Please try again.', false);
+          });
+        }
+      })
+      .catch(function() {
+        showMessage('Something went wrong. Please try again.', false);
+      })
+      .finally(function() {
+        btn.textContent = 'Subscribe';
+        btn.disabled = false;
+      });
+    });
+  </script>
+</section>
