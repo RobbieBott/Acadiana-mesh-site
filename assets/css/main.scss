@@ -750,3 +750,17 @@ ul { list-style: none; }
   margin-bottom: 0.5rem;
   padding-left: 0.25rem;
 }
+.listmonk-form input[type="tel"] {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hover);
+  color: var(--text);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.listmonk-form input[type="tel"]:focus {
+  border-color: var(--accent);
+}
