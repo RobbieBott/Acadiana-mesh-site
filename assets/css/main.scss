@@ -451,6 +451,17 @@ ul { list-style: none; }
   margin-bottom: 0.5rem;
 }
 
+.page-content ol {
+  list-style: decimal;
+  margin: 1rem 0 1rem 1.5rem;
+  color: var(--text-muted);
+}
+
+.page-content ol li {
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
 .page-content code {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -588,7 +599,8 @@ ul { list-style: none; }
 }
 
 .listmonk-form input[type="email"],
-.listmonk-form input[type="text"] {
+.listmonk-form input[type="text"],
+.listmonk-form input[type="tel"] {
   flex: 1;
   background: var(--bg-card);
   border: 1px solid var(--border-hover);
@@ -597,10 +609,14 @@ ul { list-style: none; }
   font-size: 1rem;
   outline: none;
   box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
 }
 
 .listmonk-form input[type="email"]:focus,
-.listmonk-form input[type="text"]:focus {
+.listmonk-form input[type="text"]:focus,
+.listmonk-form input[type="tel"]:focus {
   border-color: var(--accent);
 }
 
@@ -614,11 +630,33 @@ ul { list-style: none; }
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
 }
 
 .listmonk-form button[type="submit"]:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+/* ── Code Blocks ───────────────────────────────────────────── */
+.highlight pre {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.highlight pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--accent);
 }
 
 /* ── Footer ────────────────────────────────────────────────── */
@@ -720,47 +758,4 @@ ul { list-style: none; }
 @media (max-width: 480px) {
   .footer-container { grid-template-columns: 1fr; }
   .hero-buttons, .cta-buttons, .community-links { flex-direction: column; align-items: center; }
-}
-
-/* ── Code Blocks ───────────────────────────────────────────── */
-.highlight pre {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem 1.5rem;
-  font-size: 0.875rem;
-  overflow-x: auto;
-  line-height: 1.6;
-}
-
-.highlight pre code {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: inherit;
-  color: var(--accent);
-}
-.page-content ol {
-  list-style: decimal;
-  margin: 1rem 0 1rem 1.5rem;
-  color: var(--text-muted);
-}
-
-.page-content ol li {
-  margin-bottom: 0.5rem;
-  padding-left: 0.25rem;
-}
-.listmonk-form input[type="tel"] {
-  flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--border-hover);
-  color: var(--text);
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.listmonk-form input[type="tel"]:focus {
-  border-color: var(--accent);
 }
