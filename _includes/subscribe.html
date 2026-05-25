@@ -4,15 +4,12 @@
     <p>Keep up with network growth, events, projects, and community news.</p>
     <div id="subscribe-message" style="display:none; padding: 0.75rem 1rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.95rem;"></div>
     <form class="listmonk-form" id="subscribe-form">
-      <input type="hidden" name="nonce" />
-      <input type="hidden" name="l" value="3519b3bd-ecc8-4266-84f0-6723df7ff02d" />
       <div class="form-row">
         <input type="text" name="name" placeholder="Name (optional)" />
         <input type="email" name="email" required placeholder="E-mail" />
-        <input type="tel" name="attribs[phone]" placeholder="(555) 555-5555" id="phone-input" maxlength="14" autocomplete="tel" />
+        <input type="tel" placeholder="(555) 555-5555" id="phone-input" maxlength="14" autocomplete="tel" />
         <button type="button" id="subscribe-btn">Subscribe</button>
       </div>
-<altcha-widget id="altcha" style="display:none;" challengeurl="https://mail.acadianamesh.com/api/public/captcha/altcha" auto="onload"></altcha-widget>      <script type="module" src="https://mail.acadianamesh.com/public/static/altcha.umd.js" async defer></script>
     </form>
   </div>
   <script>
@@ -42,42 +39,4 @@
     document.getElementById('subscribe-btn').addEventListener('click', function() {
       const form = document.getElementById('subscribe-form');
       const btn = document.getElementById('subscribe-btn');
-      const email = form.querySelector('input[type="email"]').value;
-
-      if (!email) {
-        showMessage('Please enter your email address.', false);
-        return;
-      }
-
-      btn.textContent = 'Subscribing...';
-      btn.disabled = true;
-
-      const phone = document.getElementById('phone-input').value;
-      const data = new FormData(form);
-      if (phone) {
-        data.delete('attribs[phone]');
-        data.append('attribs', JSON.stringify({ phone: phone }));
-      }
-
-      fetch('https://mail.acadianamesh.com/subscription/form', {
-        method: 'POST',
-        body: data
-      })
-      .then(function(res) {
-        if (res.ok) {
-          showMessage('Thanks for subscribing! Check your email to confirm.', true);
-          form.reset();
-        } else {
-          showMessage('Something went wrong. Please try again.', false);
-        }
-      })
-      .catch(function() {
-        showMessage('Something went wrong. Please try again.', false);
-      })
-      .finally(function() {
-        btn.textContent = 'Subscribe';
-        btn.disabled = false;
-      });
-    });
-  </script>
-</section>
+      const email =
