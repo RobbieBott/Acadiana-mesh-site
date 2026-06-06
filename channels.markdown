@@ -162,6 +162,11 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="wx-example">Road flooding on Ambassador at Johnston</div>
       <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
       <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
+      <div class="channel-commands">
+      <div class="channel-commands-label">Commands</div>
+      <table>
+        <tr><td>wx XXXXX</td><td>wx followed by your zipcode for todays NOAA forecast.</td></tr>
+        <tr><td>help</td><td>List available commands</td></tr>
     </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
@@ -185,8 +190,9 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
         <tr><td>dad joke</td><td>Get a dad joke</td></tr>
         <tr><td>mom joke</td><td>Get a mom joke</td></tr>
         <tr><td>joke</td><td>Get a random joke</td></tr>
+        <tr><td>prefix XX</td><td>Get the name and location of the repeater with that prefix.</td></tr>
       </table>
-      <div class="channel-note">⏱ Rate limited — wait for a response before sending another command.</div>
+      <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command.</div>
     </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dbot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211" alt="QR code for #bot channel" />
