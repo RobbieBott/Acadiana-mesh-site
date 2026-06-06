@@ -26,6 +26,63 @@ permalink: /channels/
   color: #666666;
   letter-spacing: 0.3px;
 }
+.channel-commands {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #2e2e2e;
+}
+.channel-commands-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888888;
+  margin-bottom: 8px;
+}
+.channel-commands table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+.channel-commands td {
+  padding: 4px 6px;
+  vertical-align: top;
+}
+.channel-commands td:first-child {
+  white-space: nowrap;
+  color: #f94d00;
+  font-family: monospace;
+  font-size: 13px;
+}
+.channel-commands td:last-child {
+  color: #aaaaaa;
+}
+.channel-note {
+  font-size: 12px;
+  color: #666666;
+  margin-top: 8px;
+  font-style: italic;
+}
+.wx-examples {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #2e2e2e;
+}
+.wx-examples-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888888;
+  margin-bottom: 8px;
+}
+.wx-example {
+  font-family: monospace;
+  font-size: 12px;
+  color: #cccccc;
+  background: #111111;
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin-bottom: 5px;
+}
 </style>
 
 Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.
@@ -99,8 +156,40 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">gc-la-lft</span>
+    <div class="wx-examples">
+      <div class="wx-examples-label">Example Reports</div>
+      <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
+      <div class="wx-example">Road flooding on Ambassador at Johnston</div>
+      <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
+      <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
+    </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
+      <div class="channel-qr-label">Scan to add channel</div>
+    </div>
+  </div>
+  <div class="channel-card">
+    <div class="channel-name">#bot</div>
+    <p>Interact with the Acadiana Mesh network bot. Ask for weather, jokes, or network info. Messages are rate limited — wait for a response before sending another command.</p>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">gc-la-lft</span>
+    <div class="channel-commands">
+      <div class="channel-commands-label">Commands</div>
+      <table>
+        <tr><td>ping</td><td>Check if the bot is online</td></tr>
+        <tr><td>help</td><td>List available commands</td></tr>
+        <tr><td>channels</td><td>List active network channels</td></tr>
+        <tr><td>cmd</td><td>Show detailed command reference</td></tr>
+        <tr><td>dad joke</td><td>Get a dad joke</td></tr>
+        <tr><td>mom joke</td><td>Get a mom joke</td></tr>
+        <tr><td>joke</td><td>Get a random joke</td></tr>
+      </table>
+      <div class="channel-note">⏱ Rate limited — wait for a response before sending another command.</div>
+    </div>
+    <div class="channel-qr">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dbot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211" alt="QR code for #bot channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
