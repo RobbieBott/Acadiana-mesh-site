@@ -168,6 +168,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
         <tr><td>wx XXXXX</td><td>wx followed by your zipcode for todays NOAA forecast.</td></tr>
         <tr><td>help</td><td>List available commands</td></tr>
     </div>
+    </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
       <div class="channel-qr-label">Scan to add channel</div>
