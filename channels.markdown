@@ -150,30 +150,41 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     </div>
   </div>
   <div class="channel-card">
-    <div class="channel-name">#wx</div>
-    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
-    <div class="channel-region-label">Key Type</div>
-    <span class="channel-region">Hashtag derived</span>
-    <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la-lft</span>
-    <div class="wx-examples">
-      <div class="wx-examples-label">Example Reports</div>
-      <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
-      <div class="wx-example">Road flooding on Ambassador at Johnston</div>
-      <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
-      <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
-      <div class="channel-commands">
+  <div class="channel-name">#wx</div>
+  <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
+
+  <div class="channel-region-label">Key Type</div>
+  <span class="channel-region">Hashtag derived</span>
+
+  <div class="channel-region-label">Region Scope</div>
+  <span class="channel-region">gc-la-lft</span>
+
+  <div class="wx-examples">
+    <div class="wx-examples-label">Example Reports</div>
+    <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
+    <div class="wx-example">Road flooding on Ambassador at Johnston</div>
+    <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
+    <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
+    <div class="channel-commands">
       <div class="channel-commands-label">Commands</div>
       <table>
-        <tr><td>wx XXXXX</td><td>wx followed by your zipcode for todays NOAA forecast.</td></tr>
-        <tr><td>help</td><td>List available commands</td></tr>
-    </div>
-    </div>
-    <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
-      <div class="channel-qr-label">Scan to add channel</div>
+        <tr>
+          <td>wx #####</td>
+          <td>wx followed by your zipcode for todays NOAA forecast.</td>
+        </tr>
+        <tr>
+          <td>help</td>
+          <td>List available commands</td>
+        </tr>
+      </table>
     </div>
   </div>
+
+  <div class="channel-qr">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
+    <div class="channel-qr-label">Scan to add channel</div>
+  </div>
+</div>
   <div class="channel-card">
     <div class="channel-name">#bot</div>
     <p>Interact with the Acadiana Mesh network bot. Ask for weather, jokes, or network info. Messages are rate limited — wait for a response before sending another command.</p>
