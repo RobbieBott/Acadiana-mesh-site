@@ -113,6 +113,10 @@ permalink: /channels/
 @media (max-width: 768px) {
   .three-col-commands {
     flex-direction: column;
+    gap: 0;
+  }
+  .three-col-commands table {
+    width: 100%;
   }
 }
 </style>
@@ -233,7 +237,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="three-col-commands">
         <table>
           <tr><td>ping</td><td>Check if the bot is online</td></tr>
-          <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code>. SNR higher is better (above 5 dB good, above 10 dB excellent). RSSI closer to 0 is stronger.</td></tr>
+          <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info for your message. SNR higher is better; RSSI closer to 0 is stronger.</td></tr>
           <tr><td>help</td><td>List available commands</td></tr>
           <tr><td>channels</td><td>List active network channels</td></tr>
         </table>
