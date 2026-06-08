@@ -1,5 +1,5 @@
 ---
-layout: page
+layout: default
 title: Channels — Acadiana Mesh Communication Groups
 description: Browse Acadiana Mesh channels including #acadiana, #lafayette, #emergency, and #wx. Learn how MeshCore hashtag channels, region scopes, and encrypted messaging work.
 permalink: /channels/
@@ -121,11 +121,13 @@ permalink: /channels/
 }
 </style>
 
-<div class="page-container" style="max-width: 1200px;">
+<div class="page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;">
 
-Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.
+<h1 class="page-title">Channels</h1>
 
-## Core Channels
+<p style="color: var(--text-muted); margin-bottom: 2rem;">Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.</p> Each channel has a shared encryption key that allows members to send and receive messages.
+
+<h2>Core Channels</h2>
 <div class="channel-grid">
   <div class="channel-card">
     <div class="channel-name">Public</div>
@@ -263,56 +265,70 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
   </div>
 </div>
 
-## How Channels Work
+</div>
 
-### Public Channel
-The Public channel uses a well-known key shared across all MeshCore networks worldwide. Anyone running MeshCore can read and send messages on the Public channel.
+<div class="page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;">
 
-### Hashtag Channels
-Channels starting with `#` use a key automatically derived from the channel name. Anyone who knows the channel name can join — no manual key exchange needed.
+<h2>How Channels Work</h2>
 
-### Private Channels
-Private channels use a custom key that you set manually. Only people you share the key with can join. Use these for group communications where privacy matters.
+<h3>Public Channel</h3>
+<p>The Public channel uses a well-known key shared across all MeshCore networks worldwide. Anyone running MeshCore can read and send messages on the Public channel.</p>
 
-### Direct Messages
-Direct messages are encrypted end-to-end between two nodes. Only the intended recipient can read them.
+<h3>Hashtag Channels</h3>
+<p>Channels starting with <code>#</code> use a key automatically derived from the channel name. Anyone who knows the channel name can join — no manual key exchange needed.</p>
 
-### Channel Regions & Scopes
+<h3>Private Channels</h3>
+<p>Private channels use a custom key that you set manually. Only people you share the key with can join. Use these for group communications where privacy matters.</p>
 
-Regions control which repeaters will forward a channel's messages. When you send a message on a scoped channel, repeaters check if they have that region configured — if not, the message stops there.
+<h3>Direct Messages</h3>
+<p>Direct messages are encrypted end-to-end between two nodes. Only the intended recipient can read them.</p>
 
-**Why this matters:** Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.
+<h3>Channel Regions &amp; Scopes</h3>
+<p>Regions control which repeaters will forward a channel's messages. When you send a message on a scoped channel, repeaters check if they have that region configured — if not, the message stops there.</p>
 
-**How to read the scope:** `gc-la-lft` breaks down as:
-- `gc` — Gulf Coast (broad regional scope)
-- `gc-la` — Louisiana (state scope)  
-- `gc-la-lft` — Lafayette (local scope)
+<p><strong>Why this matters:</strong> Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.</p>
 
-**Choosing the right scope:**
-- Use a **wider scope** (`gc-la`) to reach more people across Louisiana
-- Use a **narrower scope** (`gc-la-lft`) to keep traffic local to Lafayette
-- Channels with **no scope** flood the entire mesh — use sparingly
+<p><strong>How to read the scope:</strong> <code>gc-la-lft</code> breaks down as:</p>
+<ul>
+  <li><code>gc</code> — Gulf Coast (broad regional scope)</li>
+  <li><code>gc-la</code> — Louisiana (state scope)</li>
+  <li><code>gc-la-lft</code> — Lafayette (local scope)</li>
+</ul>
 
-**Discovering local regions:** In the MeshCore app tap **Discover → Discover Regions** to see what region scopes are active on nearby repeaters.
+<p><strong>Choosing the right scope:</strong></p>
+<ul>
+  <li>Use a <strong>wider scope</strong> (<code>gc-la</code>) to reach more people across Louisiana</li>
+  <li>Use a <strong>narrower scope</strong> (<code>gc-la-lft</code>) to keep traffic local to Lafayette</li>
+  <li>Channels with <strong>no scope</strong> flood the entire mesh — use sparingly</li>
+</ul>
 
-## Adding a Channel
+<p><strong>Discovering local regions:</strong> In the MeshCore app tap <strong>Discover → Discover Regions</strong> to see what region scopes are active on nearby repeaters.</p>
 
-1. Open the MeshCore app
-2. Tap ⋮ → **Add Channel** → **Join a Hashtag Channel**
-3. Enter the channel name (e.g. `acadiana`)
-4. Press **Join Channel**
+<h2>Adding a Channel</h2>
+<ol>
+  <li>Open the MeshCore app</li>
+  <li>Tap ⋮ → <strong>Add Channel</strong> → <strong>Join a Hashtag Channel</strong></li>
+  <li>Enter the channel name (e.g. <code>acadiana</code>)</li>
+  <li>Press <strong>Join Channel</strong></li>
+</ol>
+<p>Or scan the QR code on any channel card above — the app will add it automatically.</p>
 
-Or scan the QR code on any channel card above — the app will add it automatically.
+<h2>Privacy</h2>
+<p>All channel messages are encrypted using AES-256-CTR. With secured keys and trustworthy recipients, your data is cryptographically protected.</p>
 
-## Privacy
-
-All channel messages are encrypted using AES-256-CTR. With secured keys and trustworthy recipients, your data is cryptographically protected.
-
-| Channel Type | Privacy Level |
-|---|---|
-| Public | 🔓 Public — key is shared worldwide |
-| Hashtag channels | 🔓 Semi-public — key derived from name |
-| Private channels | 🔒 Private — custom secret key |
-| Direct messages | 🔒 Private — unique per conversation |
+<table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+  <thead>
+    <tr>
+      <th style="text-align:left; padding: 0.5rem; border-bottom: 1px solid var(--border); color: var(--accent);">Channel Type</th>
+      <th style="text-align:left; padding: 0.5rem; border-bottom: 1px solid var(--border); color: var(--accent);">Privacy Level</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Public</td><td style="padding: 0.5rem; color: var(--text-muted);">🔓 Public — key is shared worldwide</td></tr>
+    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Hashtag channels</td><td style="padding: 0.5rem; color: var(--text-muted);">🔓 Semi-public — key derived from name</td></tr>
+    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Private channels</td><td style="padding: 0.5rem; color: var(--text-muted);">🔒 Private — custom secret key</td></tr>
+    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Direct messages</td><td style="padding: 0.5rem; color: var(--text-muted);">🔒 Private — unique per conversation</td></tr>
+  </tbody>
+</table>
 
 </div>
