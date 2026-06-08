@@ -118,9 +118,9 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
 <div class="channel-grid">
   <div class="channel-card">
     <div class="channel-name">Public</div>
-    <p>General chat for all mesh users. Uses a well-known shared key.</p>
+    <p>General chat for all mesh users. Uses a well-known or built in shared key.</p>
     <div class="channel-region-label">Key Type</div>
-    <span class="channel-region">Well-known</span>
+    <span class="channel-region">Built-In</span>
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">No Region Scope</span>
     <div class="channel-qr">
