@@ -128,8 +128,7 @@ permalink: /channels/
 <div class="page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;">
 
 <h1 class="page-title">Channels</h1>
-
-<p style="color: var(--text-muted); margin-bottom: 2rem;">Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.</p> Each channel has a shared encryption key that allows members to send and receive messages.
+<p style="color: var(--text-muted); margin-bottom: 2rem;">Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.</p>
 
 <h2>Core Channels</h2>
 <div class="channel-grid">
@@ -184,13 +183,10 @@ permalink: /channels/
   <div class="channel-card channel-card-full">
     <div class="channel-name">#wx</div>
     <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
-
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
-
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">gc-la-lft</span>
-
     <div class="wx-examples">
       <div class="wx-examples-label">Example Reports</div>
       <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
@@ -198,7 +194,6 @@ permalink: /channels/
       <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
       <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
     </div>
-
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaWX Bot Commands</div>
       <div class="three-col-commands">
@@ -224,13 +219,11 @@ permalink: /channels/
       </div>
       <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM.</div>
     </div>
-
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
-
   <div class="channel-card channel-card-full">
     <div class="channel-name">#bot</div>
     <p>Interact with AcadianaBot — fun commands, jokes, sports scores, and network info. Messages are rate limited — wait for a response before sending another command.</p>
@@ -271,68 +264,54 @@ permalink: /channels/
 
 </div>
 
-<div class="page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;">
+## How Channels Work
 
-<h2>How Channels Work</h2>
+### Public Channel
+The Public channel uses a well-known key shared across all MeshCore networks worldwide. Anyone running MeshCore can read and send messages on the Public channel.
 
-<h3>Public Channel</h3>
-<p>The Public channel uses a well-known key shared across all MeshCore networks worldwide. Anyone running MeshCore can read and send messages on the Public channel.</p>
+### Hashtag Channels
+Channels starting with `#` use a key automatically derived from the channel name. Anyone who knows the channel name can join — no manual key exchange needed.
 
-<h3>Hashtag Channels</h3>
-<p>Channels starting with <code>#</code> use a key automatically derived from the channel name. Anyone who knows the channel name can join — no manual key exchange needed.</p>
+### Private Channels
+Private channels use a custom key that you set manually. Only people you share the key with can join. Use these for group communications where privacy matters.
 
-<h3>Private Channels</h3>
-<p>Private channels use a custom key that you set manually. Only people you share the key with can join. Use these for group communications where privacy matters.</p>
+### Direct Messages
+Direct messages are encrypted end-to-end between two nodes. Only the intended recipient can read them.
 
-<h3>Direct Messages</h3>
-<p>Direct messages are encrypted end-to-end between two nodes. Only the intended recipient can read them.</p>
+### Channel Regions & Scopes
 
-<h3>Channel Regions &amp; Scopes</h3>
-<p>Regions control which repeaters will forward a channel's messages. When you send a message on a scoped channel, repeaters check if they have that region configured — if not, the message stops there.</p>
+Regions control which repeaters will forward a channel's messages. When you send a message on a scoped channel, repeaters check if they have that region configured — if not, the message stops there.
 
-<p><strong>Why this matters:</strong> Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.</p>
+**Why this matters:** Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.
 
-<p><strong>How to read the scope:</strong> <code>gc-la-lft</code> breaks down as:</p>
-<ul style="list-style: disc; padding-left: 1.5rem; color: var(--text-muted);">
-  <li style="margin-bottom: 0.25rem;"><code>gc</code> — Gulf Coast (broad regional scope)</li>
-  <li style="margin-bottom: 0.25rem;"><code>gc-la</code> — Louisiana (state scope)</li>
-  <li style="margin-bottom: 0.25rem;"><code>gc-la-lft</code> — Lafayette (local scope)</li>
-</ul>
+**How to read the scope:** `gc-la-lft` breaks down as:
+- `gc` — Gulf Coast (broad regional scope)
+- `gc-la` — Louisiana (state scope)  
+- `gc-la-lft` — Lafayette (local scope)
 
-<p><strong>Choosing the right scope:</strong></p>
-<ul style="list-style: disc; padding-left: 1.5rem; color: var(--text-muted);">
-  <li style="margin-bottom: 0.25rem;">Use a <strong>wider scope</strong> (<code>gc-la</code>) to reach more people across Louisiana</li>
-  <li style="margin-bottom: 0.25rem;">Use a <strong>narrower scope</strong> (<code>gc-la-lft</code>) to keep traffic local to Lafayette</li>
-  <li style="margin-bottom: 0.25rem;">Channels with <strong>no scope</strong> flood the entire mesh — use sparingly</li>
-</ul>
+**Choosing the right scope:**
+- Use a **wider scope** (`gc-la`) to reach more people across Louisiana
+- Use a **narrower scope** (`gc-la-lft`) to keep traffic local to Lafayette
+- Channels with **no scope** flood the entire mesh — use sparingly
 
-<p><strong>Discovering local regions:</strong> In the MeshCore app tap <strong>Discover → Discover Regions</strong> to see what region scopes are active on nearby repeaters.</p>
+**Discovering local regions:** In the MeshCore app tap **Discover → Discover Regions** to see what region scopes are active on nearby repeaters.
 
-<h2>Adding a Channel</h2>
-<ol style="list-style: decimal; padding-left: 1.5rem; color: var(--text-muted);">
-  <li style="margin-bottom: 0.25rem;">Open the MeshCore app</li>
-  <li style="margin-bottom: 0.25rem;">Tap ⋮ → <strong>Add Channel</strong> → <strong>Join a Hashtag Channel</strong></li>
-  <li style="margin-bottom: 0.25rem;">Enter the channel name (e.g. <code>acadiana</code>)</li>
-  <li style="margin-bottom: 0.25rem;">Press <strong>Join Channel</strong></li>
-</ol>
-<p>Or scan the QR code on any channel card above — the app will add it automatically.</p>
+## Adding a Channel
 
-<h2>Privacy</h2>
-<p>All channel messages are encrypted using AES-256-CTR. With secured keys and trustworthy recipients, your data is cryptographically protected.</p>
+1. Open the MeshCore app
+2. Tap ⋮ → **Add Channel** → **Join a Hashtag Channel**
+3. Enter the channel name (e.g. `acadiana`)
+4. Press **Join Channel**
 
-<table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
-  <thead>
-    <tr>
-      <th style="text-align:left; padding: 0.5rem; border-bottom: 1px solid var(--border); color: var(--accent);">Channel Type</th>
-      <th style="text-align:left; padding: 0.5rem; border-bottom: 1px solid var(--border); color: var(--accent);">Privacy Level</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Public</td><td style="padding: 0.5rem; color: var(--text-muted);">🔓 Public — key is shared worldwide</td></tr>
-    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Hashtag channels</td><td style="padding: 0.5rem; color: var(--text-muted);">🔓 Semi-public — key derived from name</td></tr>
-    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Private channels</td><td style="padding: 0.5rem; color: var(--text-muted);">🔒 Private — custom secret key</td></tr>
-    <tr><td style="padding: 0.5rem; color: var(--text-muted);">Direct messages</td><td style="padding: 0.5rem; color: var(--text-muted);">🔒 Private — unique per conversation</td></tr>
-  </tbody>
-</table>
+Or scan the QR code on any channel card above — the app will add it automatically.
 
-</div>
+## Privacy
+
+All channel messages are encrypted using AES-256-CTR. With secured keys and trustworthy recipients, your data is cryptographically protected.
+
+| Channel Type | Privacy Level |
+|---|---|
+| Public | 🔓 Public — key is shared worldwide |
+| Hashtag channels | 🔓 Semi-public — key derived from name |
+| Private channels | 🔒 Private — custom secret key |
+| Direct messages | 🔒 Private — unique per conversation |
