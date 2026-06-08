@@ -83,6 +83,17 @@ permalink: /channels/
   padding: 5px 8px;
   margin-bottom: 5px;
 }
+.channel-card-full {
+  grid-column: 1 / -1;
+}
+.channel-card-full .channel-commands table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+.channel-card-full .channel-commands tr {
+  display: contents;
+}
 </style>
 
 Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.
@@ -108,26 +119,6 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">No Region Scope</span>
-    <div class="channel-commands">
-      <div class="channel-commands-label">Commands</div>
-      <table>
-        <tr>
-          <td>ping</td>
-          <td>Check if the bot is online — returns <code>Pong!</code></td>
-        </tr>
-        <tr>
-          <td>test</td>
-          <td>Signal report — returns your signal strength and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code><br><br>
-          <strong>SNR</strong> (Signal to Noise Ratio) — higher is better. Above 5 dB is good, above 10 dB is excellent.<br>
-          <strong>RSSI</strong> (Received Signal Strength) — closer to 0 is stronger.<br>
-          <strong>Direct</strong> — reached the bot in one hop. Otherwise shows the repeater path.</td>
-        </tr>
-        <tr>
-          <td>path</td>
-          <td>Decode the routing path of your message through the mesh</td>
-        </tr>
-      </table>
-    </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dtest%26secret%3D9cd8fcf22a47333b591d96a2b848b73f" alt="QR code for #test channel" />
       <div class="channel-qr-label">Scan to add channel</div>
@@ -227,10 +218,6 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
           <td>Check if the bot is online</td>
         </tr>
         <tr>
-          <td>test</td>
-          <td>Signal report — returns SNR, RSSI, and path info for your message</td>
-        </tr>
-        <tr>
           <td>help</td>
           <td>List available commands</td>
         </tr>
@@ -243,7 +230,8 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
-  <div class="channel-card">
+
+  <div class="channel-card channel-card-full">
     <div class="channel-name">#bot</div>
     <p>Interact with AcadianaBot — fun commands, jokes, sports scores, and network info. Messages are rate limited — wait for a response before sending another command.</p>
     <div class="channel-region-label">Key Type</div>
@@ -254,7 +242,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="channel-commands-label">AcadianaBot Commands</div>
       <table>
         <tr><td>ping</td><td>Check if the bot is online</td></tr>
-        <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code></td></tr>
+        <tr><td>test</td><td>Signal report — returns your signal strength and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code> — SNR higher is better (above 5 dB good, above 10 dB excellent). RSSI closer to 0 is stronger. Direct means one hop.</td></tr>
         <tr><td>help</td><td>List available commands</td></tr>
         <tr><td>channels</td><td>List active network channels</td></tr>
         <tr><td>cmd</td><td>Show detailed command reference</td></tr>
@@ -262,7 +250,8 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
         <tr><td>dadjoke</td><td>Get a dad joke</td></tr>
         <tr><td>momjoke</td><td>Get a mom joke</td></tr>
         <tr><td>funfact</td><td>Get a fun fact</td></tr>
-        <tr><td>sports inter miami</td><td>Sports scores — works for all MLS teams and select Premier League clubs. Try <code>sports liverpool</code>, <code>sports dynamo</code>, <code>sports arsenal</code>, etc.</td></tr>
+        <tr><td>sports inter miami</td><td>MLS scores — works for all MLS teams. Try <code>sports dynamo</code>, <code>sports crew</code>, <code>sports timbers</code>, etc.</td></tr>
+        <tr><td>sports liverpool</td><td>Premier League scores — try <code>sports arsenal</code>, <code>sports chelsea</code>, <code>sports man city</code>, <code>sports man united</code></td></tr>
         <tr><td>prefix XX</td><td>Look up the repeater with that 2-character path prefix — e.g. <code>prefix b1</code></td></tr>
       </table>
       <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command.</div>
