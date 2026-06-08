@@ -86,13 +86,29 @@ permalink: /channels/
 .channel-card-full {
   grid-column: 1 / -1;
 }
-.channel-card-full .channel-commands table {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 24px;
+.two-col-commands {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
 }
-.channel-card-full .channel-commands tr {
-  display: contents;
+.two-col-commands table {
+  flex: 1;
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+.two-col-commands td {
+  padding: 4px 6px;
+  vertical-align: top;
+}
+.two-col-commands td:first-child {
+  white-space: nowrap;
+  color: #f94d00;
+  font-family: monospace;
+  font-size: 13px;
+}
+.two-col-commands td:last-child {
+  color: #aaaaaa;
 }
 </style>
 
@@ -169,58 +185,19 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaWX Bot Commands</div>
       <table>
-        <tr>
-          <td>wx</td>
-          <td>Current conditions and forecast for the Rayne/Lafayette area</td>
-        </tr>
-        <tr>
-          <td>wx 70578</td>
-          <td>Forecast for a specific zip code</td>
-        </tr>
-        <tr>
-          <td>wx Lafayette</td>
-          <td>Forecast for a named city</td>
-        </tr>
-        <tr>
-          <td>aqi</td>
-          <td>Air quality index for the local area</td>
-        </tr>
-        <tr>
-          <td>sun</td>
-          <td>Sunrise and sunset times</td>
-        </tr>
-        <tr>
-          <td>moon</td>
-          <td>Moon phase, rise and set times</td>
-        </tr>
-        <tr>
-          <td>solar</td>
-          <td>Current solar conditions</td>
-        </tr>
-        <tr>
-          <td>hfcond</td>
-          <td>HF radio propagation conditions</td>
-        </tr>
-        <tr>
-          <td>solarforecast</td>
-          <td>Solar energy forecast</td>
-        </tr>
-        <tr>
-          <td>aurora</td>
-          <td>Aurora borealis activity level</td>
-        </tr>
-        <tr>
-          <td>satpass 25544</td>
-          <td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td>
-        </tr>
-        <tr>
-          <td>ping</td>
-          <td>Check if the bot is online</td>
-        </tr>
-        <tr>
-          <td>help</td>
-          <td>List available commands</td>
-        </tr>
+        <tr><td>wx</td><td>Current conditions and forecast for the Rayne/Lafayette area</td></tr>
+        <tr><td>wx 70578</td><td>Forecast for a specific zip code</td></tr>
+        <tr><td>wx Lafayette</td><td>Forecast for a named city</td></tr>
+        <tr><td>aqi</td><td>Air quality index for the local area</td></tr>
+        <tr><td>sun</td><td>Sunrise and sunset times</td></tr>
+        <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
+        <tr><td>solar</td><td>Current solar conditions</td></tr>
+        <tr><td>hfcond</td><td>HF radio propagation conditions</td></tr>
+        <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
+        <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
+        <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
+        <tr><td>ping</td><td>Check if the bot is online</td></tr>
+        <tr><td>help</td><td>List available commands</td></tr>
       </table>
       <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM.</div>
     </div>
@@ -240,20 +217,24 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <span class="channel-region">gc-la-lft</span>
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaBot Commands</div>
-      <table>
-        <tr><td>ping</td><td>Check if the bot is online</td></tr>
-        <tr><td>test</td><td>Signal report — returns your signal strength and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code> — SNR higher is better (above 5 dB good, above 10 dB excellent). RSSI closer to 0 is stronger. Direct means one hop.</td></tr>
-        <tr><td>help</td><td>List available commands</td></tr>
-        <tr><td>channels</td><td>List active network channels</td></tr>
-        <tr><td>cmd</td><td>Show detailed command reference</td></tr>
-        <tr><td>joke</td><td>Get a random joke</td></tr>
-        <tr><td>dadjoke</td><td>Get a dad joke</td></tr>
-        <tr><td>momjoke</td><td>Get a mom joke</td></tr>
-        <tr><td>funfact</td><td>Get a fun fact</td></tr>
-        <tr><td>sports inter miami</td><td>MLS scores — works for all MLS teams. Try <code>sports dynamo</code>, <code>sports crew</code>, <code>sports timbers</code>, etc.</td></tr>
-        <tr><td>sports liverpool</td><td>Premier League scores — try <code>sports arsenal</code>, <code>sports chelsea</code>, <code>sports man city</code>, <code>sports man united</code></td></tr>
-        <tr><td>prefix XX</td><td>Look up the repeater with that 2-character path prefix — e.g. <code>prefix b1</code></td></tr>
-      </table>
+      <div class="two-col-commands">
+        <table>
+          <tr><td>ping</td><td>Check if the bot is online</td></tr>
+          <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code>. SNR higher is better (above 5 dB good, above 10 dB excellent). RSSI closer to 0 is stronger.</td></tr>
+          <tr><td>help</td><td>List available commands</td></tr>
+          <tr><td>channels</td><td>List active network channels</td></tr>
+          <tr><td>cmd</td><td>Show detailed command reference</td></tr>
+          <tr><td>joke</td><td>Get a random joke</td></tr>
+        </table>
+        <table>
+          <tr><td>dadjoke</td><td>Get a dad joke</td></tr>
+          <tr><td>momjoke</td><td>Get a mom joke</td></tr>
+          <tr><td>funfact</td><td>Get a fun fact</td></tr>
+          <tr><td>sports inter miami</td><td>MLS scores — works for all MLS teams. Try <code>sports dynamo</code>, <code>sports crew</code>, <code>sports timbers</code>, etc.</td></tr>
+          <tr><td>sports liverpool</td><td>Premier League scores — try <code>sports arsenal</code>, <code>sports chelsea</code>, <code>sports man city</code>, <code>sports man united</code></td></tr>
+          <tr><td>prefix XX</td><td>Look up the repeater with that 2-character path prefix — e.g. <code>prefix b1</code></td></tr>
+        </table>
+      </div>
       <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command.</div>
     </div>
     <div class="channel-qr">
