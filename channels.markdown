@@ -226,6 +226,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
           <tr><td>ping</td><td>Check if the bot is online</td></tr>
           <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code>. SNR higher is better (above 5 dB good, above 10 dB excellent). RSSI closer to 0 is stronger.</td></tr>
           <tr><td>help</td><td>List available commands</td></tr>
+          <tr><td>hfcond</td><td>Returns current shortwave radio propagation conditions including solar flux, A-index, and K-index.</td></tr>
           <tr><td>channels</td><td>List active network channels</td></tr>
           <tr><td>cmd</td><td>Show detailed command reference</td></tr>
           <tr><td>joke</td><td>Get a random joke</td></tr>
