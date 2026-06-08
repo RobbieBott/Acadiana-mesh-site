@@ -289,27 +289,27 @@ permalink: /channels/
 <p><strong>Why this matters:</strong> Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.</p>
 
 <p><strong>How to read the scope:</strong> <code>gc-la-lft</code> breaks down as:</p>
-<ul>
-  <li><code>gc</code> — Gulf Coast (broad regional scope)</li>
-  <li><code>gc-la</code> — Louisiana (state scope)</li>
-  <li><code>gc-la-lft</code> — Lafayette (local scope)</li>
+<ul style="list-style: disc; padding-left: 1.5rem; color: var(--text-muted);">
+  <li style="margin-bottom: 0.25rem;"><code>gc</code> — Gulf Coast (broad regional scope)</li>
+  <li style="margin-bottom: 0.25rem;"><code>gc-la</code> — Louisiana (state scope)</li>
+  <li style="margin-bottom: 0.25rem;"><code>gc-la-lft</code> — Lafayette (local scope)</li>
 </ul>
 
 <p><strong>Choosing the right scope:</strong></p>
-<ul>
-  <li>Use a <strong>wider scope</strong> (<code>gc-la</code>) to reach more people across Louisiana</li>
-  <li>Use a <strong>narrower scope</strong> (<code>gc-la-lft</code>) to keep traffic local to Lafayette</li>
-  <li>Channels with <strong>no scope</strong> flood the entire mesh — use sparingly</li>
+<ul style="list-style: disc; padding-left: 1.5rem; color: var(--text-muted);">
+  <li style="margin-bottom: 0.25rem;">Use a <strong>wider scope</strong> (<code>gc-la</code>) to reach more people across Louisiana</li>
+  <li style="margin-bottom: 0.25rem;">Use a <strong>narrower scope</strong> (<code>gc-la-lft</code>) to keep traffic local to Lafayette</li>
+  <li style="margin-bottom: 0.25rem;">Channels with <strong>no scope</strong> flood the entire mesh — use sparingly</li>
 </ul>
 
 <p><strong>Discovering local regions:</strong> In the MeshCore app tap <strong>Discover → Discover Regions</strong> to see what region scopes are active on nearby repeaters.</p>
 
 <h2>Adding a Channel</h2>
-<ol>
-  <li>Open the MeshCore app</li>
-  <li>Tap ⋮ → <strong>Add Channel</strong> → <strong>Join a Hashtag Channel</strong></li>
-  <li>Enter the channel name (e.g. <code>acadiana</code>)</li>
-  <li>Press <strong>Join Channel</strong></li>
+<ol style="list-style: decimal; padding-left: 1.5rem; color: var(--text-muted);">
+  <li style="margin-bottom: 0.25rem;">Open the MeshCore app</li>
+  <li style="margin-bottom: 0.25rem;">Tap ⋮ → <strong>Add Channel</strong> → <strong>Join a Hashtag Channel</strong></li>
+  <li style="margin-bottom: 0.25rem;">Enter the channel name (e.g. <code>acadiana</code>)</li>
+  <li style="margin-bottom: 0.25rem;">Press <strong>Join Channel</strong></li>
 </ol>
 <p>Or scan the QR code on any channel card above — the app will add it automatically.</p>
 
