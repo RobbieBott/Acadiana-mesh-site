@@ -198,7 +198,6 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
           <tr><td>hfcond</td><td>HF radio propagation conditions</td></tr>
           <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
           <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
-          <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
           <tr><td>ping</td><td>Check if the bot is online</td></tr>
           <tr><td>help</td><td>List available commands</td></tr>
         </table>
@@ -229,9 +228,10 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
           <tr><td>hfcond</td><td>Returns current shortwave radio propagation conditions including solar flux, A-index, and K-index.</td></tr>
           <tr><td>channels</td><td>List active network channels</td></tr>
           <tr><td>cmd</td><td>Show detailed command reference</td></tr>
-          <tr><td>joke</td><td>Get a random joke</td></tr>
+          <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
         </table>
         <table>
+          <tr><td>joke</td><td>Get a random joke</td></tr>
           <tr><td>dadjoke</td><td>Get a dad joke</td></tr>
           <tr><td>momjoke</td><td>Get a mom joke</td></tr>
           <tr><td>funfact</td><td>Get a fun fact</td></tr>
