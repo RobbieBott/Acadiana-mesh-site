@@ -164,7 +164,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
-  <div class="channel-card">
+  <div class="channel-card channel-card-full">
     <div class="channel-name">#wx</div>
     <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
 
@@ -184,21 +184,25 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
 
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaWX Bot Commands</div>
-      <table>
-        <tr><td>wx</td><td>Current conditions and forecast for the Rayne/Lafayette area</td></tr>
-        <tr><td>wx 70578</td><td>Forecast for a specific zip code</td></tr>
-        <tr><td>wx Lafayette</td><td>Forecast for a named city</td></tr>
-        <tr><td>aqi</td><td>Air quality index for the local area</td></tr>
-        <tr><td>sun</td><td>Sunrise and sunset times</td></tr>
-        <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
-        <tr><td>solar</td><td>Current solar conditions</td></tr>
-        <tr><td>hfcond</td><td>HF radio propagation conditions</td></tr>
-        <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
-        <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
-        <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
-        <tr><td>ping</td><td>Check if the bot is online</td></tr>
-        <tr><td>help</td><td>List available commands</td></tr>
-      </table>
+      <div class="two-col-commands">
+        <table>
+          <tr><td>wx</td><td>Current conditions and forecast for the Rayne/Lafayette area</td></tr>
+          <tr><td>wx 70578</td><td>Forecast for a specific zip code</td></tr>
+          <tr><td>wx Lafayette</td><td>Forecast for a named city</td></tr>
+          <tr><td>aqi</td><td>Air quality index for the local area</td></tr>
+          <tr><td>sun</td><td>Sunrise and sunset times</td></tr>
+          <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
+          <tr><td>solar</td><td>Current solar conditions</td></tr>
+        </table>
+        <table>
+          <tr><td>hfcond</td><td>HF radio propagation conditions</td></tr>
+          <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
+          <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
+          <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
+          <tr><td>ping</td><td>Check if the bot is online</td></tr>
+          <tr><td>help</td><td>List available commands</td></tr>
+        </table>
+      </div>
       <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM.</div>
     </div>
 
