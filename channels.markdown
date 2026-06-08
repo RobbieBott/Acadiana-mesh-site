@@ -86,31 +86,38 @@ permalink: /channels/
 .channel-card-full {
   grid-column: 1 / -1;
 }
-.two-col-commands {
+.three-col-commands {
   display: flex;
   gap: 24px;
   align-items: flex-start;
 }
-.two-col-commands table {
+.three-col-commands table {
   flex: 1;
   width: 100%;
   font-size: 13px;
   border-collapse: collapse;
 }
-.two-col-commands td {
+.three-col-commands td {
   padding: 4px 6px;
   vertical-align: top;
 }
-.two-col-commands td:first-child {
+.three-col-commands td:first-child {
   white-space: nowrap;
   color: #f94d00;
   font-family: monospace;
   font-size: 13px;
 }
-.two-col-commands td:last-child {
+.three-col-commands td:last-child {
   color: #aaaaaa;
 }
+@media (max-width: 768px) {
+  .three-col-commands {
+    flex-direction: column;
+  }
+}
 </style>
+
+<div class="page-container" style="max-width: 1200px;">
 
 Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.
 
@@ -118,9 +125,9 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
 <div class="channel-grid">
   <div class="channel-card">
     <div class="channel-name">Public</div>
-    <p>General chat for all mesh users. Uses a well-known or built in shared key.</p>
+    <p>General chat for all mesh users. Uses a well-known shared key.</p>
     <div class="channel-region-label">Key Type</div>
-    <span class="channel-region">Built-In</span>
+    <span class="channel-region">Well-known</span>
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">No Region Scope</span>
     <div class="channel-qr">
@@ -166,7 +173,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
   </div>
   <div class="channel-card channel-card-full">
     <div class="channel-name">#wx</div>
-    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the mesh. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
+    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
 
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
@@ -184,20 +191,23 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
 
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaWX Bot Commands</div>
-      <div class="two-col-commands">
+      <div class="three-col-commands">
         <table>
           <tr><td>wx</td><td>Current conditions and forecast for the Rayne/Lafayette area</td></tr>
           <tr><td>wx 70578</td><td>Forecast for a specific zip code</td></tr>
           <tr><td>wx Lafayette</td><td>Forecast for a named city</td></tr>
           <tr><td>aqi</td><td>Air quality index for the local area</td></tr>
           <tr><td>sun</td><td>Sunrise and sunset times</td></tr>
-          <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
-          <tr><td>solar</td><td>Current solar conditions</td></tr>
         </table>
         <table>
-          <tr><td>hfcond</td><td>HF radio propagation conditions</td></tr>
+          <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
+          <tr><td>solar</td><td>Current solar conditions</td></tr>
+          <tr><td>hfcond</td><td>HF radio propagation conditions — solar flux, A-index, and K-index for amateur radio operators planning HF communications</td></tr>
           <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
           <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
+        </table>
+        <table>
+          <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
           <tr><td>ping</td><td>Check if the bot is online</td></tr>
           <tr><td>help</td><td>List available commands</td></tr>
         </table>
@@ -220,21 +230,21 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
     <span class="channel-region">gc-la-lft</span>
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaBot Commands</div>
-      <div class="two-col-commands">
+      <div class="three-col-commands">
         <table>
           <tr><td>ping</td><td>Check if the bot is online</td></tr>
           <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info. Example: <code>ack @[YourName] | Direct | SNR: 10.75 dB | RSSI: -14 dBm | Received at: 11:29:50</code>. SNR higher is better (above 5 dB good, above 10 dB excellent). RSSI closer to 0 is stronger.</td></tr>
           <tr><td>help</td><td>List available commands</td></tr>
-          <tr><td>hfcond</td><td>Returns current shortwave radio propagation conditions including solar flux, A-index, and K-index.</td></tr>
           <tr><td>channels</td><td>List active network channels</td></tr>
-          <tr><td>cmd</td><td>Show detailed command reference</td></tr>
-          <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
         </table>
         <table>
+          <tr><td>cmd</td><td>Show detailed command reference</td></tr>
           <tr><td>joke</td><td>Get a random joke</td></tr>
           <tr><td>dadjoke</td><td>Get a dad joke</td></tr>
           <tr><td>momjoke</td><td>Get a mom joke</td></tr>
           <tr><td>funfact</td><td>Get a fun fact</td></tr>
+        </table>
+        <table>
           <tr><td>sports inter miami</td><td>MLS scores — works for all MLS teams. Try <code>sports dynamo</code>, <code>sports crew</code>, <code>sports timbers</code>, etc.</td></tr>
           <tr><td>sports liverpool</td><td>Premier League scores — try <code>sports arsenal</code>, <code>sports chelsea</code>, <code>sports man city</code>, <code>sports man united</code></td></tr>
           <tr><td>prefix XX</td><td>Look up the repeater with that 2-character path prefix — e.g. <code>prefix b1</code></td></tr>
@@ -300,3 +310,5 @@ All channel messages are encrypted using AES-256-CTR. With secured keys and trus
 | Hashtag channels | 🔓 Semi-public — key derived from name |
 | Private channels | 🔒 Private — custom secret key |
 | Direct messages | 🔒 Private — unique per conversation |
+
+</div>
