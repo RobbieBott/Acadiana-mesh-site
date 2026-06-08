@@ -1,11 +1,24 @@
 ---
-layout: default
+layout: page
 title: Channels — Acadiana Mesh Communication Groups
 description: Browse Acadiana Mesh channels including #acadiana, #lafayette, #emergency, and #wx. Learn how MeshCore hashtag channels, region scopes, and encrypted messaging work.
 permalink: /channels/
 ---
 
 <style>
+.channels-wide {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding: 0 2rem;
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+}
 .channel-qr {
   margin-top: 16px;
   padding-top: 16px;
@@ -37,24 +50,6 @@ permalink: /channels/
   letter-spacing: 0.5px;
   color: #888888;
   margin-bottom: 8px;
-}
-.channel-commands table {
-  width: 100%;
-  font-size: 13px;
-  border-collapse: collapse;
-}
-.channel-commands td {
-  padding: 4px 6px;
-  vertical-align: top;
-}
-.channel-commands td:first-child {
-  white-space: nowrap;
-  color: #f94d00;
-  font-family: monospace;
-  font-size: 13px;
-}
-.channel-commands td:last-child {
-  color: #aaaaaa;
 }
 .channel-note {
   font-size: 12px;
@@ -125,12 +120,9 @@ permalink: /channels/
 }
 </style>
 
-<div class="page-container" style="max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;">
+<div class="channels-wide">
 
-<h1 class="page-title">Channels</h1>
-<p style="color: var(--text-muted); margin-bottom: 2rem;">Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.</p>
-
-<h2>Core Channels</h2>
+<h2 style="margin-top:0;">Core Channels</h2>
 <div class="channel-grid">
   <div class="channel-card">
     <div class="channel-name">Public</div>
