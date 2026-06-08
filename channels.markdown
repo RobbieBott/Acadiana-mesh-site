@@ -166,7 +166,7 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
   </div>
   <div class="channel-card channel-card-full">
     <div class="channel-name">#wx</div>
-    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
+    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the mesh. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
 
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
