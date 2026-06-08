@@ -98,8 +98,12 @@ permalink: /channels/
   border-collapse: collapse;
 }
 .three-col-commands td {
-  padding: 4px 6px;
+  padding: 6px 6px;
   vertical-align: top;
+  border-bottom: 1px solid #2e2e2e;
+}
+.three-col-commands tr:last-child td {
+  border-bottom: none;
 }
 .three-col-commands td:first-child {
   white-space: nowrap;
