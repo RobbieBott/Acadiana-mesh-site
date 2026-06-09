@@ -200,7 +200,6 @@ permalink: /channels/
         <table>
           <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
           <tr><td>solar</td><td>Current solar conditions</td></tr>
-          <tr><td>hfcond</td><td>HF radio propagation conditions — solar flux, A-index, and K-index for amateur radio operators planning HF communications</td></tr>
           <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
           <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
         </table>
@@ -232,6 +231,7 @@ permalink: /channels/
           <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info for your message. SNR higher is better; RSSI closer to 0 is stronger.</td></tr>
           <tr><td>help</td><td>List available commands</td></tr>
           <tr><td>channels</td><td>List active network channels</td></tr>
+           <tr><td>hfcond</td><td>HF radio propagation conditions — solar flux, A-index, and K-index for amateur radio operators planning HF communications</td></tr>
         </table>
         <table>
           <tr><td>cmd</td><td>Show detailed command reference</td></tr>
