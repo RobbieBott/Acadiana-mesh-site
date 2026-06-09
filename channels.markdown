@@ -307,4 +307,4 @@ All channel messages are encrypted using AES-256-CTR. With secured keys and trus
 | Public | 🔓 Public — key is shared worldwide |
 | Hashtag channels | 🔓 Semi-public — key derived from name |
 | Private channels | 🔒 Private — custom secret key |
-| Direct messages | 🔒 Private — unique per conversation ||
+| Direct messages | 🔒 Private — unique per conversation |
