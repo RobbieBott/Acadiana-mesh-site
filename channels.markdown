@@ -6,6 +6,17 @@ permalink: /channels/
 ---
 
 <style>
+.channels-wide {
+  max-width: 1200px;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+}
+@media (max-width: 1200px) {
+  .channels-wide {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
 .channel-qr {
   margin-top: 16px;
   padding-top: 16px;
@@ -38,24 +49,6 @@ permalink: /channels/
   color: #888888;
   margin-bottom: 8px;
 }
-.channel-commands table {
-  width: 100%;
-  font-size: 13px;
-  border-collapse: collapse;
-}
-.channel-commands td {
-  padding: 4px 6px;
-  vertical-align: top;
-}
-.channel-commands td:first-child {
-  white-space: nowrap;
-  color: #f94d00;
-  font-family: monospace;
-  font-size: 13px;
-}
-.channel-commands td:last-child {
-  color: #aaaaaa;
-}
 .channel-note {
   font-size: 12px;
   color: #666666;
@@ -83,11 +76,51 @@ permalink: /channels/
   padding: 5px 8px;
   margin-bottom: 5px;
 }
+.channel-card-full {
+  grid-column: 1 / -1;
+}
+.three-col-commands {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.three-col-commands table {
+  flex: 1;
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+.three-col-commands td {
+  padding: 6px 6px;
+  vertical-align: top;
+  border-bottom: 1px solid #2e2e2e;
+}
+.three-col-commands tr:last-child td {
+  border-bottom: none;
+}
+.three-col-commands td:first-child {
+  white-space: nowrap;
+  color: #f94d00;
+  font-family: monospace;
+  font-size: 13px;
+}
+.three-col-commands td:last-child {
+  color: #aaaaaa;
+}
+@media (max-width: 768px) {
+  .three-col-commands {
+    flex-direction: column;
+    gap: 0;
+  }
+  .three-col-commands table {
+    width: 100%;
+  }
+}
 </style>
 
-Channels are how groups communicate on the Acadiana Mesh network. Each channel has a shared encryption key that allows members to send and receive messages.
+<div class="channels-wide">
 
-## Core Channels
+<h2 style="margin-top:0;">Core Channels</h2>
 <div class="channel-grid">
   <div class="channel-card">
     <div class="channel-name">Public</div>
@@ -137,62 +170,79 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
-  <div class="channel-card">
-  <div class="channel-name">#wx</div>
-  <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
-
-  <div class="channel-region-label">Key Type</div>
-  <span class="channel-region">Hashtag derived</span>
-
-  <div class="channel-region-label">Region Scope</div>
-  <span class="channel-region">gc-la-lft</span>
-
-  <div class="wx-examples">
-    <div class="wx-examples-label">Example Reports</div>
-    <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
-    <div class="wx-example">Road flooding on Ambassador at Johnston</div>
-    <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
-    <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
+  <div class="channel-card channel-card-full">
+    <div class="channel-name">#wx</div>
+    <p>Severe weather updates and weather-related reports across the Acadiana Region. Use this channel to share alerts, storm reports, radar observations, and other weather information that may impact users on the network. Keeping weather discussions here helps ensure important alerts are easier for everyone to find.</p>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">gc-la-lft</span>
+    <div class="wx-examples">
+      <div class="wx-examples-label">Example Reports</div>
+      <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
+      <div class="wx-example">Road flooding on Ambassador at Johnston</div>
+      <div class="wx-example">NWS Tornado Watch issued for Lafayette Parish</div>
+      <div class="wx-example">Rotation on radar near Broussard, stay safe</div>
+    </div>
     <div class="channel-commands">
-      <div class="channel-commands-label">Commands</div>
-      <table>
-        <tr>
-          <td>wx #####</td>
-          <td>wx followed by your zipcode for todays NOAA forecast.</td>
-        </tr>
-        <tr>
-          <td>help</td>
-          <td>List available commands</td>
-        </tr>
-      </table>
+      <div class="channel-commands-label">AcadianaWX Bot Commands</div>
+      <div class="three-col-commands">
+        <table>
+          <tr><td>wx</td><td>Current conditions and forecast for the Rayne/Lafayette area</td></tr>
+          <tr><td>wx 70578</td><td>Forecast for a specific zip code</td></tr>
+          <tr><td>wx Lafayette</td><td>Forecast for a named city</td></tr>
+          <tr><td>aqi</td><td>Air quality index for the local area</td></tr>
+          <tr><td>sun</td><td>Sunrise and sunset times</td></tr>
+        </table>
+        <table>
+          <tr><td>moon</td><td>Moon phase, rise and set times</td></tr>
+          <tr><td>solar</td><td>Current solar conditions</td></tr>
+          <tr><td>hfcond</td><td>HF radio propagation conditions — solar flux, A-index, and K-index for amateur radio operators planning HF communications</td></tr>
+          <tr><td>solarforecast</td><td>Solar energy forecast</td></tr>
+          <tr><td>aurora</td><td>Aurora borealis activity level</td></tr>
+        </table>
+        <table>
+          <tr><td>satpass 25544</td><td>Next ISS pass overhead. Use NORAD ID — ISS is 25544, SO-50 is 27607</td></tr>
+          <tr><td>ping</td><td>Check if the bot is online</td></tr>
+          <tr><td>help</td><td>List available commands</td></tr>
+        </table>
+      </div>
+      <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM.</div>
+    </div>
+    <div class="channel-qr">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
+      <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
-
-  <div class="channel-qr">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
-    <div class="channel-qr-label">Scan to add channel</div>
-  </div>
-</div>
-  <div class="channel-card">
+  <div class="channel-card channel-card-full">
     <div class="channel-name">#bot</div>
-    <p>Interact with the Acadiana Mesh network bot. Ask for weather, jokes, or network info. Messages are rate limited — wait for a response before sending another command.</p>
+    <p>Interact with AcadianaBot — fun commands, jokes, sports scores, and network info. Messages are rate limited — wait for a response before sending another command.</p>
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">gc-la-lft</span>
     <div class="channel-commands">
-      <div class="channel-commands-label">Commands</div>
-      <table>
-        <tr><td>ping</td><td>Check if the bot is online</td></tr>
-        <tr><td>test</td><td>Signal report — returns your signal strength and path info.</td></tr>
-        <tr><td>help</td><td>List available commands</td></tr>
-        <tr><td>channels</td><td>List active network channels</td></tr>
-        <tr><td>cmd</td><td>Show detailed command reference</td></tr>
-        <tr><td>dad joke</td><td>Get a dad joke</td></tr>
-        <tr><td>mom joke</td><td>Get a mom joke</td></tr>
-        <tr><td>joke</td><td>Get a random joke</td></tr>
-        <tr><td>prefix XX</td><td>Get the name and location of the repeater with that prefix.</td></tr>
-      </table>
+      <div class="channel-commands-label">AcadianaBot Commands</div>
+      <div class="three-col-commands">
+        <table>
+          <tr><td>ping</td><td>Check if the bot is online</td></tr>
+          <tr><td>test</td><td>Signal report — returns SNR, RSSI, and path info for your message. SNR higher is better; RSSI closer to 0 is stronger.</td></tr>
+          <tr><td>help</td><td>List available commands</td></tr>
+          <tr><td>channels</td><td>List active network channels</td></tr>
+        </table>
+        <table>
+          <tr><td>cmd</td><td>Show detailed command reference</td></tr>
+          <tr><td>joke</td><td>Get a random joke</td></tr>
+          <tr><td>dadjoke</td><td>Get a dad joke</td></tr>
+          <tr><td>momjoke</td><td>Get a mom joke</td></tr>
+          <tr><td>funfact</td><td>Get a fun fact</td></tr>
+        </table>
+        <table>
+          <tr><td>sports inter miami</td><td>MLS scores — works for all MLS teams. Try <code>sports dynamo</code>, <code>sports crew</code>, <code>sports timbers</code>, etc.</td></tr>
+          <tr><td>sports liverpool</td><td>Premier League scores — try <code>sports arsenal</code>, <code>sports chelsea</code>, <code>sports man city</code>, <code>sports man united</code></td></tr>
+          <tr><td>prefix XX</td><td>Look up the repeater with that 2-character path prefix — e.g. <code>prefix b1</code></td></tr>
+        </table>
+      </div>
       <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command.</div>
     </div>
     <div class="channel-qr">
@@ -200,6 +250,8 @@ Channels are how groups communicate on the Acadiana Mesh network. Each channel h
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
+</div>
+
 </div>
 
 ## How Channels Work
