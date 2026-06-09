@@ -7,15 +7,7 @@ permalink: /channels/
 
 <style>
 .channels-wide {
-  max-width: 1200px;
-  margin-left: calc(-50vw + 50%);
-  margin-right: calc(-50vw + 50%);
-}
-@media (max-width: 1200px) {
-  .channels-wide {
-    margin-left: 0;
-    margin-right: 0;
-  }
+  width: 100%;
 }
 .channel-qr {
   margin-top: 16px;
