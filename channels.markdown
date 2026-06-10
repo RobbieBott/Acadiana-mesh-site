@@ -209,7 +209,7 @@ permalink: /channels/
           <tr><td>help</td><td>List available commands</td></tr>
         </table>
       </div>
-      <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM.</div>
+      <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM. As the mesh grows this bot will stop monitoring the channel and respond only to DMs.</div>
     </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
@@ -246,7 +246,7 @@ permalink: /channels/
           <tr><td>prefix XX</td><td>Look up the repeater with that 2-character path prefix — e.g. <code>prefix b1</code></td></tr>
         </table>
       </div>
-      <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command.</div>
+      <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command. As the mesh grows this bot will stop monitoring the channel and respond only to DMs.</div>
     </div>
     <div class="channel-qr">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dbot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211" alt="QR code for #bot channel" />
