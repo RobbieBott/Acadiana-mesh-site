@@ -16,7 +16,7 @@ Use these settings to join the Acadiana Mesh network. These settings must match 
 | Preset | USA/Canada (Recommended) |
 | Frequency | 910.525 MHz |
 | Bandwidth | 62.5 kHz |
-| Spreading Factor | 9 |
+| Spreading Factor | 7 |
 | Coding Rate | 5 |
 
 ### Repeater
@@ -26,7 +26,7 @@ Use these settings to join the Acadiana Mesh network. These settings must match 
 | Preset | USA/Canada (Recommended) |
 | Frequency | 910.525 MHz |
 | Bandwidth | 62.5 kHz |
-| Spreading Factor | 9 |
+| Spreading Factor | 7 |
 | Coding Rate | 5 |
 
 ## MQTT Observer Settings
