@@ -62,22 +62,26 @@ powersaving on
 Acadiana Mesh uses the following region hierarchy:
 
 {% highlight bash %}
-gc
-  └── gc-la
-        └── gc-la-lft
+us
+  └── us-southeast
+        └── us-gc
+              └── us-la
+                    └── us-la-lft
 {% endhighlight %}
 
 Apply these region commands to your repeater:
 
 {% highlight bash %}
-region put gc
-region put gc-la gc
-region put gc-la-lft gc-la
-region put gc-la-lft-mm gc-la
-region allowf gc
-region allowf gc-la
-region allowf gc-la-lft
-region allowf gc-la-lft-mm
+region put us
+region put us-southeast us
+region put us-gc us-southeast
+region put us-la us-gc
+region put us-la-lft us-la
+region allowf us
+region allowf us-southeast
+region allowf us-gc
+region allowf us-la
+region allowf us-la-lft
 region save
 {% endhighlight %}
 

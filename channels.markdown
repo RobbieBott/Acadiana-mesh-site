@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Channels — Acadiana Mesh Communication Groups
-description: Browse Acadiana Mesh channels including #acadiana, #lafayette, #emergency, and #wx. Learn how MeshCore hashtag channels, region scopes, and encrypted messaging work.
+description: Browse Acadiana Mesh channels including #acadiana, #lafayette, #wx, #skywarn, and #bot. Learn how MeshCore hashtag channels, region scopes, and encrypted messaging work.
 permalink: /channels/
 ---
 
@@ -155,9 +155,9 @@ permalink: /channels/
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la-lft</span>
+    <span class="channel-region">us-la-lft</span>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dacadiana%26secret%3D119b05421c38402cc96a5c31533ecd75" alt="QR code for #acadiana channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dacadiana%26secret%3D119b05421c38402cc96a5c31533ecd75%26region_scope%3Dus-la-lft" alt="QR code for #acadiana channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -167,9 +167,21 @@ permalink: /channels/
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la-lft</span>
+    <span class="channel-region">us-la-lft</span>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dlafayette%26secret%3D64b5b9f12eac952a069ecda90366dceb" alt="QR code for #lafayette channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dlafayette%26secret%3D64b5b9f12eac952a069ecda90366dceb%26region_scope%3Dus-la-lft" alt="QR code for #lafayette channel" />
+      <div class="channel-qr-label">Scan to add channel</div>
+    </div>
+  </div>
+  <div class="channel-card">
+    <div class="channel-name">#skywarn</div>
+    <p>SKYWARN severe weather spotting coordination for trained NWS storm spotters in the Acadiana Region.</p>
+    <div class="channel-region-label">Key Type</div>
+    <span class="channel-region">Hashtag derived</span>
+    <div class="channel-region-label">Region Scope</div>
+    <span class="channel-region">us-la-lft</span>
+    <div class="channel-qr">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dskywarn%26secret%3D46e8175d5a3b373985eb471a3ad479f8%26region_scope%3Dus-la-lft" alt="QR code for #skywarn channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -179,7 +191,7 @@ permalink: /channels/
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la-lft</span>
+    <span class="channel-region">us-la-lft</span>
     <div class="wx-examples">
       <div class="wx-examples-label">Example Reports</div>
       <div class="wx-example">Storm report: Heavy rain + gusty winds, Youngsville, 4:30pm</div>
@@ -212,7 +224,7 @@ permalink: /channels/
       <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM. As the mesh grows this bot will stop monitoring the channel and respond only to DMs.</div>
     </div>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620" alt="QR code for #wx channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620%26region_scope%3Dus-la-lft" alt="QR code for #wx channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -222,7 +234,7 @@ permalink: /channels/
     <div class="channel-region-label">Key Type</div>
     <span class="channel-region">Hashtag derived</span>
     <div class="channel-region-label">Region Scope</div>
-    <span class="channel-region">gc-la-lft</span>
+    <span class="channel-region">us-la-lft</span>
     <div class="channel-commands">
       <div class="channel-commands-label">AcadianaBot Commands</div>
       <div class="three-col-commands">
@@ -249,7 +261,7 @@ permalink: /channels/
       <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command. As the mesh grows this bot will stop monitoring the channel and respond only to DMs.</div>
     </div>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dbot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211" alt="QR code for #bot channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dbot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211%26region_scope%3Dus-la-lft" alt="QR code for #bot channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -277,14 +289,16 @@ Regions control which repeaters will forward a channel's messages. When you send
 
 **Why this matters:** Without region scoping, every message floods the entire mesh network. With regions, messages stay in their intended geographic area.
 
-**How to read the scope:** `gc-la-lft` breaks down as:
-- `gc` — Gulf Coast (broad regional scope)
-- `gc-la` — Louisiana (state scope)  
-- `gc-la-lft` — Lafayette (local scope)
+**How to read the scope:** `us-la-lft` breaks down as:
+- `us` — United States (broadest scope)
+- `us-southeast` — Southeast US
+- `us-gc` — Gulf Coast
+- `us-la` — Louisiana (state scope)
+- `us-la-lft` — Lafayette (local scope)
 
 **Choosing the right scope:**
-- Use a **wider scope** (`gc-la`) to reach more people across Louisiana
-- Use a **narrower scope** (`gc-la-lft`) to keep traffic local to Lafayette
+- Use a **wider scope** (`us-la`) to reach more people across Louisiana
+- Use a **narrower scope** (`us-la-lft`) to keep traffic local to Lafayette
 - Channels with **no scope** flood the entire mesh — use sparingly
 
 **Discovering local regions:** In the MeshCore app tap **Discover → Discover Regions** to see what region scopes are active on nearby repeaters.
