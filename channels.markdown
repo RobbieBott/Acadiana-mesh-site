@@ -145,7 +145,7 @@ permalink: /channels/
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">No Region Scope</span>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dtest%26secret%3D9cd8fcf22a47333b591d96a2b848b73f" alt="QR code for #test channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3D%2523test%26secret%3D9cd8fcf22a47333b591d96a2b848b73f" alt="QR code for #test channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -157,7 +157,7 @@ permalink: /channels/
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">us-la-lft</span>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dacadiana%26secret%3D119b05421c38402cc96a5c31533ecd75%26region_scope%3Dus-la-lft" alt="QR code for #acadiana channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3D%2523acadiana%26secret%3D119b05421c38402cc96a5c31533ecd75%26region_scope%3Dus-la-lft" alt="QR code for #acadiana channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -169,7 +169,7 @@ permalink: /channels/
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">us-la-lft</span>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dlafayette%26secret%3D64b5b9f12eac952a069ecda90366dceb%26region_scope%3Dus-la-lft" alt="QR code for #lafayette channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3D%2523lafayette%26secret%3D64b5b9f12eac952a069ecda90366dceb%26region_scope%3Dus-la-lft" alt="QR code for #lafayette channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -181,7 +181,7 @@ permalink: /channels/
     <div class="channel-region-label">Region Scope</div>
     <span class="channel-region">us-la-lft</span>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dskywarn%26secret%3D46e8175d5a3b373985eb471a3ad479f8%26region_scope%3Dus-la-lft" alt="QR code for #skywarn channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3D%2523skywarn%26secret%3D46e8175d5a3b373985eb471a3ad479f8%26region_scope%3Dus-la-lft" alt="QR code for #skywarn channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -224,7 +224,7 @@ permalink: /channels/
       <div class="channel-note">⏱ Rate limited — wait for a response before sending another command. Daily forecast posts automatically at 7:00 AM. As the mesh grows this bot will stop monitoring the channel and respond only to DMs.</div>
     </div>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dwx%26secret%3D472dd8595b8fd0ab542b3e86a379a620%26region_scope%3Dus-la-lft" alt="QR code for #wx channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3D%2523wx%26secret%3D472dd8595b8fd0ab542b3e86a379a620%26region_scope%3Dus-la-lft" alt="QR code for #wx channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
@@ -261,7 +261,7 @@ permalink: /channels/
       <div class="channel-note">⏱ Rate limited — wait 5 seconds after receiving a response before sending another command. As the mesh grows this bot will stop monitoring the channel and respond only to DMs.</div>
     </div>
     <div class="channel-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3Dbot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211%26region_scope%3Dus-la-lft" alt="QR code for #bot channel" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=meshcore%3A%2F%2Fchannel%2Fadd%3Fname%3D%2523bot%26secret%3Deb50a1bcb3e4e5d7bf69a57c9dada211%26region_scope%3Dus-la-lft" alt="QR code for #bot channel" />
       <div class="channel-qr-label">Scan to add channel</div>
     </div>
   </div>
