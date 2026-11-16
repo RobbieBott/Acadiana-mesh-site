@@ -6,6 +6,7 @@ url: "https://acadianamesh.com"
 discord_url: "https://discord.gg/your-invite"
 analyzer_url: "https://analyzer.acadianamesh.com"
 docs_url: "https://docs.acadianamesh.com"
+map_url: "https://map.acadianamesh.com"
 
 plugins:
   - jekyll-feed
