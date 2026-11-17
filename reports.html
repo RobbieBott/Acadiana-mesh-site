@@ -40,7 +40,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
 
     <nav class="wiki-tabs report-tabs" role="tablist" aria-label="Report sections">
       <a href="#repeaters" role="tab" data-tab="repeaters">Active Repeaters <span class="tab-count" data-count-from="all-repeaters-count"></span></a>
-      <a href="#firmware" role="tab" data-tab="firmware">Firmware 1.14+ <span class="tab-count" data-count-from="firmware-count"></span></a>
+      <a href="#hash" role="tab" data-tab="hash">Path Hash Size <span class="tab-count" data-count-from="hash-count"></span></a>
       <a href="#location" role="tab" data-tab="location">No Location <span class="tab-count" data-count-from="no-location-count"></span></a>
       <a href="#clock" role="tab" data-tab="clock">Clock Sync <span class="tab-count" data-count-from="clock-count"></span></a>
     </nav>
@@ -58,7 +58,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
             <tr>
               <th>Repeater Name</th>
               <th class="hide-mobile">Public Key Prefix</th>
-              <th>Firmware Status</th>
+              <th>Path Hash</th>
               <th>Location</th>
               <th>Last Seen</th>
               <th class="hide-mobile">Adverts (lifetime)</th>
@@ -69,40 +69,26 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       </div>
     </div>
 
-    <!-- Not on Firmware 1.14+ -->
-    <div class="report-section wiki-panel" id="firmware" role="tabpanel">
+    <!-- Path Hash Size -->
+    <div class="report-section wiki-panel" id="hash" role="tabpanel">
       <div class="report-section-header">
-        <h2>Not on Firmware 1.14+ <span class="report-badge badge-urgent" id="firmware-count"></span></h2>
-        <span class="action-tag action-important">Action Important</span>
-        <p>These repeaters were observed sending only 1-byte path hash adverts and were not observed forwarding any multi-byte packets. This likely means they are running firmware older than 1.14 and will <strong>silently drop</strong> 2-byte and 3-byte packets. Once the switch to 2-byte and 3-byte packets on Companion nodes is made, these repeaters will no longer forward traffic to help the mesh.</p>
-        <p style="margin-top: 0.75rem;">Operators should update to firmware 1.14 or later. <a href="https://flasher.meshcore.io" target="_blank">Flash your device →</a></p>
-
-        <div class="callout callout-note">
-          <strong>Note:</strong> Some repeaters in this list may already be on firmware 1.14+ with <code>path.hash.mode</code> left at the default of 0. They simply weren't observed forwarding a multi-byte packet during the data window. Updating and setting <code>path.hash.mode</code> to <code>1</code> or <code>2</code> will help get you off this list. We also recommend that users periodically set their companion nodes to use 2-byte or 3-byte and send a message in the #test channel. This will generate multibyte traffic and allow us to see which repeaters are forwarding the traffic, indicating that they're updated and multibyte capable.
-        </div>
-
-        <div class="callout callout-warning">
-          <strong>Firmware Version Notes:</strong> There is a known bug in <strong>1.14.0</strong> where multibyte adverts are not sent automatically, even if you have run the <code>set path.hash.mode</code> command on your repeater. The multibyte adverts only go out when triggered manually. This means a repeater on 1.14.0 may still appear on this list even if it's set to send out multibyte adverts. <strong style="color: var(--accent);">Upgrading to 1.14.1+ is recommended.</strong> However, 1.14.1 introduces a new issue where <code>rxgain</code> is disabled by default, which can reduce receive sensitivity. Re-enable it after upgrading with: <code>set radio.rxgain on</code>
-        </div>
+        <h2>Path Hash Size <span class="report-badge badge-warn" id="hash-count"></span></h2>
+        <p>How many bytes each repeater uses for its ID when it stamps a packet's path, as seen in its adverts. <strong>2-byte</strong> is what we recommend for Acadiana repeaters — it practically ends ID collisions between repeaters. Repeaters still on <strong>1-byte</strong> should send <code>set path.hash.mode 1</code> on the Command Line (needs firmware 1.14 or newer; 1.14.1+ recommended). See the <a href="{{ '/wiki/#path-hash' | relative_url }}">Wiki</a> for what each size means.</p>
       </div>
-
-      <details class="report-details">
-        <summary>▶ Click to view all repeaters not confirmed on firmware 1.14+</summary>
-        <div class="table-wrap" style="margin-top: 1rem;">
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Repeater Name</th>
-                <th class="hide-mobile">Public Key Prefix</th>
-                <th>Status</th>
-                <th>Last Seen</th>
-                <th class="hide-mobile">Adverts (lifetime)</th>
-              </tr>
-            </thead>
-            <tbody id="firmware-body"></tbody>
-          </table>
-        </div>
-      </details>
+      <div class="hash-chart" id="hash-chart" role="img" aria-label="Repeaters by path hash size"></div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th class="hide-mobile">Public Key Prefix</th>
+              <th>Path Hash</th>
+              <th>Last Seen</th>
+            </tr>
+          </thead>
+          <tbody id="hash-body"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- No Location -->
@@ -370,6 +356,16 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
   white-space: normal;
   min-width: 140px;
 }
+.hash-chart { margin: 0 0 1.5rem; display: grid; gap: 0.6rem; max-width: 720px; }
+.hash-row { display: grid; grid-template-columns: 9.5rem 1fr 5.5rem; align-items: center; gap: 0.75rem; padding: 0.25rem 0; }
+.hash-row:hover .hash-bar { opacity: 0.85; }
+.hash-label { font-size: 0.9rem; color: var(--text); }
+.hash-label em { font-style: normal; font-size: 0.7rem; color: var(--text-dim); display: block; }
+.hash-track { height: 14px; background: var(--bg-card); border-radius: 4px; overflow: hidden; }
+.hash-bar { display: block; height: 100%; min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; }
+.hash-value { font-size: 0.95rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.hash-value small { font-weight: 400; color: var(--text-muted); margin-left: 0.25rem; }
+@media (max-width: 600px) { .hash-row { grid-template-columns: 6.5rem 1fr 4.5rem; } }
 .report-section-header code {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -388,6 +384,10 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
   .report-table td.hide-mobile {
     display: none;
   }
+}
+@media (max-width: 600px) {
+  .report-summary { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-bottom: 1.5rem; }
+  .summary-card { padding: 1rem 0.5rem; }
 }
 </style>
 
@@ -473,20 +473,38 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
         </tr>`;
       });
 
-      // Firmware
-      const firmwareNeeded = repeaters.filter(n => n.hash_size === 1 && n.multi_byte_status === 'unknown');
-      document.getElementById('firmware-count').textContent = firmwareNeeded.length;
-      document.getElementById('needs-attention').textContent = noLocation.length + firmwareNeeded.length;
-      const firmwareBody = document.getElementById('firmware-body');
-      firmwareNeeded.forEach(n => {
-        firmwareBody.innerHTML += `<tr>
-          <td class="node-name">${escName(n.name)}</td>
-          <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
-          <td class="status-unknown">Likely pre-1.14</td>
-          <td>${timeAgo(n.last_seen)}</td>
-          <td class="hide-mobile">${n.advert_count}</td>
-        </tr>`;
-      });
+      // Path hash size (1/2/3-byte IDs in packet paths)
+      const hashOf = n => [1, 2, 3].includes(n.hash_size) ? n.hash_size : 1;
+      const groups = { 1: [], 2: [], 3: [] };
+      repeaters.forEach(n => groups[hashOf(n)].push(n));
+      const oneByte = groups[1];
+      document.getElementById('hash-count').textContent = oneByte.length;
+      document.getElementById('needs-attention').textContent = noLocation.length + oneByte.length;
+      const maxCount = Math.max(1, groups[1].length, groups[2].length, groups[3].length);
+      document.getElementById('hash-chart').innerHTML = [1, 2, 3].map(sz => {
+        const c = groups[sz].length;
+        const pct = repeaters.length ? Math.round(100 * c / repeaters.length) : 0;
+        const tip = `${c} repeater${c === 1 ? '' : 's'} using ${sz}-byte path hashes (${pct}%)`;
+        return `<div class="hash-row" title="${tip}">
+          <span class="hash-label">${sz}-byte${sz === 2 ? ' <em>recommended</em>' : ''}</span>
+          <span class="hash-track"><span class="hash-bar" style="width:${(100 * c / maxCount).toFixed(1)}%"></span></span>
+          <span class="hash-value">${c} <small>${pct}%</small></span>
+        </div>`;
+      }).join('');
+      const hashBody = document.getElementById('hash-body');
+      hashBody.innerHTML = repeaters
+        .slice()
+        .sort((a, b) => hashOf(a) - hashOf(b) || new Date(b.last_seen) - new Date(a.last_seen))
+        .map(n => {
+          const sz = hashOf(n);
+          const cls = sz === 1 ? 'status-suspected' : 'status-confirmed';
+          return `<tr>
+            <td class="node-name">${escName(n.name)}</td>
+            <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
+            <td class="${cls}">${sz === 1 ? '~ 1-byte' : '✓ ' + sz + '-byte'}</td>
+            <td>${timeAgo(n.last_seen)}</td>
+          </tr>`;
+        }).join('');
 
       // All repeaters
       document.getElementById('all-repeaters-count').textContent = repeaters.length;
@@ -494,14 +512,13 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       repeaters
         .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
         .forEach(n => {
-          const statusClass = (n.hash_size >= 2 || n.multi_byte_status === 'confirmed') ? 'status-confirmed' :
-                              n.multi_byte_status === 'suspected' ? 'status-suspected' : 'status-unknown';
+          const statusClass = hashOf(n) >= 2 ? 'status-confirmed' : 'status-suspected';
           const locClass = hasLocation(n) ? 'location-set' : 'location-missing';
           const locText = hasLocation(n) ? '✓ Set' : '✗ Missing';
           allBody.innerHTML += `<tr>
             <td class="node-name">${escName(n.name)}</td>
             <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
-            <td class="${statusClass}">${firmwareLabel(n)}</td>
+            <td class="${statusClass}">${hashOf(n) >= 2 ? '✓ ' : '~ '}${hashOf(n)}-byte</td>
             <td class="${locClass}">${locText}</td>
             <td>${timeAgo(n.last_seen)}</td>
             <td class="hide-mobile">${n.advert_count}</td>
