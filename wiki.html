@@ -129,7 +129,7 @@ permalink: /wiki/
     </tbody>
   </table>
   <p><strong>Net result:</strong> a typical 100-byte packet takes about 350 ms on the air.</p>
-  <div class="wiki-note">💡 Our <a href="/settings/">Settings page</a> has the same values in a quick-reference table, plus MQTT settings for observers.</div>
+  <div class="wiki-note">💡 Our <a href="/connect/#settings">Settings tab on Get Connected</a> has the same values in a quick-reference table, plus repeater, region and observer settings.</div>
 </section>
 
 <!-- ================= REGIONS ================= -->
@@ -595,76 +595,9 @@ powersaving on</code></pre>
     }, function () { res.innerHTML = '<p class="rf-hint">Couldn\'t get your location. Tap the map or enter coordinates instead.</p>'; }, { timeout: 10000 });
   });
 
-  window.acxRegionMapInit = function () { initMap(); if (map) setTimeout(function () { map.invalidateSize(); }, 50); };
+  document.addEventListener('tab:shown', function (e) { if (e.detail === 'regions') { initMap(); if (map) setTimeout(function () { map.invalidateSize(); }, 50); } });
   initMap();
 })();
 </script>
 
-<script>
-(function () {
-  var tabs = Array.prototype.slice.call(document.querySelectorAll('.wiki-tabs [data-tab]'));
-  var panels = Array.prototype.slice.call(document.querySelectorAll('.wiki-panel'));
-  if (!tabs.length) return;
-  document.documentElement.classList.add('wiki-js');
-
-  function panelFor(hash) {
-    var id = (hash || '').replace(/^#/, '');
-    if (!id) return null;
-    var el = document.getElementById(id);
-    if (!el) return null;
-    return el.classList.contains('wiki-panel') ? el : el.closest('.wiki-panel');
-  }
-
-  function show(panel, target, push) {
-    panels.forEach(function (p) { p.hidden = (p !== panel); });
-    if (panel.id === 'regions' && window.acxRegionMapInit) setTimeout(window.acxRegionMapInit, 0);
-    tabs.forEach(function (t) {
-      var on = t.getAttribute('data-tab') === panel.id;
-      t.classList.toggle('active', on);
-      t.setAttribute('aria-selected', on ? 'true' : 'false');
-      if (on && t.scrollIntoView) t.scrollIntoView({ block: 'nearest', inline: 'center' });
-    });
-    if (push) history.replaceState(null, '', '#' + (target || panel.id));
-    if (target && target !== panel.id) {
-      var el = document.getElementById(target);
-      if (el) el.scrollIntoView();
-    } else if (push) {
-      var nav = document.querySelector('.wiki-tabs');
-      var y = nav.getBoundingClientRect().top + window.pageYOffset - 80;
-      if (window.pageYOffset > y) window.scrollTo(0, y);
-    }
-  }
-
-  function route() {
-    var id = location.hash.replace(/^#/, '');
-    var panel = panelFor(location.hash) || panels[0];
-    show(panel, id && document.getElementById(id) ? id : null, false);
-  }
-
-  document.addEventListener('click', function (e) {
-    var a = e.target.closest('a[href^="#"]');
-    if (!a) return;
-    var id = a.getAttribute('href').slice(1);
-    var panel = panelFor('#' + id);
-    if (!panel) return;
-    e.preventDefault();
-    show(panel, id, true);
-  });
-  window.addEventListener('hashchange', route);
-  route();
-
-  // Copy buttons on command blocks
-  document.querySelectorAll('.wiki-code').forEach(function (pre) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'wiki-copy';
-    btn.textContent = 'Copy';
-    btn.addEventListener('click', function () {
-      var text = pre.querySelector('code').innerText;
-      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
-      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
-    });
-    pre.appendChild(btn);
-  });
-})();
-</script>
+<script src="/assets/js/tabs.js?v={{ site.time | date: '%s' }}"></script>

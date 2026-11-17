@@ -1,0 +1,387 @@
+---
+layout: default
+title: Get Connected — Join the Acadiana Mesh Network
+description: Join the Acadiana Mesh LoRa network — step-by-step setup, recommended MeshCore devices, radio, repeater and region settings, and how to host an observer.
+permalink: /connect/
+---
+{% capture tab_start %}
+Getting on the Acadiana Mesh network is easy and takes about 10 minutes. Follow these steps to get started.
+
+## Step 1: Get a Device
+
+You'll need a MeshCore-compatible LoRa radio. See the [Devices](#devices) tab for recommendations. Devices start around $30–100.
+
+## Step 2: Flash the Firmware
+
+Flash your device using the official MeshCore web flasher (Chrome or Edge on a computer):
+
+[Flash Your Device →](https://flasher.meshcore.io/){:target="_blank"}
+
+- Select your device model
+- Choose the **Companion Bluetooth** firmware to pair with your phone
+- Click Flash
+- If it's your first time flashing MeshCore, select **Erase** before flashing
+
+## Step 3: Configure Your Settings
+
+Set the radio to the **USA/Canada (Recommended)** preset in the MeshCore app, or apply these values with the [MeshCore Config Tool](https://config.meshcore.io/){:target="_blank"}:
+
+| Setting | Value |
+|---|---|
+| Frequency | 910.525 MHz |
+| Bandwidth | 62.5 kHz |
+| Spreading Factor | 7 |
+| Coding Rate | 5 |
+
+See the [Settings](#settings) tab for repeater and observer settings.
+
+## Step 4: Connect to Your Phone
+
+- **Bluetooth** — pair your device in the MeshCore app
+- **USB** — connect directly with a USB cable
+- **WiFi** — connect over local WiFi
+
+Download the MeshCore app:
+
+- [iOS App](https://apps.apple.com/us/app/meshcore/id6742354151){:target="_blank"}
+- [Android App](https://play.google.com/store/apps/details?id=com.liamcottle.meshcore.android){:target="_blank"}
+
+## Step 5: Join the Mesh
+
+1. Open the MeshCore app and connect to your device
+2. Set your name in Settings
+3. Tap **Advert** → **Send Flood Advert** to announce yourself
+4. Tap **Discover** → **Discover Repeaters** to find nearby nodes
+5. Send a test message on the **#test** channel — add channels from the [Channels page](/channels/)
+
+## Step 6: Join the Community
+
+- [Join our Discord]({{ site.discord_url }}){:target="_blank"}
+- [View the Live Network]({{ site.analyzer_url }}){:target="_blank"}
+- [Read the Wiki](/wiki/) for detailed guides, including repeater setup
+{% endcapture %}{% capture tab_devices %}
+Here are the recommended devices for joining the Acadiana Mesh network. All devices listed are compatible with MeshCore firmware.
+
+## Prebuilt Devices
+
+These devices come ready to go out of the box — case, battery, and antenna included. No soldering or additional purchases required to get on the mesh.
+
+### Seeed Wio Tracker L1 Pro
+The best all-in-one companion device for MeshCore. Comes pre-flashed with MeshCore firmware in a tough 3D-printed enclosure with GPS, OLED display, RP-SMA antenna connector, and built-in battery — everything you need in one package.
+
+- **Price:** ~$46.99
+- **MCU:** nRF52840
+- **LoRa:** SX1262
+- **Connection:** USB, Bluetooth
+- **Display:** Yes (OLED)
+- **GPS:** Yes (built-in)
+- **Battery:** Yes (included)
+- **Case:** Yes (3D-printed enclosure)
+- **Antenna:** Yes (3 dBi whip included)
+- **Pre-flashed:** MeshCore companion firmware
+
+[Buy from Seeed Studio →](https://www.seeedstudio.com){:target="_blank"}
+
+### LilyGO T-Deck Plus
+A pocket-sized standalone MeshCore terminal that looks like a mini BlackBerry. Built-in QWERTY keyboard, 2.8" touchscreen, trackball, GPS, microphone, speaker, and 2000mAh battery — all in one enclosure. No smartphone required to send and receive messages.
+
+- **Price:** ~$70-80
+- **MCU:** ESP32-S3
+- **LoRa:** SX1262, 915 MHz
+- **Connection:** USB, WiFi, Bluetooth
+- **Display:** Yes (2.8" IPS LCD touchscreen)
+- **GPS:** Yes (built-in)
+- **Battery:** Yes (2000mAh)
+- **Case:** Yes
+- **Keyboard:** Yes (QWERTY + trackball)
+- **Note:** Order the **MeshCore firmware** variant when purchasing from LilyGO directly
+
+[Buy from LilyGO →](https://lilygo.cc/products/t-deck-plus-1){:target="_blank"} · [Buy from Amazon →](https://www.amazon.com/LILYGO-ESP32-S3-Development-Meshcore-Firmware/dp/B0FYG4D54G){:target="_blank"}
+
+### LilyGO T-Deck Pro
+The premium LilyGO terminal featuring a 3.1" e-paper touchscreen for excellent sunlight readability and low power consumption. Includes 4G module, GPS, Bosch IMU, headphone jack, and QWERTY keyboard. Available pre-flashed with MeshCore firmware directly from LilyGO.
+
+- **Price:** ~$95
+- **MCU:** ESP32-S3
+- **LoRa:** SX1262, 915 MHz
+- **Connection:** USB, WiFi, Bluetooth, 4G
+- **Display:** Yes (3.1" e-paper touchscreen)
+- **GPS:** Yes (built-in)
+- **Battery:** Yes (included)
+- **Case:** Yes
+- **Keyboard:** Yes (QWERTY)
+- **Note:** Order the **MeshCore firmware** variant when purchasing from LilyGO directly
+
+[Buy from LilyGO →](https://lilygo.cc/products/t-deck-pro){:target="_blank"}
+
+---
+
+## Companion Devices
+
+These devices require a case, battery, and antenna to be purchased separately before deployment.
+
+### Heltec T096
+Ultra-compact device with a small built-in display. Great for portable use and easy to carry.
+
+- **Price:** ~$25-35
+- **Connection:** USB, Bluetooth
+- **Display:** Yes (0.96" OLED)
+- **Battery:** External required
+- **Case:** External required
+
+[Buy from Heltec →](https://heltec.org){:target="_blank"}
+
+### RAK WisBlock Starter Kit
+Modular development platform with LoRa capabilities. Great for custom builds.
+
+- **Price:** ~$40-60
+- **Connection:** USB, Bluetooth
+- **Display:** Optional
+- **Battery:** Optional
+- **Case:** External required
+
+[Buy from RAKwireless →](https://store.rakwireless.com){:target="_blank"}
+
+### Heltec Wireless Tracker
+Compact device with built-in GPS and screen. Great for mobile use.
+
+- **Price:** ~$30-40
+- **Connection:** USB, Bluetooth
+- **Display:** Yes
+- **GPS:** Yes
+- **Case:** External required
+
+[Buy from Heltec →](https://heltec.org){:target="_blank"}
+
+---
+
+## Repeater Hardware
+
+### RAK WisMesh 1W
+High-performance 1W repeater based on the nRF52840 with SX1262 LoRa radio. One of the best choices for a dedicated MeshCore repeater — excellent power efficiency and modular design makes it ideal for solar deployments.
+
+- **Price:** ~$40-60
+- **Output Power:** 1W (30 dBm)
+- **Connection:** USB, Bluetooth
+- **Battery:** Optional solar charging
+
+[Buy from RAKwireless →](https://store.rakwireless.com){:target="_blank"}
+
+### Heltec WiFi LoRa 32 V4 (No-Screen High Power Version)
+The no-screen version of the Heltec V4 is the recommended choice for a fixed repeater. The circuitry is already modified for an external WiFi antenna, and the high-power version outputs 28±1 dBm for maximum range. **Make sure you purchase the no-screen, high-power version — do NOT buy the version with a screen for repeater use.**
+
+- **Price:** ~$20-30
+- **MCU:** ESP32-S3
+- **LoRa:** SX1262
+- **Output Power:** 28±1 dBm (high power version)
+- **Connection:** USB, WiFi, Bluetooth
+- **Display:** None (external WiFi antenna mod)
+
+[Buy from Heltec →](https://heltec.org){:target="_blank"}
+
+### Waveshare LoRa HAT for Raspberry Pi
+Perfect for running a fixed repeater on a Raspberry Pi.
+
+- **Price:** ~$30-40
+- **Works with:** Raspberry Pi 3/4/5
+- **Connection:** SPI
+
+[Buy from Waveshare →](https://www.waveshare.com){:target="_blank"}
+
+### WisMesh Pi HAT (RAK6421) with pyMC Repeater
+A Raspberry Pi HAT designed for always-on MeshCore gateway and repeater deployments. Connects WisBlock LoRa radios and sensors directly to the Pi's 40-pin header — no USB adapters or loose cables. Run with pyMC Repeater for a full Linux-native MeshCore node.
+
+- **Price:** ~$14-20 (HAT only)
+- **Works with:** Raspberry Pi 4, Pi 5
+- **LoRa Radio:** WisBlock module (RAK13300 or RAK13302)
+- **Connection:** GPIO (HAT+)
+- **Software:** pyMC Repeater
+
+[Buy from Rokland →](https://store.rokland.com/products/wismesh-raspberry-pi-hat-rak6421-sku-610012){:target="_blank"} · [Buy from RAKwireless →](https://store.rakwireless.com/products/meshtastic-raspberry-pi-hat-rak6421){:target="_blank"}
+
+### MeshSmith PiMesh 1W
+A 1-Watt LoRa HAT from MeshSmith designed to turn your Raspberry Pi into a powerful MeshCore repeater. Features the E22-900M30S SX1262 module at 30 dBm output and includes an easy installer script.
+
+- **Price:** Check MeshSmith store
+- **Output Power:** 1W (30 dBm)
+- **Works with:** Raspberry Pi 3/4/5
+- **Software:** pyMC Repeater, meshtasticd
+
+[Buy from MeshSmith →](https://shop.meshsmith.net/collections/pimesh-1w){:target="_blank"} · [GitHub →](https://github.com/MeshSmith/PiMesh-1W){:target="_blank"}
+
+---
+
+## Where to Buy
+
+- [Amazon](https://amazon.com){:target="_blank"}
+- [AliExpress](https://aliexpress.com){:target="_blank"}
+- [Heltec Official Store](https://heltec.org){:target="_blank"}
+- [RAKwireless Store](https://store.rakwireless.com){:target="_blank"}
+- [Rokland (US Distributor)](https://store.rokland.com){:target="_blank"}
+- [Seeed Studio](https://www.seeedstudio.com){:target="_blank"}
+- [LilyGO Official Store](https://lilygo.cc){:target="_blank"}
+- [MeshSmith Store](https://shop.meshsmith.net){:target="_blank"}
+
+## Flashing Your Device
+
+Once you have your device, follow the [Get Started](#start) steps to flash and set it up.
+
+[Flash Your Device →](https://flasher.meshcore.io/){:target="_blank" .btn .btn-primary}
+{% endcapture %}{% capture tab_settings %}
+These settings must match exactly for your device to talk to other nodes on the network.
+
+## Radio Settings
+
+The same settings apply to **companions and repeaters**:
+
+| Setting | Value |
+|---|---|
+| Preset | USA/Canada (Recommended) |
+| Frequency | 910.525 MHz |
+| Bandwidth | 62.5 kHz |
+| Spreading Factor | 7 |
+| Coding Rate | 5 |
+
+## Recommended Repeater CLI Settings
+
+Once your repeater is online, apply these on its Command Line, one at a time:
+
+{% highlight bash %}
+set multi.acks 1
+set advert.interval 240
+set guest.password
+set path.hash.mode 1
+set loop.detect minimal
+powersaving on
+{% endhighlight %}
+
+What each one does is explained in the [Wiki](/wiki/#settings), along with [repeater profiles](/wiki/#profiles).
+
+## Region Settings
+
+Acadiana Mesh repeaters use these seven regions:
+
+`us` · `us-la` · `us-la-lft` · `us-gc` · `us-southeast` · `us-south` · `us-east`
+
+Apply them on your repeater's Command Line, one command at a time, then save:
+
+{% highlight bash %}
+region def us
+region def us-la
+region def us-la-lft
+region def us-gc
+region def us-southeast
+region def us-south
+region def us-east
+region save
+{% endhighlight %}
+
+Not in the Lafayette area? Use the [Region Code Finder](/wiki/#region-finder) to get the codes for your repeater's location. Enter region codes on repeaters only, not companions, and leave `*` (unscoped) allowed.
+
+## MQTT Observer Settings
+
+| Setting | Value |
+|---|---|
+| Server | mqtt.acadianamesh.com |
+| Port | 1883 |
+| Username | Observer |
+| Password | Uplink |
+| IATA Code | LFT |
+| Transport | TCP |
+| Use TLS | No |
+| Payload Mode | Packet (LetsMesh-compatible) |
+
+Setup steps are on the [Host an Observer](#observer) tab.
+{% endcapture %}{% capture tab_observer %}
+Observers listen for mesh traffic and report it to the Acadiana Mesh network analyzer, helping the community track network health, coverage, and repeater status. The more observers we have, the better picture we get of the mesh. If you have a stable internet connection and a spare companion device, you can help.
+
+## What You Need
+
+- A MeshCore companion device (any supported hardware)
+- A stable internet connection (WiFi or ethernet)
+- The device placed somewhere it can hear mesh traffic — near a window or outdoors works best
+
+## Step 1: Flash Observer Firmware
+
+Flash your device with the **observer firmware** from [Let's Mesh](https://letsmesh.net):
+
+[Download Observer Firmware →](https://letsmesh.net){:target="_blank"}
+
+Select the observer/companion build for your hardware and flash it using the standard MeshCore web flasher.
+
+## Step 2: Configure WiFi and MQTT
+
+Connect to your device via USB or Bluetooth and run these commands in the MeshCore CLI:
+
+**WiFi Setup:**
+```
+set wifi.ssid WiFi Name
+set wifi.pwd WiFi Password
+```
+
+**Observer Identity:**
+```
+set mqtt.iata LFT
+set mqtt.owner your companion public key hex
+set mqtt.email your@email.com
+```
+
+**Acadiana Mesh MQTT Server:**
+```
+set mqtt.server mqtt.acadianamesh.com
+set mqtt.port 1883
+set mqtt.username Observer
+set mqtt.password Uplink
+set mqtt.iata LFT
+reboot
+```
+
+Replace `WiFi Name` and `WiFi Password` with your network credentials. For `mqtt.owner`, enter the public key of your companion node in hex format. For `mqtt.email`, enter your email address so we can contact you if there are any issues with your observer.
+
+## Step 3: Verify It's Working
+
+After rebooting, your observer should connect to WiFi and begin reporting packets to the Acadiana Mesh analyzer. You can verify it's working by checking the [Network Analyzer]({{ site.analyzer_url }}) — your observer should appear in the Observers list within a few minutes.
+
+## Alternative: Home Assistant
+
+If you run Home Assistant, you can use the **MeshCore integration** to connect your device as an observer without needing a dedicated machine. Install the MeshCore add-on from the Home Assistant Community Store (HACS) and configure the same MQTT settings above.
+
+## Questions?
+
+Reach out on [Discord]({{ site.discord_url }}) — the community is happy to help you get your observer online.
+{% endcapture %}
+<div class="wiki">
+  <section class="wiki-hero">
+    <span class="wiki-kicker">Get Connected</span>
+    <h1>Join Acadiana Mesh</h1>
+    <p>Everything you need to get on the network: setup steps, recommended devices, the settings we use, and how to host an observer.</p>
+    <nav class="wiki-tabs" role="tablist" aria-label="Get Connected sections">
+      <a href="#start" role="tab" data-tab="start">Get Started</a>
+      <a href="#devices" role="tab" data-tab="devices">Devices</a>
+      <a href="#settings" role="tab" data-tab="settings">Settings</a>
+      <a href="#observer" role="tab" data-tab="observer">Host an Observer</a>
+    </nav>
+  </section>
+
+  <div class="page-container wiki-body">
+    <div class="page-content">
+      <section class="wiki-panel" id="start" role="tabpanel">
+        <h2>Get Started</h2>
+{{ tab_start | markdownify }}
+      </section>
+      <section class="wiki-panel" id="devices" role="tabpanel">
+        <h2>Recommended Devices</h2>
+{{ tab_devices | markdownify }}
+      </section>
+      <section class="wiki-panel" id="settings" role="tabpanel">
+        <h2>Network Settings</h2>
+{{ tab_settings | markdownify }}
+      </section>
+      <section class="wiki-panel" id="observer" role="tabpanel">
+        <h2>Host an Observer</h2>
+{{ tab_observer | markdownify }}
+      </section>
+    </div>
+  </div>
+</div>
+<script src="/assets/js/tabs.js?v={{ site.time | date: '%s' }}"></script>
