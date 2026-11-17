@@ -57,31 +57,24 @@ powersaving on
 
 ## Region Settings
 
-Acadiana Mesh uses the following region hierarchy:
+Acadiana Mesh repeaters use these seven regions:
+
+`us` · `us-la` · `us-la-lft` · `us-gc` · `us-southeast` · `us-south` · `us-east`
+
+Apply them on your repeater's Command Line, one command at a time, then save:
 
 {% highlight bash %}
-us
-  └── us-southeast
-        └── us-gc
-              └── us-la
-                    └── us-la-lft
-{% endhighlight %}
-
-Apply these region commands to your repeater:
-
-{% highlight bash %}
-region put us
-region put us-southeast us
-region put us-gc us-southeast
-region put us-la us-gc
-region put us-la-lft us-la
-region allowf us
-region allowf us-southeast
-region allowf us-gc
-region allowf us-la
-region allowf us-la-lft
+region def us
+region def us-la
+region def us-la-lft
+region def us-gc
+region def us-southeast
+region def us-south
+region def us-east
 region save
 {% endhighlight %}
+
+Not in the Lafayette area? Use the [Region Code Finder](/wiki/#region-finder) to get the codes for your repeater's location. Enter region codes on repeaters only, not companions, and leave `*` (unscoped) allowed. More detail is in the [Wiki](/wiki/#regions).
 
 ## Flash Your Device
 

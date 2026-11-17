@@ -134,6 +134,54 @@ permalink: /wiki/
 
 <!-- ================= REGIONS ================= -->
 <section class="wiki-panel" id="regions" role="tabpanel">
+  <h2 id="region-finder">Region Code Finder</h2>
+  <p>Find the region codes for a repeater. Tap the map where the repeater is installed, use your current location, or enter its coordinates — the commands to paste into the repeater appear below.</p>
+  <div class="rf">
+    <div class="rf-map" id="rfMap" role="application" aria-label="Map — tap where your repeater is installed"></div>
+    <div class="rf-controls">
+      <label>Latitude <input id="rfLat" type="text" inputmode="decimal" placeholder="30.2241"></label>
+      <label>Longitude <input id="rfLon" type="text" inputmode="decimal" placeholder="-92.0198"></label>
+      <button type="button" class="btn btn-primary" id="rfFind">Find codes</button>
+      <button type="button" class="btn btn-secondary" id="rfGps">Use my location</button>
+    </div>
+    <div class="rf-result" id="rfResult" aria-live="polite">
+      <p class="rf-hint">Pick a spot on the map to see its region codes.</p>
+    </div>
+  </div>
+  <div class="wiki-note">💡 <strong>Enter region codes on repeaters only, not companions.</strong> Leave <code>*</code> (unscoped) allowed — never run <code>region denyf *</code>, or the repeater stops forwarding normal unscoped traffic.</div>
+  <p class="rf-source">Region boundaries from the community region registry at regions.caboosey.net — the same boundaries the Gulf Coast Mesh uses.</p>
+
+  <h3>Acadiana Mesh regions</h3>
+  <p>A repeater in the Acadiana area forwards these seven regions:</p>
+  <table>
+    <thead><tr><th>Region</th><th>Covers</th></tr></thead>
+    <tbody>
+      <tr><td><code>us</code></td><td>United States-wide</td></tr>
+      <tr><td><code>us-la</code></td><td>Louisiana-wide</td></tr>
+      <tr><td><code>us-la-lft</code></td><td>Lafayette / Acadiana</td></tr>
+      <tr><td><code>us-gc</code></td><td>Gulf Coast</td></tr>
+      <tr><td><code>us-southeast</code></td><td>Southeastern US</td></tr>
+      <tr><td><code>us-south</code></td><td>Southern US</td></tr>
+      <tr><td><code>us-east</code></td><td>Eastern US</td></tr>
+    </tbody>
+  </table>
+  <p>Log into the repeater, open the <strong>Command Line</strong>, and send each command one at a time, waiting for each reply. Finish with <code>region save</code>:</p>
+  <pre class="wiki-code"><code>region def us
+region def us-la
+region def us-la-lft
+region def us-gc
+region def us-southeast
+region def us-south
+region def us-east
+region save</code></pre>
+  <p><code>region def</code> creates the region and allows it for flood in one step. Changes don't stick until you run <code>region save</code>. To check the result, run <code>region</code> to list every region, or <code>region get &lt;name&gt;</code> for one.</p>
+  <div class="wiki-warn">⚠️ <strong>Older setups:</strong>
+    <ul>
+      <li>If the repeater still has <code>gc-la-lft-mm</code> (or <code>us-la-lft-mm</code>), remove it — we no longer use it: <code>region remove gc-la-lft-mm</code>, then <code>region save</code>.</li>
+      <li>If the repeater says <code>region def</code> is an unknown command, update its firmware. On older firmware, use <code>region put &lt;name&gt;</code> followed by <code>region allowf &lt;name&gt;</code> for each region, then <code>region save</code>.</li>
+    </ul>
+  </div>
+
   <h2 id="region-scoping">Region Scoping &amp; IATA Codes</h2>
   <p>Region scoping lets each repeater decide which flood traffic it forwards, based on a region tag attached to the packet. Without scoping, a repeater rebroadcasts every flood packet it hears — including traffic from distant communities that has nothing to do with Acadiana. With scoping, only packets tagged with an allowed region are forwarded; everything else is quietly dropped.</p>
   <p>This matters for mesh health. Every packet a repeater retransmits uses shared airtime. A Lafayette repeater forwarding traffic meant for another city burns channel time that local messages could have used. Across a busy network with many repeaters, unfiltered rebroadcasting means congestion, delays and dropped messages. Scoping keeps each part of the mesh carrying the traffic that belongs there.</p>
@@ -149,32 +197,8 @@ permalink: /wiki/
       <tr><td>IATA</td><td><code>lft</code></td><td>The 3-letter airport code nearest the area — LFT is Lafayette Regional Airport</td></tr>
     </tbody>
   </table>
+  <p>Some regions cover several states instead: <code>us-gc</code> (Gulf Coast), <code>us-southeast</code>, <code>us-south</code> and <code>us-east</code>.</p>
   <div class="wiki-note">💡 <strong>What is an IATA code?</strong> The 3-letter identifier assigned to airports worldwide — LFT for Lafayette, MSY for New Orleans, BTR for Baton Rouge. In MeshCore region names they're written lower-case. Where no airport fits, the community agrees on a 3-letter shorthand.</div>
-
-  <h3>Acadiana region hierarchy</h3>
-  <p>Acadiana repeaters forward these five regions. Besides country, state and city, the Gulf Coast adds two geographic tiers: <code>us-southeast</code> and <code>us-gc</code> (Gulf Coast).</p>
-  <table>
-    <thead><tr><th>Region</th><th>Covers</th></tr></thead>
-    <tbody>
-      <tr><td><code>us</code></td><td>United States-wide</td></tr>
-      <tr><td><code>us-la</code></td><td>Louisiana-wide</td></tr>
-      <tr><td><code>us-la-lft</code></td><td>Lafayette / Acadiana</td></tr>
-      <tr><td><code>us-gc</code></td><td>Gulf Coast</td></tr>
-      <tr><td><code>us-southeast</code></td><td>Southeastern US</td></tr>
-    </tbody>
-  </table>
-  <p>Apply them to your repeater with:</p>
-  <pre class="wiki-code"><code>region put us
-region put us-southeast us
-region put us-gc us-southeast
-region put us-la us-gc
-region put us-la-lft us-la
-region allowf us
-region allowf us-southeast
-region allowf us-gc
-region allowf us-la
-region allowf us-la-lft
-region save</code></pre>
 
   <h3>How transport codes work</h3>
   <p>When a client or room server sends a scoped flood packet (for example a channel message), it attaches a 16-bit <em>transport code</em>: an HMAC-SHA256 of the packet's payload, keyed with the region's 16-byte key. The packet is sent as <code>ROUTE_TYPE_TRANSPORT_FLOOD</code> (0x00), which tells receivers that transport codes are present. Plain flood packets with no transport code use <code>ROUTE_TYPE_FLOOD</code> (0x01) and are matched by the repeater's wildcard (<code>*</code>) region.</p>
@@ -182,9 +206,9 @@ region save</code></pre>
   <h3>How a repeater matches a region</h3>
   <p>When a transport-flood packet arrives, the repeater works through its configured regions and computes the expected transport code for each one. If one matches the packet's code, the packet belongs to that region. If none match and the wildcard doesn't allow flood, the packet is dropped.</p>
 
-  <h3>The hierarchy is only for organization</h3>
-  <p>The indented tree shown in the region CLI output is organizational only. Each region name produces its own independent key — <code>us-la</code> and <code>us-la-lft</code> share nothing — and there is no parent-chain lookup when matching packets.</p>
-  <p>So <strong>allowing <code>us-la</code> does not forward packets tagged <code>us-la-lft</code></strong>, or any other child region. Every region you want to forward must be allowed individually — which is why the commands above allow all five. They add up: <code>us</code> carries national traffic, <code>us-la</code> carries state-wide traffic and <code>us-la-lft</code> carries local traffic. New regions are denied by default until you explicitly allow them.</p>
+  <h3>Every region stands on its own</h3>
+  <p>Each region name produces its own independent key — <code>us-la</code> and <code>us-la-lft</code> share nothing — and there is no parent-chain lookup when matching packets. Any parent/child tree you see in the region CLI output is organizational only.</p>
+  <p>So <strong>allowing <code>us-la</code> does not forward packets tagged <code>us-la-lft</code></strong>, or any other region. Every region you want to forward must be defined on the repeater individually — which is why the commands above list all seven. They add up: <code>us</code> carries national traffic, <code>us-la</code> carries state-wide traffic and <code>us-la-lft</code> carries local traffic.</p>
 </section>
 
 <!-- ================= CHANNELS ================= -->
@@ -473,6 +497,109 @@ powersaving on</code></pre>
   </div>
 </div>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  var BASE = ['us', 'us-la', 'us-gc', 'us-southeast', 'us-south', 'us-east'];
+  var LOCAL = { 'us-la-lft': 'Lafayette / Acadiana', 'us-la-lc': 'Lake Charles', 'us-la-msy': 'New Orleans / Gulf Coast LA' };
+  var data = null, map = null, marker = null, mapReady = false;
+  var res = document.getElementById('rfResult'), latIn = document.getElementById('rfLat'), lonIn = document.getElementById('rfLon');
+
+  function inRing(x, y, r) {
+    var inside = false;
+    for (var i = 0, j = r.length - 1; i < r.length; j = i++) {
+      var xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+  function inRegion(id, lon, lat) {
+    return (data[id] || []).some(function (poly) {
+      if (!inRing(lon, lat, poly[0])) return false;
+      for (var h = 1; h < poly.length; h++) if (inRing(lon, lat, poly[h])) return false;
+      return true;
+    });
+  }
+  function esc(t) { return String(t).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+
+  function show(lat, lon) {
+    if (!data) { res.innerHTML = '<p class="rf-hint">Loading region boundaries…</p>'; return; }
+    latIn.value = lat.toFixed(5); lonIn.value = lon.toFixed(5);
+    if (map) {
+      if (marker) marker.setLatLng([lat, lon]); else marker = L.marker([lat, lon]).addTo(map);
+    }
+    var locals = Object.keys(LOCAL).filter(function (id) { return inRegion(id, lon, lat); });
+    var inLA = inRegion('us-la', lon, lat) || locals.length > 0;
+    if (!inLA) {
+      res.innerHTML = '<p><strong>That spot is outside Louisiana.</strong> This finder only covers Louisiana. Use the <a href="https://docs.gulfcoastmesh.org/region-codes/" target="_blank" rel="noopener">Gulf Coast Mesh region finder</a> for other areas.</p>';
+      return;
+    }
+    var codes = BASE.slice(0, 2).concat(locals, BASE.slice(2));
+    var html = '<p class="rf-codes-title">Regions for this location</p><p class="rf-codes">' +
+      codes.map(function (c) { return '<code>' + esc(c) + '</code>'; }).join(' ') + '</p>';
+    if (locals.length) html += '<p class="rf-hint">Local area: ' + locals.map(function (id) { return esc(LOCAL[id]); }).join(', ') + '</p>';
+    else html += '<p class="rf-hint">This spot isn\'t inside a local area yet, so it only gets the state and wider regions.</p>';
+    var cmds = codes.map(function (c) { return 'region def ' + c; }).concat(['region save']).join('\n');
+    html += '<p>Send these one at a time on the repeater\'s Command Line:</p><pre class="wiki-code rf-cmds"><code>' + esc(cmds) + '</code></pre>';
+    res.innerHTML = html;
+    var pre = res.querySelector('.rf-cmds');
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'wiki-copy'; btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(cmds).then(function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); });
+    });
+    pre.appendChild(btn);
+  }
+
+  function initMap() {
+    if (mapReady || !window.L) return;
+    var el = document.getElementById('rfMap');
+    if (!el || el.offsetWidth === 0) return; // tab hidden — try again when shown
+    mapReady = true;
+    map = L.map(el, { scrollWheelZoom: false }).setView([30.22, -92.02], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    if (data) drawAreas();
+    map.on('click', function (e) { show(e.latlng.lat, e.latlng.lng); });
+  }
+  function drawAreas() {
+    Object.keys(LOCAL).forEach(function (id) {
+      var lft = id === 'us-la-lft';
+      (data[id] || []).forEach(function (poly) {
+        L.polygon(poly.map(function (r) { return r.map(function (p) { return [p[1], p[0]]; }); }), {
+          color: lft ? '#f94d00' : '#60a5fa', weight: lft ? 2 : 1.5, fillOpacity: lft ? 0.12 : 0.06, interactive: false
+        }).addTo(map).bindTooltip(id);
+      });
+    });
+  }
+
+  fetch('/assets/data/la-regions.json').then(function (r) { return r.json(); }).then(function (d) {
+    data = d;
+    if (map) drawAreas();
+  }).catch(function () { res.innerHTML = '<p class="rf-hint">Couldn\'t load region boundaries. Reload the page to try again.</p>'; });
+
+  document.getElementById('rfFind').addEventListener('click', function () {
+    var lat = parseFloat(latIn.value), lon = parseFloat(lonIn.value);
+    if (isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { res.innerHTML = '<p class="rf-hint">Enter a latitude and longitude, like 30.2241 and -92.0198.</p>'; return; }
+    show(lat, lon);
+    if (map) map.setView([lat, lon], Math.max(map.getZoom(), 10));
+  });
+  document.getElementById('rfGps').addEventListener('click', function () {
+    if (!navigator.geolocation) { res.innerHTML = '<p class="rf-hint">Your browser can\'t share its location. Tap the map or enter coordinates instead.</p>'; return; }
+    res.innerHTML = '<p class="rf-hint">Getting your location…</p>';
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      show(pos.coords.latitude, pos.coords.longitude);
+      if (map) map.setView([pos.coords.latitude, pos.coords.longitude], 11);
+    }, function () { res.innerHTML = '<p class="rf-hint">Couldn\'t get your location. Tap the map or enter coordinates instead.</p>'; }, { timeout: 10000 });
+  });
+
+  window.acxRegionMapInit = function () { initMap(); if (map) setTimeout(function () { map.invalidateSize(); }, 50); };
+  initMap();
+})();
+</script>
+
 <script>
 (function () {
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.wiki-tabs [data-tab]'));
@@ -490,6 +617,7 @@ powersaving on</code></pre>
 
   function show(panel, target, push) {
     panels.forEach(function (p) { p.hidden = (p !== panel); });
+    if (panel.id === 'regions' && window.acxRegionMapInit) setTimeout(window.acxRegionMapInit, 0);
     tabs.forEach(function (t) {
       var on = t.getAttribute('data-tab') === panel.id;
       t.classList.toggle('active', on);
