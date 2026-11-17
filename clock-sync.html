@@ -9,8 +9,112 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
   <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Live data pulled from <a href="https://analyzer.acadianamesh.com" target="_blank">CoreScope</a>. Clock offset is calculated by comparing the timestamp embedded in each repeater's advert packet against the time the observer received it.</p>
   <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 2rem;">← <a href="{{ '/reports/' | relative_url }}">Back to Network Reports</a></p>
 
-  <!-- Why Clock Sync Matters -->
-  <div class="report-section" style="border-top: none; padding-top: 0; margin-bottom: 3rem;">
+  <!-- Summary Cards -->
+  <div class="report-summary">
+    <div class="summary-card">
+      <div class="summary-number" id="total-checked">—</div>
+      <div class="summary-label">Repeaters Checked</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-synced" style="color: #4ade80;">—</div>
+      <div class="summary-label">Clock OK</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-warning" style="color: #fbbf24;">—</div>
+      <div class="summary-label">Minor Drift</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number" id="total-critical" style="color: #ef4444;">—</div>
+      <div class="summary-label">Clock Out of Sync</div>
+    </div>
+  </div>
+
+  <nav class="wiki-tabs report-tabs" role="tablist" aria-label="Clock sync sections">
+    <a href="#out-of-sync" role="tab" data-tab="out-of-sync">Out of Sync <span class="tab-count" data-count-from="critical-count"></span></a>
+    <a href="#drift" role="tab" data-tab="drift">Minor Drift <span class="tab-count" data-count-from="warning-count"></span></a>
+    <a href="#all" role="tab" data-tab="all">All Repeaters <span class="tab-count" data-count-from="all-count"></span></a>
+    <a href="#why" role="tab" data-tab="why">Why &amp; How to Fix</a>
+  </nav>
+
+  <div id="loading" class="report-loading">
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    <span class="loading-dot"></span>
+    Fetching packets from CoreScope and calculating clock offsets...
+  </div>
+
+  <div id="report-content" style="display:none;">
+
+    <!-- Out of Sync -->
+    <div class="report-section wiki-panel" id="out-of-sync" role="tabpanel">
+      <div class="report-section-header">
+        <h2>Clock Out of Sync <span class="report-badge badge-urgent" id="critical-count"></span></h2>
+        <span class="action-tag action-important">Action Important</span>
+        <p>These repeaters have a clock offset of 30 seconds or more. Please sync your clock at your next opportunity.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th>Clock Offset</th>
+              <th>Repeater Clock Says</th>
+              <th>Observer Received At</th>
+              <th>Public Key Prefix</th>
+            </tr>
+          </thead>
+          <tbody id="critical-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Minor Drift -->
+    <div class="report-section wiki-panel" id="drift" role="tabpanel">
+      <div class="report-section-header">
+        <h2>Minor Clock Drift <span class="report-badge badge-warn" id="warning-count"></span></h2>
+        <p>These repeaters have a clock offset between 10 and 30 seconds. Worth monitoring but not immediately critical.</p>
+      </div>
+      <div class="table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Repeater Name</th>
+                <th>Clock Offset</th>
+                <th>Repeater Clock Says</th>
+                <th>Observer Received At</th>
+                <th>Public Key Prefix</th>
+              </tr>
+            </thead>
+            <tbody id="warning-body"></tbody>
+          </table>
+        </div>
+    </div>
+
+    <!-- All Checked -->
+    <div class="report-section wiki-panel" id="all" role="tabpanel">
+      <div class="report-section-header">
+        <h2>All Repeaters Checked <span class="report-badge badge-ok" id="all-count"></span></h2>
+        <p>All Acadiana repeaters for which a recent advert packet was found, sorted by clock offset (worst first).</p>
+      </div>
+      <div class="table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Repeater Name</th>
+                <th>Clock Offset</th>
+                <th>Status</th>
+                <th>Last Advert</th>
+                <th>Public Key Prefix</th>
+              </tr>
+            </thead>
+            <tbody id="all-body"></tbody>
+          </table>
+        </div>
+    </div>
+
+  </div>
+
+  <div class="report-section wiki-panel" id="why" role="tabpanel">
     <div class="report-section-header">
       <h2>Why Clock Sync Matters</h2>
     </div>
@@ -39,110 +143,9 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
     <div class="callout callout-note" style="margin-top: 1.5rem;">
       <strong>How to fix a drifted clock:</strong> Connect to your repeater via the MeshCore companion app and tap <strong>Sync Clock</strong>, or via CLI run: <code>clock sync</code>. After syncing, the repeater should disappear from this list within one advert cycle (~240 minutes). We recommend syncing your repeater's clock any time you physically access it for maintenance.
     </div>
-  </div>
-
-  <!-- Summary Cards -->
-  <div class="report-summary">
-    <div class="summary-card">
-      <div class="summary-number" id="total-checked">—</div>
-      <div class="summary-label">Repeaters Checked</div>
+    <div class="callout callout-note" style="margin-top: 1rem;">
+      <strong>Repeater has GPS? Let it keep its own clock.</strong> On firmware 1.14.1 or newer, send <code>gps on</code> on the repeater's Command Line. Once the GPS gets a fix, the repeater sets its clock from GPS and re-syncs about every 30 minutes, so it stays in sync after reboots and power outages. Check with <code>gps</code> and <code>clock</code>. Some board and GPS combinations don't sync yet — see the <a href="{{ '/wiki/#gps-clock' | relative_url }}">Wiki</a>.
     </div>
-    <div class="summary-card">
-      <div class="summary-number" id="total-synced" style="color: #4ade80;">—</div>
-      <div class="summary-label">Clock OK</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-number" id="total-warning" style="color: #fbbf24;">—</div>
-      <div class="summary-label">Minor Drift</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-number" id="total-critical" style="color: #ef4444;">—</div>
-      <div class="summary-label">Clock Out of Sync</div>
-    </div>
-  </div>
-
-  <div id="loading" class="report-loading">
-    <span class="loading-dot"></span>
-    <span class="loading-dot"></span>
-    <span class="loading-dot"></span>
-    Fetching packets from CoreScope and calculating clock offsets...
-  </div>
-
-  <div id="report-content" style="display:none;">
-
-    <!-- Out of Sync -->
-    <div class="report-section">
-      <div class="report-section-header">
-        <h2>Clock Out of Sync <span class="report-badge badge-urgent" id="critical-count"></span></h2>
-        <span class="action-tag action-important">Action Important</span>
-        <p>These repeaters have a clock offset of 30 seconds or more. Please sync your clock at your next opportunity.</p>
-      </div>
-      <div class="table-wrap">
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Repeater Name</th>
-              <th>Clock Offset</th>
-              <th>Repeater Clock Says</th>
-              <th>Observer Received At</th>
-              <th>Public Key Prefix</th>
-            </tr>
-          </thead>
-          <tbody id="critical-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Minor Drift -->
-    <div class="report-section">
-      <div class="report-section-header">
-        <h2>Minor Clock Drift <span class="report-badge badge-warn" id="warning-count"></span></h2>
-        <p>These repeaters have a clock offset between 10 and 30 seconds. Worth monitoring but not immediately critical.</p>
-      </div>
-      <details class="report-details">
-        <summary>▶ Click to view repeaters with minor drift</summary>
-        <div class="table-wrap" style="margin-top: 1rem;">
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Repeater Name</th>
-                <th>Clock Offset</th>
-                <th>Repeater Clock Says</th>
-                <th>Observer Received At</th>
-                <th>Public Key Prefix</th>
-              </tr>
-            </thead>
-            <tbody id="warning-body"></tbody>
-          </table>
-        </div>
-      </details>
-    </div>
-
-    <!-- All Checked -->
-    <div class="report-section">
-      <div class="report-section-header">
-        <h2>All Repeaters Checked <span class="report-badge badge-ok" id="all-count"></span></h2>
-        <p>All Acadiana repeaters for which a recent advert packet was found, sorted by clock offset (worst first).</p>
-      </div>
-      <details class="report-details">
-        <summary>▶ Click to view all checked repeaters</summary>
-        <div class="table-wrap" style="margin-top: 1rem;">
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Repeater Name</th>
-                <th>Clock Offset</th>
-                <th>Status</th>
-                <th>Last Advert</th>
-                <th>Public Key Prefix</th>
-              </tr>
-            </thead>
-            <tbody id="all-body"></tbody>
-          </table>
-        </div>
-      </details>
-    </div>
-
   </div>
 </div>
 
@@ -360,6 +363,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
 
 <script>
 (function() {
+  const escName = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const API = 'https://analyzer.acadianamesh.com/api/packets?limit=2000';
   const WARN_THRESHOLD = 10;   // 10 seconds
   const CRIT_THRESHOLD = 30;   // 30 seconds
@@ -465,7 +469,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
       } else {
         critical.forEach(n => {
           critBody.innerHTML += `<tr>
-            <td class="node-name">${n.name}</td>
+            <td class="node-name">${escName(n.name)}</td>
             <td class="offset-critical">${formatOffset(n.offsetSeconds)}</td>
             <td>${formatDateTime(n.nodeTime)}</td>
             <td>${formatDateTime(n.rxTime)}</td>
@@ -480,7 +484,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
       } else {
         warning.forEach(n => {
           warnBody.innerHTML += `<tr>
-            <td class="node-name">${n.name}</td>
+            <td class="node-name">${escName(n.name)}</td>
             <td class="offset-warning">${formatOffset(n.offsetSeconds)}</td>
             <td>${formatDateTime(n.nodeTime)}</td>
             <td>${formatDateTime(n.rxTime)}</td>
@@ -496,7 +500,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
         const status = n.absOffset >= CRIT_THRESHOLD ? '✗ Out of sync' :
                        n.absOffset >= WARN_THRESHOLD  ? '⚠ Minor drift'  : '✓ OK';
         allBody.innerHTML += `<tr>
-          <td class="node-name">${n.name}</td>
+          <td class="node-name">${escName(n.name)}</td>
           <td class="${cls}">${formatOffset(n.offsetSeconds)}</td>
           <td class="${cls}">${status}</td>
           <td>${timeAgo(n.rxTime)}</td>
@@ -513,3 +517,16 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
     });
 })();
 </script>
+
+<script>
+(function () {
+  document.querySelectorAll('.tab-count[data-count-from]').forEach(function (el) {
+    var src = document.getElementById(el.getAttribute('data-count-from'));
+    if (!src) return;
+    var sync = function () { var t = src.textContent.trim(); el.textContent = t; el.hidden = !t; };
+    sync();
+    new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+  });
+})();
+</script>
+<script src="/assets/js/tabs.js?v={{ site.time | date: '%s' }}"></script>

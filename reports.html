@@ -392,6 +392,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
 
 <script>
 (function() {
+  const escName = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const API = 'https://analyzer.acadianamesh.com/api/nodes';
 
   // ── Acadiana coverage polygon (8 parishes) ───────────────────────
@@ -463,7 +464,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       const noLocBody = document.getElementById('no-location-body');
       noLocation.forEach(n => {
         noLocBody.innerHTML += `<tr>
-          <td class="node-name">${n.name}</td>
+          <td class="node-name">${escName(n.name)}</td>
           <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
           <td class="hide-mobile">${formatDate(n.first_seen)}</td>
           <td>${timeAgo(n.last_seen)}</td>
@@ -478,7 +479,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       const firmwareBody = document.getElementById('firmware-body');
       firmwareNeeded.forEach(n => {
         firmwareBody.innerHTML += `<tr>
-          <td class="node-name">${n.name}</td>
+          <td class="node-name">${escName(n.name)}</td>
           <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
           <td class="status-unknown">Likely pre-1.14</td>
           <td>${timeAgo(n.last_seen)}</td>
@@ -497,7 +498,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
           const locClass = hasLocation(n) ? 'location-set' : 'location-missing';
           const locText = hasLocation(n) ? '✓ Set' : '✗ Missing';
           allBody.innerHTML += `<tr>
-            <td class="node-name">${n.name}</td>
+            <td class="node-name">${escName(n.name)}</td>
             <td class="hide-mobile">${pubkeyPrefix(n.public_key)}</td>
             <td class="${statusClass}">${firmwareLabel(n)}</td>
             <td class="${locClass}">${locText}</td>
