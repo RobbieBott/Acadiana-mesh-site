@@ -35,7 +35,6 @@ permalink: /wiki/
   <ol>
     <li><strong>Set up your companion</strong> — flash the device, connect it, and set its name and radio settings.</li>
     <li><strong>Use our radio settings</strong> — every node must use the same preset to hear each other (see <a href="#radio">Radio Settings</a>).</li>
-    <li><strong>Set your default region</strong> — so your messages stay in the part of the network they belong to (see <a href="#regions">Regions</a>).</li>
     <li><strong>Join and test</strong> — advertise your node, find nearby repeaters and send a test message.</li>
   </ol>
 
@@ -53,7 +52,6 @@ permalink: /wiki/
     <li>Tap the ⚙️ icon (top right).</li>
     <li>Set your <strong>name</strong>.</li>
     <li>Set the radio preset to <strong>USA/Canada (Recommended)</strong> — 910.525 MHz, BW 62.5 kHz, SF 7, CR 5.</li>
-    <li>Set your <strong>default region</strong> to <code>us-la-lft</code>.</li>
     <li>Tap ✔️ (top right) to save and wait for the green success notification.</li>
   </ol>
   <p><strong>Add channels:</strong></p>
@@ -269,13 +267,13 @@ region save</code></pre>
 <section class="wiki-panel" id="repeater" role="tabpanel">
   <h2 id="repeater-naming">Repeater Naming &amp; Setup</h2>
   <h3>Naming convention</h3>
-  <p>Name repeaters <strong>[owner] - [location]</strong>. The owner part is a short name, callsign or emoji that appears on all your repeaters, so the community knows who runs them.</p>
+  <p>Name repeaters after <strong>where they are</strong> — a town, neighborhood or landmark — so anyone looking at a path or the map can tell where it is. Who runs the repeater goes in its owner information (<a href="#owner-info">Step 5</a>), not the name.</p>
   <table>
     <thead><tr><th>Type</th><th>Naming</th><th>Example</th></tr></thead>
     <tbody>
-      <tr><td>Fixed repeaters</td><td>[owner] - [location]</td><td>🐊 - Carencro, John - Downtown</td></tr>
-      <tr><td>Mobile repeaters</td><td>Include "Mobile" in the name</td><td>John's Mobile</td></tr>
-      <tr><td>Not yet installed</td><td>End with "TBA"</td><td>John - TBA</td></tr>
+      <tr><td>Fixed repeaters</td><td>[location]</td><td>Carencro, Downtown Lafayette, Rayne Water Tower</td></tr>
+      <tr><td>Mobile repeaters</td><td>Include "Mobile" in the name</td><td>Lafayette Mobile</td></tr>
+      <tr><td>Not yet installed</td><td>End with "TBA"</td><td>Scott TBA</td></tr>
     </tbody>
   </table>
 
@@ -286,7 +284,7 @@ region save</code></pre>
   <p>Open the <a href="https://config.meshcore.io/" target="_blank" rel="noopener">MeshCore USB config tool</a> and set:</p>
   <ul>
     <li><strong>Radio settings</strong> — frequency, bandwidth, spreading factor and coding rate (see <a href="#radio">Radio Settings</a>)</li>
-    <li><strong>Name</strong> — following the naming convention above</li>
+    <li><strong>Name</strong> — its location, following the naming convention above</li>
     <li><strong>Location</strong> — for mesh planning (an approximate location is fine)</li>
     <li><strong>Owner information</strong> — your name or callsign, repeater specs, location type and an off-mesh contact</li>
     <li><strong>Guest password</strong> — leave blank so other mesh users can check the repeater's status</li>
@@ -316,7 +314,7 @@ region save</code></pre>
   </ol>
   <div class="wiki-note">📺 <strong>Video guide:</strong> <a href="https://youtu.be/t1qne8uJBAc?t=678" target="_blank" rel="noopener">More about repeaters</a>.</div>
 
-  <h3>Step 5: Set owner information</h3>
+  <h3 id="owner-info">Step 5: Set owner information</h3>
   <p>Once the repeater is working, fill in its owner information so other users can plan around it, understand its type and limits, and know who to contact. Anyone can see this through the guest login.</p>
   <ol>
     <li>Log into the repeater from your companion.</li>
@@ -331,7 +329,7 @@ region save</code></pre>
     <li><strong>Installation type</strong> — "rooftop", "window", "pole", "tower" — enough for planning, without exact coordinates</li>
   </ul>
   <p><strong>Example:</strong></p>
-  <pre class="wiki-code"><code>John - Downtown (John Smith)
+  <pre class="wiki-code"><code>Owner: John Smith
 5 dBi omni, Heltec V4, solar powered
 House rooftop</code></pre>
 </section>
