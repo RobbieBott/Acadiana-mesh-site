@@ -11,6 +11,7 @@ permalink: /wiki/
     <p>Everything you need to get a companion on the mesh, set up a repeater, and understand the settings we use in Acadiana.</p>
     <nav class="wiki-tabs" role="tablist" aria-label="Wiki sections">
       <a href="#start" role="tab" data-tab="start">Getting Started</a>
+      <a href="#finder" role="tab" data-tab="finder">Scope Finder</a>
       <a href="#radio" role="tab" data-tab="radio">Radio Settings</a>
       <a href="#regions" role="tab" data-tab="regions">Regions</a>
       <a href="#channels" role="tab" data-tab="channels">Channels</a>
@@ -115,6 +116,27 @@ permalink: /wiki/
   <div class="wiki-warn">⚠️ <strong>Why flood adverts are kept rare:</strong> every repeater on the mesh rebroadcasts each flood advert. With many nodes, frequent flood adverts create a lot of traffic that crowds out real messages.</div>
 </section>
 
+<section class="wiki-panel" id="finder" role="tabpanel">
+  <h2 id="region-finder">Region Scope Finder</h2>
+  <p>Find the region codes for a repeater. Tap the map where the repeater is installed, use your current location, or enter its coordinates — the commands to paste into the repeater appear below.</p>
+  <div class="rf">
+    <div class="rf-map" id="rfMap" role="application" aria-label="Map — tap where your repeater is installed"></div>
+    <div class="rf-controls">
+      <label>Latitude <input id="rfLat" type="text" inputmode="decimal" placeholder="30.2241"></label>
+      <label>Longitude <input id="rfLon" type="text" inputmode="decimal" placeholder="-92.0198"></label>
+      <button type="button" class="btn btn-primary" id="rfFind">Find codes</button>
+      <button type="button" class="btn btn-secondary" id="rfGps">Use my location</button>
+    </div>
+    <div class="rf-result" id="rfResult" aria-live="polite">
+      <p class="rf-hint">Pick a spot on the map to see its region codes.</p>
+    </div>
+  </div>
+  <div class="wiki-note">💡 <strong>Enter region codes on repeaters only, not companions.</strong> Leave <code>*</code> (unscoped) allowed — never run <code>region denyf *</code>, or the repeater stops forwarding normal unscoped traffic.</div>
+  <p class="rf-source">Region boundaries from the community region registry at regions.caboosey.net — the same boundaries the Gulf Coast Mesh uses.</p>
+
+  <p>What these regions mean and how scoping works is on the <a href="#regions">Regions</a> tab.</p>
+</section>
+
 <!-- ================= RADIO ================= -->
 <section class="wiki-panel" id="radio" role="tabpanel">
   <h2 id="radio-settings">Radio Settings</h2>
@@ -134,23 +156,7 @@ permalink: /wiki/
 
 <!-- ================= REGIONS ================= -->
 <section class="wiki-panel" id="regions" role="tabpanel">
-  <h2 id="region-finder">Region Code Finder</h2>
-  <p>Find the region codes for a repeater. Tap the map where the repeater is installed, use your current location, or enter its coordinates — the commands to paste into the repeater appear below.</p>
-  <div class="rf">
-    <div class="rf-map" id="rfMap" role="application" aria-label="Map — tap where your repeater is installed"></div>
-    <div class="rf-controls">
-      <label>Latitude <input id="rfLat" type="text" inputmode="decimal" placeholder="30.2241"></label>
-      <label>Longitude <input id="rfLon" type="text" inputmode="decimal" placeholder="-92.0198"></label>
-      <button type="button" class="btn btn-primary" id="rfFind">Find codes</button>
-      <button type="button" class="btn btn-secondary" id="rfGps">Use my location</button>
-    </div>
-    <div class="rf-result" id="rfResult" aria-live="polite">
-      <p class="rf-hint">Pick a spot on the map to see its region codes.</p>
-    </div>
-  </div>
-  <div class="wiki-note">💡 <strong>Enter region codes on repeaters only, not companions.</strong> Leave <code>*</code> (unscoped) allowed — never run <code>region denyf *</code>, or the repeater stops forwarding normal unscoped traffic.</div>
-  <p class="rf-source">Region boundaries from the community region registry at regions.caboosey.net — the same boundaries the Gulf Coast Mesh uses.</p>
-
+  <div class="wiki-note">🧭 <strong>Setting up a repeater?</strong> The <a href="#region-finder">Scope Finder</a> gives the exact codes and commands for its location.</div>
   <h3>Acadiana Mesh regions</h3>
   <p>A repeater in the Acadiana area forwards these seven regions:</p>
   <table>
@@ -595,7 +601,7 @@ powersaving on</code></pre>
     }, function () { res.innerHTML = '<p class="rf-hint">Couldn\'t get your location. Tap the map or enter coordinates instead.</p>'; }, { timeout: 10000 });
   });
 
-  document.addEventListener('tab:shown', function (e) { if (e.detail === 'regions') { initMap(); if (map) setTimeout(function () { map.invalidateSize(); }, 50); } });
+  document.addEventListener('tab:shown', function (e) { if (e.detail === 'finder') { initMap(); if (map) setTimeout(function () { map.invalidateSize(); }, 50); } });
   initMap();
 })();
 </script>

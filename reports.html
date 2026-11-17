@@ -38,12 +38,19 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
 
   <div id="report-content" style="display:none;">
 
-    <!-- No Location -->
-    <div class="report-section">
+    <nav class="wiki-tabs report-tabs" role="tablist" aria-label="Report sections">
+      <a href="#repeaters" role="tab" data-tab="repeaters">Active Repeaters <span class="tab-count" data-count-from="all-repeaters-count"></span></a>
+      <a href="#firmware" role="tab" data-tab="firmware">Firmware 1.14+ <span class="tab-count" data-count-from="firmware-count"></span></a>
+      <a href="#location" role="tab" data-tab="location">No Location <span class="tab-count" data-count-from="no-location-count"></span></a>
+      <a href="#clock" role="tab" data-tab="clock">Clock Sync</a>
+    </nav>
+
+    <!-- All Repeaters -->
+    <div class="report-section wiki-panel" id="repeaters" role="tabpanel">
       <div class="report-section-header">
-        <h2>No Location Set <span class="report-badge badge-warn" id="no-location-count"></span></h2>
-        <span class="action-tag action-recommended">Action Recommended</span>
-        <p>These repeaters have not configured a location (GPS coordinates are 0,0 or missing). Operators don't need to set a precise GPS coordinate — a general nearby area is enough. A location helps other operators understand network coverage and lets the community identify gaps.</p>
+        <h2>Recently Active Repeaters <span class="report-badge badge-ok" id="all-repeaters-count"></span></h2>
+        <p>Repeaters currently in the Acadiana area that have been recently heard by our observers, sorted by most recently active. Low-activity repeaters may not appear if they haven't been heard recently.</p>
+        <p><span style="color: var(--accent);">Note:</span> If your repeater is not in this list it may simply be because an observer has not heard it, or it has not been active. Want to host an observer to help the mesh? Visit our <a href="{{ '/connect/' | relative_url }}">Get Connected</a> page.</p>
       </div>
       <div class="table-wrap">
         <table class="report-table">
@@ -51,18 +58,19 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
             <tr>
               <th>Repeater Name</th>
               <th class="hide-mobile">Public Key Prefix</th>
-              <th class="hide-mobile">First Seen</th>
+              <th>Firmware Status</th>
+              <th>Location</th>
               <th>Last Seen</th>
               <th class="hide-mobile">Adverts (lifetime)</th>
             </tr>
           </thead>
-          <tbody id="no-location-body"></tbody>
+          <tbody id="all-repeaters-body"></tbody>
         </table>
       </div>
     </div>
 
     <!-- Not on Firmware 1.14+ -->
-    <div class="report-section">
+    <div class="report-section wiki-panel" id="firmware" role="tabpanel">
       <div class="report-section-header">
         <h2>Not on Firmware 1.14+ <span class="report-badge badge-urgent" id="firmware-count"></span></h2>
         <span class="action-tag action-important">Action Important</span>
@@ -97,8 +105,31 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       </details>
     </div>
 
+    <!-- No Location -->
+    <div class="report-section wiki-panel" id="location" role="tabpanel">
+      <div class="report-section-header">
+        <h2>No Location Set <span class="report-badge badge-warn" id="no-location-count"></span></h2>
+        <span class="action-tag action-recommended">Action Recommended</span>
+        <p>These repeaters have not configured a location (GPS coordinates are 0,0 or missing). Operators don't need to set a precise GPS coordinate — a general nearby area is enough. A location helps other operators understand network coverage and lets the community identify gaps.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Repeater Name</th>
+              <th class="hide-mobile">Public Key Prefix</th>
+              <th class="hide-mobile">First Seen</th>
+              <th>Last Seen</th>
+              <th class="hide-mobile">Adverts (lifetime)</th>
+            </tr>
+          </thead>
+          <tbody id="no-location-body"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Clock Sync -->
-    <div class="report-section">
+    <div class="report-section wiki-panel" id="clock" role="tabpanel">
       <div class="report-section-header">
         <h2>Clock Synchronization</h2>
         <span class="action-tag action-recommended">Action Recommended</span>
@@ -129,29 +160,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       </div>
     </div>
 
-    <!-- All Repeaters -->
-    <div class="report-section">
-      <div class="report-section-header">
-        <h2>Recently Active Repeaters <span class="report-badge badge-ok" id="all-repeaters-count"></span></h2>
-        <p>Repeaters currently in the Acadiana area that have been recently heard by our observers, sorted by most recently active. Low-activity repeaters may not appear if they haven't been heard recently.</p>
-        <p><span style="color: var(--accent);">Note:</span> If your repeater is not in this list it may simply be because an observer has not heard it, or it has not been active. Want to host an observer to help the mesh? Visit our <a href="{{ '/connect/' | relative_url }}">Get Connected</a> page.</p>
-      </div>
-      <div class="table-wrap">
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Repeater Name</th>
-              <th class="hide-mobile">Public Key Prefix</th>
-              <th>Firmware Status</th>
-              <th>Location</th>
-              <th>Last Seen</th>
-              <th class="hide-mobile">Adverts (lifetime)</th>
-            </tr>
-          </thead>
-          <tbody id="all-repeaters-body"></tbody>
-        </table>
-      </div>
-    </div>
+
 
   </div>
 </div>
@@ -524,3 +533,17 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
     });
 })();
 </script>
+
+<script>
+// Mirror the section counts into the report tab labels once the data loads.
+(function () {
+  document.querySelectorAll('.tab-count[data-count-from]').forEach(function (el) {
+    var src = document.getElementById(el.getAttribute('data-count-from'));
+    if (!src) return;
+    var sync = function () { var t = src.textContent.trim(); el.textContent = t; el.hidden = !t; };
+    sync();
+    new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+  });
+})();
+</script>
+<script src="/assets/js/tabs.js?v={{ site.time | date: '%s' }}"></script>
