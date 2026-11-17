@@ -881,7 +881,7 @@ ul { list-style: none; }
   color: var(--text-dim);
   text-align: center;
 }
-.wiki-panel table { display: block; overflow-x: auto; }
+.wiki .wiki-panel table { display: block; overflow-x: auto; }
 @media (max-width: 768px) {
   .wiki-hero { padding: 2.5rem 1rem 1rem; }
   .wiki-hero h1 { font-size: 1.9rem; }
@@ -947,3 +947,19 @@ ul { list-style: none; }
 }
 .wiki-panel pre.has-copy { position: relative; padding-right: 4.5rem; }
 .wiki-panel .highlight pre, .wiki-panel pre.highlight { overflow-x: auto; }
+.tab-count {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 0.4em;
+  margin-left: 0.25rem;
+  border-radius: 999px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+}
+.wiki-tabs a.active .tab-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.report-tabs { margin: 0 auto 1.5rem; }
+.wiki-js .report-section.wiki-panel { border-top: none; padding-top: 0; margin-top: 0; }
