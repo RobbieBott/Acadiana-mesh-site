@@ -50,7 +50,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
       <div class="report-section-header">
         <h2>Clock Out of Sync <span class="report-badge badge-urgent" id="critical-count"></span></h2>
         <span class="action-tag action-important">Action Important</span>
-        <p>These repeaters have a clock offset of 30 seconds or more. Please sync your clock at your next opportunity.</p>
+        <p>These repeaters have a clock offset of 30 seconds or more. Please fix the clock at your next opportunity. A <strong>+</strong> offset means the clock is <strong>ahead</strong> — a normal Sync Clock won't fix that; see <a href="#clock-reset">clock reset</a>.</p>
       </div>
       <div class="table-wrap">
         <table class="report-table">
@@ -61,6 +61,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
               <th>Repeater Clock Says</th>
               <th>Observer Received At</th>
               <th>Public Key Prefix</th>
+              <th>How to Fix</th>
             </tr>
           </thead>
           <tbody id="critical-body"></tbody>
@@ -83,6 +84,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
                 <th>Repeater Clock Says</th>
                 <th>Observer Received At</th>
                 <th>Public Key Prefix</th>
+                <th>How to Fix</th>
               </tr>
             </thead>
             <tbody id="warning-body"></tbody>
@@ -142,6 +144,9 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
     </div>
     <div class="callout callout-note" style="margin-top: 1.5rem;">
       <strong>How to fix a drifted clock:</strong> Connect to your repeater via the MeshCore companion app and tap <strong>Sync Clock</strong>, or via CLI run: <code>clock sync</code>. After syncing, the repeater should disappear from this list within one advert cycle (~240 minutes). We recommend syncing your repeater's clock any time you physically access it for maintenance.
+    </div>
+    <div class="callout callout-note" style="margin-top: 1rem;">
+      <strong id="clock-reset">Clock ahead (+ offset)? It needs a clock reset.</strong> Sync Clock and <code>clock sync</code> only move a repeater's clock <em>forward</em>, so a clock that's ahead can't be pulled back that way. Log into the repeater, open its Command Line and send <code>clkreboot</code> — it resets the clock and reboots, and sends no reply. Give it a minute to come back, log in again and tap <strong>Sync Clock</strong>. Check with <code>clock</code> that it shows the right time (UTC).
     </div>
     <div class="callout callout-note" style="margin-top: 1rem;">
       <strong>Repeater has GPS? Let it keep its own clock.</strong> On firmware 1.14.1 or newer, send <code>gps on</code> on the repeater's Command Line. Once the GPS gets a fix, the repeater sets its clock from GPS and re-syncs about every 30 minutes, so it stays in sync after reboots and power outages. Check with <code>gps</code> and <code>clock</code>. Some board and GPS combinations don't sync yet — see the <a href="{{ '/wiki/#gps-clock' | relative_url }}">Wiki</a>.
@@ -306,6 +311,8 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
   font-size: 0.85em;
   color: var(--accent);
 }
+.fix-reset { color: #ef4444; }
+.fix-reset code, .callout code { white-space: nowrap; }
 .report-details summary {
   cursor: pointer;
   color: var(--text-muted);
@@ -450,6 +457,9 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
         }
       });
 
+      const fixFor = n => n.offsetSeconds > 0
+        ? '<span class="fix-reset">Clock reset — <code>clkreboot</code>, then Sync Clock</span>'
+        : 'Sync Clock';
       const nodes = Array.from(seen.values()).sort((a, b) => b.absOffset - a.absOffset);
       const critical = nodes.filter(n => n.absOffset >= CRIT_THRESHOLD);
       const warning  = nodes.filter(n => n.absOffset >= WARN_THRESHOLD && n.absOffset < CRIT_THRESHOLD);
@@ -465,7 +475,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
 
       const critBody = document.getElementById('critical-body');
       if (critical.length === 0) {
-        critBody.innerHTML = `<tr><td colspan="5" style="color:var(--text-dim);text-align:center;padding:2rem;">No repeaters with clock drift ≥30s detected ✓</td></tr>`;
+        critBody.innerHTML = `<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:2rem;">No repeaters with clock drift ≥30s detected ✓</td></tr>`;
       } else {
         critical.forEach(n => {
           critBody.innerHTML += `<tr>
@@ -474,13 +484,14 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
             <td>${formatDateTime(n.nodeTime)}</td>
             <td>${formatDateTime(n.rxTime)}</td>
             <td>${pubkeyPrefix(n.pubkey)}</td>
+            <td>${fixFor(n)}</td>
           </tr>`;
         });
       }
 
       const warnBody = document.getElementById('warning-body');
       if (warning.length === 0) {
-        warnBody.innerHTML = `<tr><td colspan="5" style="color:var(--text-dim);text-align:center;padding:2rem;">No repeaters with minor drift detected ✓</td></tr>`;
+        warnBody.innerHTML = `<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:2rem;">No repeaters with minor drift detected ✓</td></tr>`;
       } else {
         warning.forEach(n => {
           warnBody.innerHTML += `<tr>
@@ -489,6 +500,7 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
             <td>${formatDateTime(n.nodeTime)}</td>
             <td>${formatDateTime(n.rxTime)}</td>
             <td>${pubkeyPrefix(n.pubkey)}</td>
+            <td>${fixFor(n)}</td>
           </tr>`;
         });
       }
@@ -497,8 +509,9 @@ description: Live clock synchronization health report for Acadiana Mesh repeater
       nodes.forEach(n => {
         const cls = n.absOffset >= CRIT_THRESHOLD ? 'offset-critical' :
                     n.absOffset >= WARN_THRESHOLD  ? 'offset-warning'  : 'offset-ok';
-        const status = n.absOffset >= CRIT_THRESHOLD ? '✗ Out of sync' :
-                       n.absOffset >= WARN_THRESHOLD  ? '⚠ Minor drift'  : '✓ OK';
+        const ahead  = n.offsetSeconds >= WARN_THRESHOLD;
+        const status = n.absOffset >= CRIT_THRESHOLD ? (ahead ? '✗ Ahead — needs reset' : '✗ Out of sync') :
+                       n.absOffset >= WARN_THRESHOLD  ? (ahead ? '⚠ Ahead — needs reset' : '⚠ Minor drift') : '✓ OK';
         allBody.innerHTML += `<tr>
           <td class="node-name">${escName(n.name)}</td>
           <td class="${cls}">${formatOffset(n.offsetSeconds)}</td>
