@@ -134,6 +134,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
         <h2>Clock Synchronization <span class="report-badge badge-urgent" id="clock-count"></span></h2>
         <span class="action-tag action-recommended">Action Recommended</span>
         <p>Repeater clocks that drift out of sync can cause packet deduplication failures, inaccurate network maps, and signature validation errors. We check clock health by comparing the timestamp embedded in each repeater's advert packet against the time the observer received it.</p>
+        <p style="margin-top: 0.75rem;"><span style="color: var(--accent);">Clock ahead?</span> A normal Sync Clock only moves the clock forward. Repeaters marked <strong>Ahead — needs reset</strong> need <code>clkreboot</code> on the Command Line (resets the clock and reboots), then Sync Clock — see the <a href="{{ '/clock-sync/#clock-reset' | relative_url }}">Clock Sync Report</a>.</p>
         <p style="margin-top: 0.75rem;"><span style="color: var(--accent);">Repeater has GPS?</span> On firmware 1.14.1 or newer, send <code>gps on</code> on the repeater's Command Line. Once the GPS gets a fix, the repeater sets its own clock and re-syncs about every 30 minutes, so it stays in sync after reboots and power outages. Some board and GPS combinations don't sync yet — see the <a href="{{ '/wiki/#gps-clock' | relative_url }}">Wiki</a> for details and how to sync manually.</p>
         <p style="margin-top: 0.75rem;">
           <a href="{{ '/clock-sync/' | relative_url }}" class="btn btn-secondary">→ View Full Clock Sync Report</a>
@@ -526,9 +527,10 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
             const d = JSON.parse(p.decoded_json);
             if (!d.timestampISO || !d.name || !d.flags?.repeater) return;
             if (d.lat && d.lon && !pointInPolygon(d.lat, d.lon, ACADIANA_POLYGON)) return;
-            const offset = Math.abs(Math.round((new Date(d.timestampISO) - new Date(p.timestamp)) / 1000));
+            const signed = Math.round((new Date(d.timestampISO) - new Date(p.timestamp)) / 1000);
+            const offset = Math.abs(signed);
             if (!seen.has(d.pubKey) || new Date(p.timestamp) > new Date(seen.get(d.pubKey).rxTime)) {
-              seen.set(d.pubKey, { name: d.name, pubKey: d.pubKey, offset, rxTime: p.timestamp });
+              seen.set(d.pubKey, { name: d.name, pubKey: d.pubKey, offset, ahead: signed > 0, rxTime: p.timestamp });
             }
           } catch(e) {}
         });
@@ -556,12 +558,12 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
         .sort((a, b) => b.offset - a.offset)
         .map(n => {
           const cls  = n.offset >= CRIT ? 'status-unknown' : n.offset >= WARN ? 'status-suspected' : 'status-confirmed';
-          const text = n.offset >= CRIT ? '✗ Out of sync' : n.offset >= WARN ? '~ Minor drift' : '✓ OK';
+          const text = n.offset >= CRIT ? (n.ahead ? '✗ Ahead — needs reset' : '✗ Out of sync') : n.offset >= WARN ? (n.ahead ? '~ Ahead — needs reset' : '~ Minor drift') : '✓ OK';
           return `<tr>
             <td class="node-name">${esc(n.name)}</td>
             <td class="hide-mobile">${pubkeyPrefix(n.pubKey)}</td>
             <td class="${cls}">${text}</td>
-            <td class="${cls}">${fmtOffset(n.offset)}</td>
+            <td class="${cls}">${fmtOffset(n.offset)}${n.offset >= WARN ? (n.ahead ? ' ahead' : ' behind') : ''}</td>
             <td>${timeAgo(n.rxTime)}</td>
           </tr>`;
         }).join('');

@@ -334,6 +334,14 @@ region save</code></pre>
     <li>✅ Check that the repeater's <strong>Last Heard</strong> time is current, not May 2024.</li>
   </ol>
   <div class="wiki-note">💡 Re-sync the clock after every power cycle or reboot, unless the repeater keeps its time from GPS (below) or stays connected to a computer.</div>
+  <h3 id="clock-reset">Clock running ahead? Reset it first</h3>
+  <p>Sync Clock only moves a repeater's clock <strong>forward</strong>. If the clock is ahead of the real time (the <a href="/clock-sync/">Clock Sync Report</a> shows a <strong>+</strong> offset or "Ahead — needs reset"), syncing won't pull it back. Reset it instead:</p>
+  <ol>
+    <li>Log into the repeater and open its <strong>Command Line</strong>.</li>
+    <li>Send <code>clkreboot</code>. It resets the clock and reboots the repeater, and sends <strong>no reply</strong>.</li>
+    <li>Give it a minute to come back, log in again and tap <strong>Sync Clock</strong>.</li>
+    <li>Send <code>clock</code> to confirm it shows the right time (in UTC).</li>
+  </ol>
   <h3 id="gps-clock">🛰️ Repeaters with GPS: let GPS keep the clock</h3>
   <p>If your repeater has a GPS module and runs <strong>firmware 1.14.1 or newer</strong>, turn GPS on and it will set its own clock from GPS — and keep re-syncing about every 30 minutes, so it stays correct even after a reboot or power outage. On the repeater's <strong>Command Line</strong>, send:</p>
   <pre class="wiki-code"><code>gps on</code></pre>
