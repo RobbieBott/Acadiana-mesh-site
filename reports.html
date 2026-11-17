@@ -42,7 +42,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       <a href="#repeaters" role="tab" data-tab="repeaters">Active Repeaters <span class="tab-count" data-count-from="all-repeaters-count"></span></a>
       <a href="#firmware" role="tab" data-tab="firmware">Firmware 1.14+ <span class="tab-count" data-count-from="firmware-count"></span></a>
       <a href="#location" role="tab" data-tab="location">No Location <span class="tab-count" data-count-from="no-location-count"></span></a>
-      <a href="#clock" role="tab" data-tab="clock">Clock Sync</a>
+      <a href="#clock" role="tab" data-tab="clock">Clock Sync <span class="tab-count" data-count-from="clock-count"></span></a>
     </nav>
 
     <!-- All Repeaters -->
@@ -131,9 +131,10 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
     <!-- Clock Sync -->
     <div class="report-section wiki-panel" id="clock" role="tabpanel">
       <div class="report-section-header">
-        <h2>Clock Synchronization</h2>
+        <h2>Clock Synchronization <span class="report-badge badge-urgent" id="clock-count"></span></h2>
         <span class="action-tag action-recommended">Action Recommended</span>
         <p>Repeater clocks that drift out of sync can cause packet deduplication failures, inaccurate network maps, and signature validation errors. We check clock health by comparing the timestamp embedded in each repeater's advert packet against the time the observer received it.</p>
+        <p style="margin-top: 0.75rem;"><span style="color: var(--accent);">Repeater has GPS?</span> On firmware 1.14.1 or newer, send <code>gps on</code> on the repeater's Command Line. Once the GPS gets a fix, the repeater sets its own clock and re-syncs about every 30 minutes, so it stays in sync after reboots and power outages. Some board and GPS combinations don't sync yet — see the <a href="{{ '/wiki/#gps-clock' | relative_url }}">Wiki</a> for details and how to sync manually.</p>
         <p style="margin-top: 0.75rem;">
           <a href="{{ '/clock-sync/' | relative_url }}" class="btn btn-secondary">→ View Full Clock Sync Report</a>
         </p>
@@ -156,7 +157,20 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
             <div class="summary-label">Out of Sync</div>
           </div>
         </div>
-        <div id="cs-critical-list"></div>
+        <div class="table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Repeater Name</th>
+                <th class="hide-mobile">Public Key Prefix</th>
+                <th>Clock Status</th>
+                <th>Clock Off By</th>
+                <th>Last Advert</th>
+              </tr>
+            </thead>
+            <tbody id="clock-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -355,6 +369,14 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
   white-space: normal;
   min-width: 140px;
 }
+.report-section-header code {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.875em;
+  color: var(--accent);
+}
 .report-table td.status-confirmed { color: #4ade80 !important; }
 .report-table td.status-suspected { color: #fbbf24 !important; }
 .report-table td.status-unknown   { color: #ef4444 !important; }
@@ -505,7 +527,7 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
             if (d.lat && d.lon && !pointInPolygon(d.lat, d.lon, ACADIANA_POLYGON)) return;
             const offset = Math.abs(Math.round((new Date(d.timestampISO) - new Date(p.timestamp)) / 1000));
             if (!seen.has(d.pubKey) || new Date(p.timestamp) > new Date(seen.get(d.pubKey).rxTime)) {
-              seen.set(d.pubKey, { name: d.name, offset, rxTime: p.timestamp });
+              seen.set(d.pubKey, { name: d.name, pubKey: d.pubKey, offset, rxTime: p.timestamp });
             }
           } catch(e) {}
         });
@@ -518,12 +540,30 @@ description: Live network health reports for the Acadiana Mesh. See which repeat
       document.getElementById('cs-ok').textContent   = ok.length;
       document.getElementById('cs-warn').textContent  = warn.length;
       document.getElementById('cs-crit').textContent  = crit.length;
+      document.getElementById('clock-count').textContent = crit.length + warn.length;
 
-      if (crit.length > 0) {
-        document.getElementById('cs-critical-list').innerHTML =
-          `<p style="color:#ef4444; font-size:0.9rem; margin-bottom:0.5rem;"><strong>Repeaters out of sync (≥30s):</strong></p>` +
-          crit.map(n => `<span style="display:inline-block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:0.2rem 0.6rem;margin:0.2rem;font-size:0.85rem;color:#ef4444;">${n.name}</span>`).join('');
-      }
+      const fmtOffset = s => {
+        if (s < 60) return s + 's';
+        if (s < 3600) return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+        if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+        if (s < 86400 * 365) return Math.floor(s / 86400) + ' days';
+        return (s / (86400 * 365)).toFixed(1) + ' years';
+      };
+      const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const clockBody = document.getElementById('clock-body');
+      clockBody.innerHTML = nodes
+        .sort((a, b) => b.offset - a.offset)
+        .map(n => {
+          const cls  = n.offset >= CRIT ? 'status-unknown' : n.offset >= WARN ? 'status-suspected' : 'status-confirmed';
+          const text = n.offset >= CRIT ? '✗ Out of sync' : n.offset >= WARN ? '~ Minor drift' : '✓ OK';
+          return `<tr>
+            <td class="node-name">${esc(n.name)}</td>
+            <td class="hide-mobile">${pubkeyPrefix(n.pubKey)}</td>
+            <td class="${cls}">${text}</td>
+            <td class="${cls}">${fmtOffset(n.offset)}</td>
+            <td>${timeAgo(n.rxTime)}</td>
+          </tr>`;
+        }).join('');
 
       document.getElementById('clock-summary-loading').style.display = 'none';
       document.getElementById('clock-summary').style.display = 'block';
