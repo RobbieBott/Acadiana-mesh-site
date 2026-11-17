@@ -333,7 +333,16 @@ region save</code></pre>
     <li>Tap <strong>Advert</strong> to have the repeater send an advert.</li>
     <li>✅ Check that the repeater's <strong>Last Heard</strong> time is current, not May 2024.</li>
   </ol>
-  <div class="wiki-note">💡 Re-sync the clock after every power cycle or reboot, unless the repeater has GPS or stays connected to a computer.</div>
+  <div class="wiki-note">💡 Re-sync the clock after every power cycle or reboot, unless the repeater keeps its time from GPS (below) or stays connected to a computer.</div>
+  <h3 id="gps-clock">🛰️ Repeaters with GPS: let GPS keep the clock</h3>
+  <p>If your repeater has a GPS module and runs <strong>firmware 1.14.1 or newer</strong>, turn GPS on and it will set its own clock from GPS — and keep re-syncing about every 30 minutes, so it stays correct even after a reboot or power outage. On the repeater's <strong>Command Line</strong>, send:</p>
+  <pre class="wiki-code"><code>gps on</code></pre>
+  <ul>
+    <li>The GPS needs a view of the sky (outdoors, or right at a window) to get a fix. The first fix can take several minutes.</li>
+    <li>Check it with <code>gps</code> (shows GPS status) and <code>clock</code> (shows the repeater's time in UTC).</li>
+    <li>To force an update once it has a fix, send <code>gps sync</code>.</li>
+    <li>Not every board and GPS combination syncs the clock yet — some RAK and Heltec T114 setups don't. If <code>clock</code> still shows May 2024 after the GPS has had time to get a fix, sync the clock from your phone as above.</li>
+  </ul>
 
   <h3>Step 4: Configure the repeater CLI settings</h3>
   <p>Once you're logged in and the clock is synced, apply the <a href="#settings">common settings</a>, your <a href="#profiles">repeater profile</a> and the <a href="#regions">region commands</a>.</p>
