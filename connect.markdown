@@ -59,7 +59,7 @@ Connect with other Acadiana Mesh members:
 
 - [Join our Discord]({{ site.discord_url }})
 - [View the Live Network]({{ site.analyzer_url }})
-- [Read the Docs]({{ site.docs_url }})
+- [Read the Wiki](/wiki/)
 
 ---
 

@@ -47,10 +47,8 @@ Use these settings to join the Acadiana Mesh network. These settings must match 
 Once your repeater is online, apply these settings via the CLI:
 
 {% highlight bash %}
-set agc.reset.interval 500
 set multi.acks 1
 set advert.interval 240
-set flood.advert.interval 29
 set guest.password
 set path.hash.mode 1
 set loop.detect minimal

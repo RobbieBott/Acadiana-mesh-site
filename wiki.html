@@ -1,0 +1,545 @@
+---
+layout: default
+title: Wiki — Acadiana Mesh Setup & Repeater Guide
+description: Step-by-step guide to getting on the Acadiana Mesh MeshCore network — companion setup, radio settings, region scoping, channels, privacy, repeater setup and repeater configuration profiles.
+permalink: /wiki/
+---
+<div class="wiki">
+  <section class="wiki-hero">
+    <span class="wiki-kicker">Acadiana Mesh Wiki</span>
+    <h1>Network &amp; Repeater Guide</h1>
+    <p>Everything you need to get a companion on the mesh, set up a repeater, and understand the settings we use in Acadiana.</p>
+    <nav class="wiki-tabs" role="tablist" aria-label="Wiki sections">
+      <a href="#start" role="tab" data-tab="start">Getting Started</a>
+      <a href="#radio" role="tab" data-tab="radio">Radio Settings</a>
+      <a href="#regions" role="tab" data-tab="regions">Regions</a>
+      <a href="#channels" role="tab" data-tab="channels">Channels</a>
+      <a href="#privacy" role="tab" data-tab="privacy">Privacy</a>
+      <a href="#repeater" role="tab" data-tab="repeater">Repeater Setup</a>
+      <a href="#profiles" role="tab" data-tab="profiles">Repeater Profiles</a>
+      <a href="#settings" role="tab" data-tab="settings">Repeater Settings</a>
+    </nav>
+  </section>
+
+  <div class="page-container wiki-body">
+    <div class="page-content">
+
+<!-- ================= GETTING STARTED ================= -->
+<section class="wiki-panel" id="start" role="tabpanel">
+  <h2>Getting Started with MeshCore</h2>
+  <div class="wiki-note">💬 <strong>Join the Discord.</strong> Most off-mesh conversation happens on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a> — the best place to ask questions, get help setting up your node, and meet the community.</div>
+  <div class="wiki-note">📺 <strong>Video guide:</strong> <a href="https://www.youtube.com/watch?v=t1qne8uJBAc&amp;t=372s" target="_blank" rel="noopener">How to get started with MeshCore off-grid text messaging</a> — a walkthrough of what MeshCore is, how it works and how to set it up.</div>
+
+  <h3>Overview</h3>
+  <p>Follow these steps to get your node running on Acadiana Mesh:</p>
+  <ol>
+    <li><strong>Set up your companion</strong> — flash the device, connect it, and set its name and radio settings.</li>
+    <li><strong>Use our radio settings</strong> — every node must use the same preset to hear each other (see <a href="#radio">Radio Settings</a>).</li>
+    <li><strong>Set your default region</strong> — so your messages stay in the part of the network they belong to (see <a href="#regions">Regions</a>).</li>
+    <li><strong>Join and test</strong> — advertise your node, find nearby repeaters and send a test message.</li>
+  </ol>
+
+  <h2 id="setting-up-companion">Setting Up Your Companion</h2>
+  <h3>Step 1: Flash your device</h3>
+  <p>Flash your device with the <a href="https://flasher.meshcore.io/" target="_blank" rel="noopener">MeshCore web flasher</a> (Chrome or Edge on a computer).</p>
+  <div class="wiki-warn">⚠️ <strong>Before flashing, choose your connection method.</strong> Companion firmware supports one connection type at a time:
+    <ul><li><strong>BLE</strong> (Bluetooth Low Energy) — pairs with the phone app; what most people want</li><li><strong>USB</strong> (wired)</li><li><strong>WiFi</strong> (wireless)</li></ul>
+  </div>
+  <div class="wiki-note">💡 <strong>First time flashing MeshCore?</strong> Select <em>Erase</em> before flashing.</div>
+
+  <h3>Step 2: Connect and configure</h3>
+  <p>Install the MeshCore app (<a href="https://apps.apple.com/us/app/meshcore/id6742354151" target="_blank" rel="noopener">iOS</a> / <a href="https://play.google.com/store/apps/details?id=com.liamcottle.meshcore.android" target="_blank" rel="noopener">Android</a>), connect to your companion, then:</p>
+  <ol>
+    <li>Tap the ⚙️ icon (top right).</li>
+    <li>Set your <strong>name</strong>.</li>
+    <li>Set the radio preset to <strong>USA/Canada (Recommended)</strong> — 910.525 MHz, BW 62.5 kHz, SF 7, CR 5.</li>
+    <li>Set your <strong>default region</strong> to <code>us-la-lft</code>.</li>
+    <li>Tap ✔️ (top right) to save and wait for the green success notification.</li>
+  </ol>
+  <p><strong>Add channels:</strong></p>
+  <ol>
+    <li>Tap ⋮ (top right) → <strong>+ Add Channel</strong> → <strong>Join a Hashtag Channel</strong>.</li>
+    <li>Enter the channel name (for example <code>test</code>) and press <strong>Join Channel</strong>.</li>
+    <li>If you add the <strong>Public</strong> channel, set its scope to <strong>unscoped</strong>.</li>
+  </ol>
+  <p>Or scan the QR codes on our <a href="/channels/">Channels page</a>.</p>
+
+  <h3>Step 3: Join the mesh</h3>
+  <p><strong>Advertise your node:</strong> tap <strong>Advert</strong> (next to ⚙️) → <strong>Send Flood Advert</strong>. This announces your node name to the mesh.</p>
+  <p><strong>Discover nearby repeaters:</strong> tap 🔧 → <strong>Discover Nearby Nodes</strong> → <strong>Discover Repeaters</strong>, wait for repeaters in range to respond, then tap <strong>+</strong> to add them to your contacts.</p>
+
+  <h3>Step 4: Test your connection</h3>
+  <p>Send a greeting on the <strong>Public</strong> channel, or send <code>test</code>, <code>ping</code> or <code>path</code> on <strong>#test</strong>. After sending, look for <strong>heard X repeats</strong> next to your message:</p>
+  <table>
+    <thead><tr><th>Result</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>heard 1+ repeats</td><td>✅ Success — your message reached one or more repeaters</td></tr>
+      <tr><td>heard 0 repeats</td><td>❌ No repeater heard your message</td></tr>
+    </tbody>
+  </table>
+  <div class="wiki-note">⏳ <strong>Give the mesh time.</strong> Messages travel hop by hop, so they can take a while — especially over longer distances or many hops. Commands such as <code>test</code>, <code>path</code> and <code>ping</code> can take up to 30 seconds to cross the mesh, get a reply and come back. If nothing happens right away, wait 30 seconds before trying again.</div>
+  <p><strong>If you see 0 repeats:</strong></p>
+  <ul>
+    <li>Double-check your <a href="#radio">radio settings</a>.</li>
+    <li>Check the <a href="{{ site.map_url }}" target="_blank" rel="noopener">Live Map</a> for repeaters near you.</li>
+    <li>Step outside with the antenna pointing straight up.</li>
+    <li>Find higher ground to clear buildings and trees — LoRa needs a reasonably clear path to a repeater.</li>
+  </ul>
+
+  <h3>Understanding repeater guest logins</h3>
+  <p>Many repeaters have a <strong>guest login with no password</strong>. It lets anyone on the mesh view useful repeater information without the owner's password:</p>
+  <ul>
+    <li><strong>Owner information</strong> — contact details and repeater specs, so you know who runs it and how it's built.</li>
+    <li><strong>Neighbors</strong> — the repeaters and nodes it can hear directly.</li>
+    <li><strong>Status</strong> — signal strength, uptime and connection statistics.</li>
+    <li><strong>Network health</strong> — real-time performance numbers.</li>
+  </ul>
+  <p><strong>Why a blank guest password?</strong> It makes repeater information available to everyone, which helps the community troubleshoot coverage, tune antenna placement and understand how the network fits together.</p>
+
+  <h3>Understanding adverts</h3>
+  <p>Adverts are how nodes announce themselves on the mesh. Each advert contains:</p>
+  <ul>
+    <li><strong>Public key</strong> — your node's unique cryptographic identity (32 bytes)</li>
+    <li><strong>Timestamp</strong> — when the advert was made (used for routing and de-duplication)</li>
+    <li><strong>Digital signature</strong> — proof the advert is genuine (64 bytes)</li>
+    <li><strong>Node type</strong> — companion, repeater, room server or sensor</li>
+    <li><strong>Name</strong> — your node's display name</li>
+    <li><strong>Location</strong> — latitude/longitude, if you share it</li>
+  </ul>
+  <table>
+    <thead><tr><th>Advert type</th><th>How often</th><th>Reaches</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Local (zero-hop) advert</td><td>Every 240 minutes on our repeaters</td><td>Directly connected nodes only</td><td>Announces to immediate neighbors without flooding the network</td></tr>
+      <tr><td>Flood advert</td><td>Rarely — set by the repeater owner</td><td>The entire mesh</td><td>Every repeater that hears it rebroadcasts it</td></tr>
+      <tr><td>Companion advert</td><td>Only when you send it</td><td>Your choice (zero-hop or flood)</td><td>Announces your companion</td></tr>
+    </tbody>
+  </table>
+  <div class="wiki-warn">⚠️ <strong>Why flood adverts are kept rare:</strong> every repeater on the mesh rebroadcasts each flood advert. With many nodes, frequent flood adverts create a lot of traffic that crowds out real messages.</div>
+</section>
+
+<!-- ================= RADIO ================= -->
+<section class="wiki-panel" id="radio" role="tabpanel">
+  <h2 id="radio-settings">Radio Settings</h2>
+  <p>Acadiana Mesh uses one radio preset: MeshCore's <strong>USA/Canada (Recommended)</strong>. Every companion and repeater must use the same frequency, bandwidth and spreading factor to hear each other. These are the same settings used across the Gulf Coast mesh, so you can talk to neighboring networks.</p>
+  <table>
+    <thead><tr><th>Setting</th><th>Value</th><th>Explanation</th></tr></thead>
+    <tbody>
+      <tr><td>Frequency</td><td>910.525 MHz</td><td>Inside the US 902–928 MHz license-free ISM band, which is shared with smart meters, IoT sensors and other LoRa devices.</td></tr>
+      <tr><td>Bandwidth</td><td>62.5 kHz</td><td>A narrow channel. Thermal noise is about 3 dB lower than at 125 kHz and 6 dB lower than at 250 kHz, and a narrow channel picks up less interference. The trade-off is less tolerance for multipath and for radios whose frequency drifts.</td></tr>
+      <tr><td>Spreading Factor (SF)</td><td>7</td><td>128 chirps per symbol, 2.048 ms per symbol. Decodes down to roughly −7.5 dB SNR (receiver sensitivity around −127 dBm). Faster on the air than higher spreading factors, so the mesh can carry more traffic.</td></tr>
+      <tr><td>Coding Rate (CR)</td><td>5 (4/5)</td><td>25% forward error correction — one parity bit for every four data bits. Keeps packets short on the air.</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Net result:</strong> a typical 100-byte packet takes about 350 ms on the air.</p>
+  <div class="wiki-note">💡 Our <a href="/settings/">Settings page</a> has the same values in a quick-reference table, plus MQTT settings for observers.</div>
+</section>
+
+<!-- ================= REGIONS ================= -->
+<section class="wiki-panel" id="regions" role="tabpanel">
+  <h2 id="region-scoping">Region Scoping &amp; IATA Codes</h2>
+  <p>Region scoping lets each repeater decide which flood traffic it forwards, based on a region tag attached to the packet. Without scoping, a repeater rebroadcasts every flood packet it hears — including traffic from distant communities that has nothing to do with Acadiana. With scoping, only packets tagged with an allowed region are forwarded; everything else is quietly dropped.</p>
+  <p>This matters for mesh health. Every packet a repeater retransmits uses shared airtime. A Lafayette repeater forwarding traffic meant for another city burns channel time that local messages could have used. Across a busy network with many repeaters, unfiltered rebroadcasting means congestion, delays and dropped messages. Scoping keeps each part of the mesh carrying the traffic that belongs there.</p>
+
+  <h3>Region naming format</h3>
+  <p>Regions use a lower-case, hyphen-separated format. Pick the tightest scope that covers the people you want to reach.</p>
+  <pre class="wiki-code"><code>&lt;country&gt;-&lt;state&gt;-&lt;iata&gt;      example: us-la-lft</code></pre>
+  <table>
+    <thead><tr><th>Part</th><th>Example</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Country</td><td><code>us</code></td><td>United States</td></tr>
+      <tr><td>State</td><td><code>la</code></td><td>Louisiana</td></tr>
+      <tr><td>IATA</td><td><code>lft</code></td><td>The 3-letter airport code nearest the area — LFT is Lafayette Regional Airport</td></tr>
+    </tbody>
+  </table>
+  <div class="wiki-note">💡 <strong>What is an IATA code?</strong> The 3-letter identifier assigned to airports worldwide — LFT for Lafayette, MSY for New Orleans, BTR for Baton Rouge. In MeshCore region names they're written lower-case. Where no airport fits, the community agrees on a 3-letter shorthand.</div>
+
+  <h3>Acadiana region hierarchy</h3>
+  <p>Acadiana repeaters forward these five regions. Besides country, state and city, the Gulf Coast adds two geographic tiers: <code>us-southeast</code> and <code>us-gc</code> (Gulf Coast).</p>
+  <table>
+    <thead><tr><th>Region</th><th>Covers</th></tr></thead>
+    <tbody>
+      <tr><td><code>us</code></td><td>United States-wide</td></tr>
+      <tr><td><code>us-southeast</code></td><td>Southeastern US</td></tr>
+      <tr><td><code>us-gc</code></td><td>Gulf Coast</td></tr>
+      <tr><td><code>us-la</code></td><td>Louisiana-wide</td></tr>
+      <tr><td><code>us-la-lft</code></td><td>Lafayette / Acadiana</td></tr>
+    </tbody>
+  </table>
+  <p>Apply them to your repeater with:</p>
+  <pre class="wiki-code"><code>region put us
+region put us-southeast us
+region put us-gc us-southeast
+region put us-la us-gc
+region put us-la-lft us-la
+region allowf us
+region allowf us-southeast
+region allowf us-gc
+region allowf us-la
+region allowf us-la-lft
+region save</code></pre>
+
+  <h3>How transport codes work</h3>
+  <p>When a client or room server sends a scoped flood packet (for example a channel message), it attaches a 16-bit <em>transport code</em>: an HMAC-SHA256 of the packet's payload, keyed with the region's 16-byte key. The packet is sent as <code>ROUTE_TYPE_TRANSPORT_FLOOD</code> (0x00), which tells receivers that transport codes are present. Plain flood packets with no transport code use <code>ROUTE_TYPE_FLOOD</code> (0x01) and are matched by the repeater's wildcard (<code>*</code>) region.</p>
+
+  <h3>How a repeater matches a region</h3>
+  <p>When a transport-flood packet arrives, the repeater works through its configured regions and computes the expected transport code for each one. If one matches the packet's code, the packet belongs to that region. If none match and the wildcard doesn't allow flood, the packet is dropped.</p>
+
+  <h3>The hierarchy is only for organization</h3>
+  <p>The indented tree shown in the region CLI output is organizational only. Each region name produces its own independent key — <code>us-la</code> and <code>us-la-lft</code> share nothing — and there is no parent-chain lookup when matching packets.</p>
+  <p>So <strong>allowing <code>us-la</code> does not forward packets tagged <code>us-la-lft</code></strong>, or any other child region. Every region you want to forward must be allowed individually — which is why the commands above allow all five. They add up: <code>us</code> carries national traffic, <code>us-la</code> carries state-wide traffic and <code>us-la-lft</code> carries local traffic. New regions are denied by default until you explicitly allow them.</p>
+</section>
+
+<!-- ================= CHANNELS ================= -->
+<section class="wiki-panel" id="channels" role="tabpanel">
+  <h2>Channels</h2>
+  <p>QR codes for every channel are on the <a href="/channels/">Channels page</a>.</p>
+  <h3>Core channels</h3>
+  <table>
+    <thead><tr><th>Channel</th><th>Key</th><th>Region scope</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Public</td><td>Built-in public key</td><td>None (unscoped)</td><td>General chat for all mesh users</td></tr>
+      <tr><td>Test</td><td><code>#test</code></td><td>None</td><td>Connection testing — send <code>test</code>, <code>ping</code> or <code>path</code></td></tr>
+    </tbody>
+  </table>
+  <h3>Regional channels</h3>
+  <table>
+    <thead><tr><th>Channel</th><th>Key</th><th>Region scope</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Acadiana</td><td><code>#acadiana</code></td><td><code>us-la-lft</code></td><td>General chat across the Acadiana region</td></tr>
+      <tr><td>Lafayette</td><td><code>#lafayette</code></td><td><code>us-la-lft</code></td><td>Local chat for the greater Lafayette area</td></tr>
+      <tr><td>SKYWARN</td><td><code>#skywarn</code></td><td><code>us-la-lft</code></td><td>Severe-weather spotting coordination for trained NWS storm spotters</td></tr>
+      <tr><td>Weather</td><td><code>#wx</code></td><td><code>us-la-lft</code></td><td>Weather alerts, storm reports and radar observations</td></tr>
+    </tbody>
+  </table>
+  <h3>Channel bots</h3>
+  <table>
+    <thead><tr><th>Bot</th><th>Channel</th><th>Region scope</th><th>Commands</th></tr></thead>
+    <tbody>
+      <tr><td>AcadianaWX</td><td><code>#wx</code></td><td><code>us-la-lft</code></td><td><code>wx</code>, <code>wx 70578</code>, <code>aqi</code>, <code>sun</code>, <code>moon</code>, <code>solar</code>, <code>satpass 25544</code>, <code>ping</code>, <code>help</code> — full list on the <a href="/channels/">Channels page</a></td></tr>
+      <tr><td>AcadianaBot</td><td><code>#bot</code></td><td><code>us-la-lft</code></td><td><code>ping</code>, <code>test</code>, <code>help</code>, <code>channels</code>, sports scores, jokes and more — full list on the <a href="/channels/">Channels page</a></td></tr>
+    </tbody>
+  </table>
+  <div class="wiki-note">💡 <strong>Hashtag channel keys are generated from the channel name</strong>, so anyone who types the same name joins the same channel. Check with the community on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a> before starting a new long-lived regional channel.</div>
+</section>
+
+<!-- ================= PRIVACY ================= -->
+<section class="wiki-panel" id="privacy" role="tabpanel">
+  <h2>Privacy Considerations</h2>
+  <div class="wiki-warn">⚠️ <strong>Important:</strong> anything sent in adverts or on public channels — including well-known # channels — can be used however the people receiving it choose.</div>
+  <h3>What you should know</h3>
+  <p>Treat messages, locations and other data you send on the mesh as public information.</p>
+  <table>
+    <thead><tr><th>Concern</th><th>Details</th></tr></thead>
+    <tbody>
+      <tr><td>🌐 Internet-accessible tools</td><td>Maps and analyzers (including ours) display packet and location data publicly online</td></tr>
+      <tr><td>🔓 No guaranteed privacy</td><td>A message is only as private as every person who receives it</td></tr>
+      <tr><td>💾 Data persistence</td><td>Once transmitted, you have no control over how it is stored, shared or used</td></tr>
+      <tr><td>📍 Location precision</td><td>Locations are transmitted with high precision</td></tr>
+    </tbody>
+  </table>
+  <h3>Location privacy tip</h3>
+  <p>You can set an approximate location instead of your exact address — close enough for coverage planning, but offset enough to give you a privacy buffer. Consider a nearby intersection, park or general area.</p>
+  <h3>Best practices</h3>
+  <p>✅ <strong>Do:</strong></p>
+  <ul>
+    <li>Use direct messages for private conversations (with trusted contacts)</li>
+    <li>Use private channels for group privacy (with trusted participants)</li>
+    <li>Set approximate locations for your devices</li>
+  </ul>
+  <p>❌ <strong>Don't:</strong></p>
+  <ul>
+    <li>Share sensitive personal information on public channels</li>
+    <li>Broadcast your exact home address</li>
+    <li>Assume a public message is private</li>
+  </ul>
+  <h3>Encryption</h3>
+  <table>
+    <thead><tr><th>Type</th><th>Encryption</th><th>Privacy level</th></tr></thead>
+    <tbody>
+      <tr><td>Public channel</td><td>AES-256-CTR</td><td>🔓 Public (the key is shared)</td></tr>
+      <tr><td># hashtag channels</td><td>AES-256-CTR</td><td>🔓 Semi-public (key comes from the name)</td></tr>
+      <tr><td>Private channels</td><td>AES-256-CTR</td><td>🔒 Private (if the key stays secret)</td></tr>
+      <tr><td>Direct messages</td><td>AES-256-CTR</td><td>🔒 Private (unique per conversation)</td></tr>
+    </tbody>
+  </table>
+  <div class="wiki-note">💡 With keys kept secret and recipients you trust, your messages are cryptographically protected. For how this website handles your information, see our <a href="/privacy/">Privacy Policy</a>.</div>
+</section>
+
+<!-- ================= REPEATER SETUP ================= -->
+<section class="wiki-panel" id="repeater" role="tabpanel">
+  <h2 id="repeater-naming">Repeater Naming &amp; Setup</h2>
+  <h3>Naming convention</h3>
+  <p>Name repeaters <strong>[owner] - [location]</strong>. The owner part is a short name, callsign or emoji that appears on all your repeaters, so the community knows who runs them.</p>
+  <table>
+    <thead><tr><th>Type</th><th>Naming</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Fixed repeaters</td><td>[owner] - [location]</td><td>🐊 - Carencro, John - Downtown</td></tr>
+      <tr><td>Mobile repeaters</td><td>Include "Mobile" in the name</td><td>John's Mobile</td></tr>
+      <tr><td>Not yet installed</td><td>End with "TBA"</td><td>John - TBA</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Step 1: Flash the firmware</h3>
+  <p>Flash the repeater firmware with the <a href="https://flasher.meshcore.io/" target="_blank" rel="noopener">MeshCore web flasher</a>. Make sure an antenna is connected before powering the radio.</p>
+
+  <h3>Step 2: Radio settings, name, location and owner info</h3>
+  <p>Open the <a href="https://config.meshcore.io/" target="_blank" rel="noopener">MeshCore USB config tool</a> and set:</p>
+  <ul>
+    <li><strong>Radio settings</strong> — frequency, bandwidth, spreading factor and coding rate (see <a href="#radio">Radio Settings</a>)</li>
+    <li><strong>Name</strong> — following the naming convention above</li>
+    <li><strong>Location</strong> — for mesh planning (an approximate location is fine)</li>
+    <li><strong>Owner information</strong> — your name or callsign, repeater specs, location type and an off-mesh contact</li>
+    <li><strong>Guest password</strong> — leave blank so other mesh users can check the repeater's status</li>
+    <li><strong>Send Advert</strong> — click it after configuring to announce the repeater to the mesh</li>
+  </ul>
+
+  <h3>Step 3: ⏰ Sync the clock — required</h3>
+  <div class="wiki-warn">⚠️ <strong>Your repeater will not work properly until its clock is synced.</strong> Repeaters reset their clock to 15 May 2024 on every reboot unless connected to a computer. Until it is synced:
+    <ul><li>Other nodes won't handle its adverts correctly, so it's effectively invisible</li><li>Messages may not route properly</li><li>It appears offline, at the bottom of contact lists</li></ul>
+  </div>
+  <p><strong>To sync the clock:</strong></p>
+  <ol>
+    <li>Log into the repeater from your companion.</li>
+    <li>Go to the <strong>Settings</strong> tab → scroll to <strong>Sync Clock</strong> → tap it.</li>
+    <li>Wait for the green success notification.</li>
+    <li>Tap <strong>Advert</strong> to have the repeater send an advert.</li>
+    <li>✅ Check that the repeater's <strong>Last Heard</strong> time is current, not May 2024.</li>
+  </ol>
+  <div class="wiki-note">💡 Re-sync the clock after every power cycle or reboot, unless the repeater has GPS or stays connected to a computer.</div>
+
+  <h3>Step 4: Configure the repeater CLI settings</h3>
+  <p>Once you're logged in and the clock is synced, apply the <a href="#settings">common settings</a>, your <a href="#profiles">repeater profile</a> and the <a href="#regions">region commands</a>.</p>
+  <ol>
+    <li>Go to the <strong>&gt;_ Command Line</strong> tab.</li>
+    <li>Copy a command, paste it and send it — one command at a time.</li>
+    <li>Wait up to 30 seconds for an <code>OK</code> reply. If none comes, send it again.</li>
+  </ol>
+  <div class="wiki-note">📺 <strong>Video guide:</strong> <a href="https://youtu.be/t1qne8uJBAc?t=678" target="_blank" rel="noopener">More about repeaters</a>.</div>
+
+  <h3>Step 5: Set owner information</h3>
+  <p>Once the repeater is working, fill in its owner information so other users can plan around it, understand its type and limits, and know who to contact. Anyone can see this through the guest login.</p>
+  <ol>
+    <li>Log into the repeater from your companion.</li>
+    <li>Go to the <strong>Settings</strong> tab (⚙️), scroll down and tap <strong>Owner Info</strong>.</li>
+    <li>Type your owner information, pressing Enter between sections.</li>
+    <li>Tap ✔️ to save and wait for the green success notification.</li>
+  </ol>
+  <p><strong>What to include:</strong></p>
+  <ul>
+    <li><strong>Owner</strong> — your name or callsign</li>
+    <li><strong>Specs</strong> — antenna (and its dBi rating), node model, power source (solar / wired / battery)</li>
+    <li><strong>Installation type</strong> — "rooftop", "window", "pole", "tower" — enough for planning, without exact coordinates</li>
+  </ul>
+  <p><strong>Example:</strong></p>
+  <pre class="wiki-code"><code>John - Downtown (John Smith)
+5 dBi omni, Heltec V4, solar powered
+House rooftop</code></pre>
+</section>
+
+<!-- ================= PROFILES ================= -->
+<section class="wiki-panel" id="profiles" role="tabpanel">
+  <h2 id="repeater-profiles">Repeater Configuration Profiles</h2>
+  <p>Choose the profile that matches your repeater's role and position in the network. Each profile sets one value, <code>txdelay</code>, which decides how long the repeater waits before retransmitting a flood packet. Repeaters that reach farther go first; lower ones wait.</p>
+  <h3>How to choose your profile</h3>
+  <table>
+    <thead><tr><th>Profile</th><th>Elevation</th><th>Neighbors</th><th>Typical location</th></tr></thead>
+    <tbody>
+      <tr><td>⚫ BACKBONE</td><td>Variable</td><td>1–2</td><td>Dedicated point-to-point link</td></tr>
+      <tr><td>🔴 CRITICAL</td><td>Highest</td><td>20+</td><td>Tower, tall building, high mast</td></tr>
+      <tr><td>🟠 LINK</td><td>Mid</td><td>15–20</td><td>Elevated position bridging towers and neighborhoods</td></tr>
+      <tr><td>🟡 STANDARD</td><td>Average</td><td>5–10</td><td>Suburban roof, elevated home</td></tr>
+      <tr><td>🟢 LOCAL</td><td>Low</td><td>1–3</td><td>Indoor, ground level, low roof</td></tr>
+      <tr><td>🔵 MOBILE</td><td>Variable</td><td>Variable (1–10+)</td><td>Vehicle, portable, hiking, bike</td></tr>
+      <tr><td>🟣 BRIDGE</td><td>Variable</td><td>Variable</td><td>ESP32 node bridging two LoRa segments over ESP-NOW</td></tr>
+    </tbody>
+  </table>
+  <div class="wiki-note">📝 <strong>MeshCore default:</strong> <code>txdelay 0.5</code>. The profiles below change that default. Mean delays are for a typical ~350 ms packet at our radio settings.</div>
+
+  <div class="wiki-profile"><h3>⚫ BACKBONE — ultra-fast point-to-point link</h3>
+  <p><strong>Role:</strong> a dedicated backbone link between two specific high-value nodes. <strong>Use when</strong> your repeater is one end of a point-to-point link between two critical infrastructure nodes — minimal delay, maximum throughput.</p>
+  <pre class="wiki-code"><code>set txdelay 0.25</code></pre>
+  <p><strong>Why:</strong> the lowest txdelay gives the fastest possible retransmission on a dedicated link — below the MeshCore default of 0.5. Mean delay ~219 ms.</p></div>
+
+  <div class="wiki-profile"><h3>🔴 CRITICAL — tower / tall-building infrastructure</h3>
+  <p><strong>Role:</strong> highest elevation, most neighbors, backbone of the mesh. <strong>Use when</strong> your repeater is on a tower, tall building or high mast with a clear view of many nodes — you can see 20+ neighbors and you're a key link in the network.</p>
+  <pre class="wiki-code"><code>set txdelay 0.3</code></pre>
+  <p><strong>Why:</strong> the highest-reach nodes fire first, covering the most area in one transmission before the channel fills with retransmissions from lower nodes. Since MeshCore doesn't cancel pending retransmits, letting the widest-coverage node go early front-loads useful propagation. Mean delay ~263 ms.</p></div>
+
+  <div class="wiki-profile"><h3>🟠 LINK — mid-elevation bridge</h3>
+  <p><strong>Role:</strong> connects critical nodes to local coverage, with a moderate number of neighbors. <strong>Use when</strong> your repeater sits between tall infrastructure and neighborhood coverage — it sees some critical nodes and some local ones (15–20 neighbors is typical).</p>
+  <pre class="wiki-code"><code>set txdelay 0.6</code></pre>
+  <p><strong>Why:</strong> fires shortly after the CRITICAL nodes have blanketed the area, filling gaps between tower infrastructure and neighborhood coverage. Mean delay ~525 ms.</p></div>
+
+  <div class="wiki-profile"><h3>🟡 STANDARD — suburban coverage</h3>
+  <p><strong>Role:</strong> average position, serves a local area. <strong>Use when</strong> it's a typical install — an elevated spot serving the surrounding area, seeing 5–10 neighbors.</p>
+  <pre class="wiki-code"><code>set txdelay 1.0</code></pre>
+  <p><strong>Why:</strong> waits for CRITICAL and LINK nodes to propagate first, then fills in neighborhood coverage. Mean delay ~875 ms.</p></div>
+
+  <div class="wiki-profile"><h3>🟢 LOCAL — ground level / indoor</h3>
+  <p><strong>Role:</strong> low elevation, few neighbors, serves the immediate area. <strong>Use when</strong> it's an indoor repeater, low rooftop or ground-level install that sees only 1–3 neighbors.</p>
+  <pre class="wiki-code"><code>set txdelay 1.4</code></pre>
+  <p><strong>Why:</strong> low nodes with few neighbors defer to higher infrastructure that covers more area per transmission. Mean delay ~1,225 ms.</p></div>
+
+  <div class="wiki-profile"><h3>🔵 MOBILE — vehicle / portable repeater</h3>
+  <p><strong>Role:</strong> a moving repeater that extends coverage as it travels. <strong>Use when</strong> it's mounted in a vehicle, carried on a hike or otherwise moving through the mesh. Neighbors change constantly, so it defers to fixed infrastructure.</p>
+  <pre class="wiki-code"><code>set txdelay 2</code></pre>
+  <p><strong>Why:</strong> the maximum txdelay — the mobile node waits as long as allowed before retransmitting, deferring to fixed repeaters where possible. Mean delay ~1,750 ms.</p></div>
+
+  <div class="wiki-profile"><h3>🟣 BRIDGE — ESP-NOW bridge node</h3>
+  <p><strong>Role:</strong> links two physically separated LoRa mesh segments over ESP-NOW WiFi. <strong>Use when</strong> your ESP32-based node is set up as an ESP-NOW bridge, connecting two LoRa segments that can't hear each other. It works as a normal LoRa repeater on its own segment; after it transmits a packet over LoRa, it also forwards it over ESP-NOW to the peer bridge, which injects it into its own segment after a configurable delay.</p>
+  <pre class="wiki-code"><code>set txdelay 0.25
+set bridge on
+set bridge.delay 1000</code></pre>
+  <p><strong>Why:</strong> a bridge is dedicated infrastructure, like BACKBONE, so fast LoRa retransmission keeps latency low on the bridged path. <code>bridge.delay 1000</code> holds packets received over ESP-NOW for 1,000 ms before they enter the mesh's processing queue, preventing immediate processing conflicts. The bridge also keeps its own seen-packet table, so a packet that arrived over ESP-NOW isn't sent back over ESP-NOW — preventing feedback loops between the two bridges. Range is 0–10,000 ms.</p></div>
+
+  <h2 id="role-specific">Transmission Delay (txdelay) Explained</h2>
+  <table>
+    <thead><tr><th>Setting</th><th>Default</th><th>Range</th><th>What it controls</th><th>Rule of thumb</th></tr></thead>
+    <tbody><tr><td><code>txdelay</code></td><td>0.5</td><td>0–2.0</td><td>Wait before retransmitting floods</td><td>Higher = let other nodes go first</td></tr></tbody>
+  </table>
+  <p><strong>The formula:</strong></p>
+  <pre class="wiki-code"><code>unit  = estimated_airtime × txdelay
+delay = random whole number of ms, uniformly from 0 to 5 × unit</code></pre>
+  <p>For example, with <code>txdelay 1.0</code> and a 350 ms packet: unit = 350 ms, so the actual delay is anywhere from 0 to 1,750 ms with equal probability — a mean of about 875 ms. It's a continuous spread, not fixed steps.</p>
+  <p><strong>At our settings</strong> (SF 7, BW 62.5 kHz, CR 5) the symbol time is 2.048 ms and typical packets take about 225–460 ms on the air (60–140 bytes). At the ~350 ms midpoint, mean delays per profile are: BACKBONE 219 ms · CRITICAL 263 ms · LINK 525 ms · STANDARD 875 ms · LOCAL 1,225 ms · MOBILE 1,750 ms — the highest-reach nodes fire first and the lowest defer.</p>
+  <div class="wiki-warn">⚠️ <strong>Important:</strong> MeshCore doesn't cancel a pending retransmit when it hears another node retransmit the same packet. Every node that receives a flood packet transmits it once. The delay only staggers <em>when</em> each node transmits — reducing simultaneous collisions and deciding which path reaches downstream nodes first.</div>
+  <table>
+    <thead><tr><th>txdelay</th><th>Delay window</th><th>Collision risk</th><th>Propagation speed</th></tr></thead>
+    <tbody>
+      <tr><td>High (2.0)</td><td>Wide</td><td>✅ Lower</td><td>Slower</td></tr>
+      <tr><td>Low (0.3)</td><td>Narrow</td><td>⚠️ Higher</td><td>Faster</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= SETTINGS ================= -->
+<section class="wiki-panel" id="settings" role="tabpanel">
+  <h2 id="common-settings">Common Settings for Acadiana Repeaters</h2>
+  <p>Apply these to every Acadiana Mesh repeater, whatever its profile.</p>
+  <pre class="wiki-code"><code>set multi.acks 1
+set advert.interval 240
+set guest.password
+set path.hash.mode 1
+set loop.detect minimal
+powersaving on</code></pre>
+  <h3>Quick reference</h3>
+  <table>
+    <thead><tr><th>Setting</th><th>Value</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>multi.acks</code></td><td>1</td><td>Sends redundant ACKs for more reliable delivery confirmation</td></tr>
+      <tr><td><code>advert.interval</code></td><td>240</td><td>Local (zero-hop) advert every 240 minutes, to neighbors only</td></tr>
+      <tr><td><code>guest.password</code></td><td>(blank)</td><td>Lets community members check the repeater's status</td></tr>
+      <tr><td><code>path.hash.mode</code></td><td>1</td><td>2-byte repeater IDs in packet paths instead of 1-byte — far fewer collisions between repeaters</td></tr>
+      <tr><td><code>loop.detect</code></td><td>minimal</td><td>Rejects flood packets that appear to be looping</td></tr>
+      <tr><td><code>powersaving</code></td><td>on</td><td>Light sleep between activity, where the board supports it</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="understanding-settings">Understanding the Settings</h2>
+  <h3>Multiple acknowledgments</h3>
+  <p>Controls whether redundant ACKs are sent for direct (point-to-point) messages. <code>1</code> sends two ACK packets — a "multi-ack" first, then the standard ACK; <code>0</code> sends only one. Redundant ACKs make delivery confirmations much more reliable.</p>
+
+  <h3>Advert interval</h3>
+  <p>Repeaters periodically announce themselves so other nodes can find them. The local advert every 240 minutes is a zero-hop broadcast to immediate neighbors only, so it doesn't add traffic across the whole mesh.</p>
+
+  <h3 id="path-hash">Path hash mode</h3>
+  <p>When a repeater forwards a flood packet, it stamps a short identity hash (a prefix of its public key) into the packet's path. That path record is what makes MeshCore efficient: the destination can read exactly which repeaters the packet went through and send replies straight back along the same route, without flooding the whole network again. <code>path.hash.mode</code> sets the size of each stamp:</p>
+  <table>
+    <thead><tr><th>Mode</th><th>Bytes per hop</th><th>Unique IDs</th><th>Max hops</th><th>Practical effect</th></tr></thead>
+    <tbody>
+      <tr><td>0 (default)</td><td>1</td><td>256</td><td>64</td><td>High collision risk in larger networks. Paths become ambiguous — you can't tell which repeaters a message really passed through, and replies may be misrouted.</td></tr>
+      <tr><td>1 (recommended)</td><td>2</td><td>65,536</td><td>32</td><td>Collisions are negligible at our scale. Paths accurately identify each hop, so routing works correctly. 32 hops is well above real network depth.</td></tr>
+      <tr><td>2</td><td>3</td><td>~16.7 million</td><td>21</td><td>Virtually no collisions. Only useful for very large or dense deployments; the lower hop limit may limit wide-area coverage.</td></tr>
+    </tbody>
+  </table>
+  <p>The hash size is recorded in each packet, so forwarding repeaters read it and adapt automatically. The mode only affects packets <em>your</em> node originates — a repeater set to any mode still forwards flood packets whatever mode the sender used.</p>
+  <div class="wiki-warn">⚠️ <strong>Firmware requirement:</strong> multi-byte path hashes arrived in MeshCore <strong>v1.14.0</strong>. Repeaters on older firmware only use 1-byte hashes and can't correctly read 2-byte paths, so those hops show up garbled or ambiguous. Our <a href="/reports/">Reports page</a> lists repeaters that appear to still be on older firmware.</div>
+  <p><strong>Why collisions corrupt paths:</strong> with only 256 possible 1-byte values, two repeaters in the same network can easily share one. The path then becomes ambiguous — a hash could mean either repeater — so the path you see is unreliable and replies sent along it can be handed to the wrong repeater at the collision. With 2-byte stamps there are 65,536 values, and the chance of two Acadiana repeaters sharing one is negligible.</p>
+
+  <h3>Loop detection</h3>
+  <p><code>loop.detect</code> protects the mesh from packet storms caused by looping flood packets. A misbehaving repeater (for example one running forked or custom firmware) can corrupt a packet and re-forward it, making the same packet circulate up to the 64-hop maximum.</p>
+  <p>When a flood packet arrives, the repeater looks for its own identity hash in the path. If it appears too many times, the packet is rejected as a likely loop. The threshold depends on the level and the packet's hash size:</p>
+  <ul>
+    <li><strong>off</strong> — no loop checking (the default)</li>
+    <li><strong>minimal</strong> — tolerant: allows up to 4 repeats of its own hash with 1-byte hashes, 2 with 2-byte, 1 with 3-byte</li>
+    <li><strong>moderate</strong> — stricter thresholds</li>
+    <li><strong>strict</strong> — the most aggressive rejection</li>
+  </ul>
+  <p><strong>minimal</strong> catches clear loops while staying conservative enough to avoid false positives, so it's the recommended starting point. It works even with 1-byte paths.</p>
+
+  <h3>Power saving mode</h3>
+  <p>Puts the repeater into light sleep between activity to save power. The radio wakes on incoming packets or a scheduled timer. Power saving is handled by the firmware and board — <code>powersaving on</code> enables it where supported.</p>
+</section>
+
+      <p class="wiki-credit">Adapted with permission from the <a href="https://meshsydney.com/wiki" target="_blank" rel="noopener">MeshSydney wiki</a>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.wiki-tabs [data-tab]'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.wiki-panel'));
+  if (!tabs.length) return;
+  document.documentElement.classList.add('wiki-js');
+
+  function panelFor(hash) {
+    var id = (hash || '').replace(/^#/, '');
+    if (!id) return null;
+    var el = document.getElementById(id);
+    if (!el) return null;
+    return el.classList.contains('wiki-panel') ? el : el.closest('.wiki-panel');
+  }
+
+  function show(panel, target, push) {
+    panels.forEach(function (p) { p.hidden = (p !== panel); });
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('data-tab') === panel.id;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && t.scrollIntoView) t.scrollIntoView({ block: 'nearest', inline: 'center' });
+    });
+    if (push) history.replaceState(null, '', '#' + (target || panel.id));
+    if (target && target !== panel.id) {
+      var el = document.getElementById(target);
+      if (el) el.scrollIntoView();
+    } else if (push) {
+      var nav = document.querySelector('.wiki-tabs');
+      var y = nav.getBoundingClientRect().top + window.pageYOffset - 80;
+      if (window.pageYOffset > y) window.scrollTo(0, y);
+    }
+  }
+
+  function route() {
+    var id = location.hash.replace(/^#/, '');
+    var panel = panelFor(location.hash) || panels[0];
+    show(panel, id && document.getElementById(id) ? id : null, false);
+  }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var id = a.getAttribute('href').slice(1);
+    var panel = panelFor('#' + id);
+    if (!panel) return;
+    e.preventDefault();
+    show(panel, id, true);
+  });
+  window.addEventListener('hashchange', route);
+  route();
+
+  // Copy buttons on command blocks
+  document.querySelectorAll('.wiki-code').forEach(function (pre) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'wiki-copy';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = pre.querySelector('code').innerText;
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+    pre.appendChild(btn);
+  });
+})();
+</script>
