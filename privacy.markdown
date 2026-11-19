@@ -5,7 +5,7 @@ description: How Acadiana Mesh handles information from this website, the newsle
 permalink: /privacy/
 ---
 
-_Last updated: November 17, 2026_
+_Last updated: November 19, 2026_
 
 Acadiana Mesh is a volunteer community project. We don't sell ads, we don't sell or rent your information, and we only collect what we need to run the network tools and keep you informed. This page explains what we collect and what we do with it.
 
@@ -29,6 +29,12 @@ This is stored in our own newsletter system on our own server and is used only t
 ## Analyzer accounts
 
 If you create an account on [analyzer.acadianamesh.com]({{ site.analyzer_url }}), we store your email address and your account login. Your email is used for account emails (such as confirming your account or resetting your password) and for any node alerts you choose to turn on. These emails are also delivered through Brevo.
+
+## Repeater directory
+
+The [repeater directory](/repeaters/) lists the community's repeaters and is stored on our own server (data.acadianamesh.com). For each repeater we keep its hardware and setup details and the owner's name, which is shown publicly. Owners can also add an email, phone number and Discord name; each one is shown publicly **only if the owner turns on "Show publicly"** for it. Admins can always see them.
+
+People who manage repeaters have an account with their name, email and (optionally) callsign. Their email is used only to sign in (with an emailed code or a password reset link) and is never shown publicly. Sign-in emails are delivered through Brevo. To remove your account or your contact details, edit your repeater or email us.
 
 ## Mesh network data
 

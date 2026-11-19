@@ -1,0 +1,204 @@
+---
+layout: default
+title: "Manage Repeaters"
+description: "Sign in to update your Acadiana Mesh repeaters in the public directory. Admins can manage every repeater and the people who maintain them."
+permalink: /repeaters/manage/
+sitemap: false
+---
+<div class="wiki rd rm" id="rm" data-api="{{ site.directory_api }}" data-analyzer="{{ site.analyzer_url }}">
+  <section class="wiki-hero">
+    <span class="wiki-kicker">Repeater Directory</span>
+    <h1>Manage Repeaters</h1>
+    <p>Sign in to keep your repeaters up to date. You choose which contact details show on the <a href="{{ '/repeaters/' | relative_url }}">public directory</a>.</p>
+    <nav class="wiki-tabs" id="rm-tabs" role="tablist" aria-label="Manage sections" hidden>
+      <a href="#repeaters" role="tab" data-panel="repeaters">Repeaters</a>
+      <a href="#people" role="tab" data-panel="people" data-admin>People</a>
+      <a href="#prefixes" role="tab" data-panel="prefixes" data-admin>Prefixes</a>
+      <a href="#account" role="tab" data-panel="account">My Account</a>
+    </nav>
+  </section>
+
+  <div class="page-container wiki-body">
+    <div class="rm-toast" id="rm-toast" role="status" aria-live="polite" hidden></div>
+
+    <!-- ================= SIGN IN ================= -->
+    <section class="rm-signin" id="rm-signin" hidden>
+      <div class="rm-card">
+        <h2>Sign in</h2>
+        <div class="rm-seg" role="tablist" aria-label="Sign-in method">
+          <button type="button" class="active" data-method="code" role="tab" aria-selected="true">Email me a code</button>
+          <button type="button" data-method="password" role="tab" aria-selected="false">Password</button>
+        </div>
+
+        <form id="rm-code-form" class="rm-form" novalidate>
+          <div id="rm-code-step1">
+            <label class="rm-field"><span>Email</span>
+              <input type="email" name="email" autocomplete="email" required placeholder="you@example.com">
+            </label>
+            <button class="btn btn-primary rm-wide" type="submit">Send me a code</button>
+          </div>
+          <div id="rm-code-step2" hidden>
+            <p class="rd-muted">If <strong id="rm-code-email"></strong> has an account, a 6-digit code is on its way. It works for 10 minutes.</p>
+            <label class="rm-field"><span>Code</span>
+              <input name="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="123456" class="rm-otp">
+            </label>
+            <button class="btn btn-primary rm-wide" type="submit">Sign in</button>
+            <button class="rm-link" type="button" id="rm-code-back">Use a different email</button>
+          </div>
+        </form>
+
+        <form id="rm-pass-form" class="rm-form" hidden novalidate>
+          <label class="rm-field"><span>Email</span>
+            <input type="email" name="email" autocomplete="username" required placeholder="you@example.com">
+          </label>
+          <label class="rm-field"><span>Password</span>
+            <input type="password" name="password" autocomplete="current-password" required>
+          </label>
+          <button class="btn btn-primary rm-wide" type="submit">Sign in</button>
+          <button class="rm-link" type="button" id="rm-forgot">Forgot your password, or never set one?</button>
+        </form>
+
+        <p class="rm-help">Accounts are added by an Acadiana Mesh admin. Need access to manage your repeater? Ask on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a> or email <a href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>
+      </div>
+    </section>
+
+    <!-- ================= SIGNED IN ================= -->
+    <div id="rm-app" hidden>
+      <div class="rm-bar">
+        <span>Signed in as <strong id="rm-me-name"></strong> <span class="rd-pill info" id="rm-me-role"></span></span>
+        <button type="button" class="rm-link" id="rm-signout">Sign out</button>
+      </div>
+
+      <!-- Repeaters list -->
+      <section class="rm-panel" id="rm-p-repeaters" data-panel="repeaters">
+        <div class="rm-head">
+          <div>
+            <h2 id="rm-rep-title">My Repeaters</h2>
+            <p class="rd-muted" id="rm-rep-sub"></p>
+          </div>
+          <button type="button" class="btn btn-primary" id="rm-add-repeater">+ Add repeater</button>
+        </div>
+        <input type="search" id="rm-rep-q" class="rm-filter" placeholder="Filter repeaters" autocomplete="off">
+        <div class="rd-table-wrap">
+          <table class="rd-table rm-table">
+            <thead><tr><th>Repeater</th><th>Status</th><th class="rm-hide-sm">Owner</th><th class="rm-hide-sm rm-admin-col">Managers</th><th class="rm-hide-sm">Updated</th><th></th></tr></thead>
+            <tbody id="rm-rep-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Repeater editor -->
+      <section class="rm-panel" id="rm-p-editor" hidden>
+        <button type="button" class="rm-link rm-back" id="rm-editor-back">← Back to repeaters</button>
+        <form id="rm-editor" class="rm-form rm-editor" novalidate>
+          <div class="rm-head">
+            <h2 id="rm-editor-title">Edit repeater</h2>
+            <div class="rm-actions">
+              <a class="rm-link" id="rm-editor-view" target="_blank" rel="noopener" hidden>View public page ↗</a>
+              <button class="btn btn-primary" type="submit">Save</button>
+            </div>
+          </div>
+          <div id="rm-editor-fields"></div>
+          <div class="rm-actions rm-actions-end">
+            <button type="button" class="rm-danger" id="rm-delete" hidden>Delete repeater</button>
+            <button class="btn btn-primary" type="submit">Save</button>
+          </div>
+        </form>
+        <section class="rm-card rm-maint" id="rm-maint" hidden>
+          <h3>Repairs &amp; maintenance</h3>
+          <p class="rd-muted">Entries show on the public directory.</p>
+          <ul class="rd-log rm-log" id="rm-maint-list"></ul>
+          <form id="rm-maint-form" class="rm-maint-form" novalidate>
+            <label class="rm-field"><span>Date</span><input type="date" name="date" required></label>
+            <label class="rm-field rm-grow"><span>What was done</span><input name="notes" maxlength="2000" required placeholder="e.g. Replaced batteries, re-aimed antenna"></label>
+            <button class="btn btn-secondary" type="submit">Add entry</button>
+          </form>
+        </section>
+      </section>
+
+      <!-- People (admins) -->
+      <section class="rm-panel" id="rm-p-people" data-panel="people" hidden>
+        <div class="rm-head">
+          <div>
+            <h2>People</h2>
+            <p class="rd-muted"><strong>Users</strong> edit only the repeaters assigned to them. <strong>Admins</strong> edit every repeater and manage people and prefixes.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="rm-add-person">+ Add person</button>
+        </div>
+        <form id="rm-person-form" class="rm-card rm-form" hidden novalidate>
+          <h3 id="rm-person-title">Add a person</h3>
+          <div class="rm-grid">
+            <label class="rm-field"><span>Name <em>*</em></span><input name="name" required maxlength="100"></label>
+            <label class="rm-field"><span>Email <em>*</em></span><input type="email" name="email" required></label>
+            <label class="rm-field"><span>Callsign</span><input name="callsign" maxlength="20" class="rm-upper"></label>
+            <label class="rm-field"><span>Role</span>
+              <select name="role"><option value="user">User — edits their own repeaters</option><option value="admin">Admin — edits everything</option></select>
+            </label>
+          </div>
+          <fieldset class="rm-field rm-checks">
+            <legend>Repeaters they manage</legend>
+            <input type="search" class="rm-filter" id="rm-person-rep-q" placeholder="Filter repeaters" autocomplete="off">
+            <div class="rm-checklist" id="rm-person-reps"></div>
+            <p class="rm-hint">A repeater with no owner yet will list this person as its owner.</p>
+          </fieldset>
+          <label class="rm-check" id="rm-invite-wrap"><input type="checkbox" name="invite" checked> Email them an invite with sign-in instructions</label>
+          <div class="rm-actions rm-actions-end">
+            <button type="button" class="rm-link" id="rm-person-cancel">Cancel</button>
+            <button class="btn btn-primary" type="submit" id="rm-person-submit">Add person</button>
+          </div>
+        </form>
+        <div class="rd-table-wrap">
+          <table class="rd-table rm-table">
+            <thead><tr><th>Name</th><th class="rm-hide-sm">Email</th><th>Role</th><th class="rm-hide-sm">Repeaters</th><th></th></tr></thead>
+            <tbody id="rm-people-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Prefixes (admins) -->
+      <section class="rm-panel" id="rm-p-prefixes" data-panel="prefixes" hidden>
+        <div class="rm-head">
+          <div>
+            <h2>Reserved Prefixes</h2>
+            <p class="rd-muted">Reservations show on the public Prefixes tab. Prefixes set on a repeater show there automatically.</p>
+          </div>
+        </div>
+        <form id="rm-prefix-form" class="rm-card rm-maint-form" novalidate>
+          <label class="rm-field"><span>Prefix</span><input name="code" required maxlength="6" class="rm-upper" placeholder="B3"></label>
+          <label class="rm-field rm-grow"><span>Reserved for</span><input name="label" maxlength="120" placeholder="Repeater or person"></label>
+          <button class="btn btn-primary" type="submit">Reserve</button>
+        </form>
+        <div class="rd-table-wrap">
+          <table class="rd-table rm-table">
+            <thead><tr><th>Prefix</th><th>Reserved for</th><th></th></tr></thead>
+            <tbody id="rm-prefix-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Account -->
+      <section class="rm-panel" id="rm-p-account" data-panel="account" hidden>
+        <h2>My Account</h2>
+        <form id="rm-account-form" class="rm-card rm-form" novalidate>
+          <div class="rm-grid">
+            <label class="rm-field"><span>Name <em>*</em></span><input name="name" required maxlength="100"></label>
+            <label class="rm-field"><span>Callsign</span><input name="callsign" maxlength="20" class="rm-upper"></label>
+            <label class="rm-field"><span>Email</span><input name="email" disabled></label>
+          </div>
+          <div class="rm-actions rm-actions-end"><button class="btn btn-primary" type="submit">Save</button></div>
+        </form>
+        <div class="rm-card">
+          <h3>Password</h3>
+          <p class="rd-muted">You can always sign in with an emailed code. To use a password too, we'll email you a link to set one.</p>
+          <button type="button" class="btn btn-secondary" id="rm-set-password">Email me a link to set my password</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="rm-loading" class="rd-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span> Loading…</div>
+  </div>
+</div>
+
+<datalist id="rm-nodes"></datalist>
+<script src="https://cdn.jsdelivr.net/npm/pocketbase@0.28.2/dist/pocketbase.umd.js"></script>
+<script src="{{ '/assets/js/repeaters-manage.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

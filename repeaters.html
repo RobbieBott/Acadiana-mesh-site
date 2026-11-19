@@ -1,0 +1,92 @@
+---
+layout: default
+title: "Repeater Directory"
+description: "Every Acadiana Mesh repeater in one place: where it is, the hardware it runs, when the mesh last heard it, reserved prefixes, and how to reach its owner."
+permalink: /repeaters/
+---
+<div class="wiki rd" id="rd" data-api="{{ site.directory_api }}" data-analyzer="{{ site.analyzer_url }}" data-discord="{{ site.discord_url }}">
+  <section class="wiki-hero">
+    <span class="wiki-kicker">Repeater Directory</span>
+    <h1>Acadiana Mesh Repeaters</h1>
+    <p>Every repeater on the network, the hardware it runs and when the mesh last heard it. Pick a repeater to see its details and how to reach its owner.</p>
+    <nav class="wiki-tabs" role="tablist" aria-label="Directory sections">
+      <a href="#list" role="tab" data-tab="list">Repeaters <span class="tab-count" data-count-from="rd-count"></span></a>
+      <a href="#prefixes" role="tab" data-tab="prefixes">Prefixes</a>
+      <a href="{{ '/repeaters/manage/' | relative_url }}">Manage ↗</a>
+    </nav>
+  </section>
+
+  <div class="page-container wiki-body">
+
+<!-- ================= REPEATERS ================= -->
+<section class="wiki-panel" id="list" role="tabpanel">
+  <div class="rd-stats" aria-live="polite">
+    <div class="rd-stat"><span class="rd-stat-num" id="rd-count">—</span><span class="rd-stat-label">Repeaters</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="rd-online">—</span><span class="rd-stat-label">Online</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="rd-heard">—</span><span class="rd-stat-label">Heard in 24 h</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="rd-waiting">—</span><span class="rd-stat-label">Waiting for install</span></div>
+  </div>
+
+  <div class="rd-toolbar">
+    <label class="rd-search">
+      <span class="sr-only">Search repeaters</span>
+      <input type="search" id="rd-q" placeholder="Search name, area, owner, prefix or hardware" autocomplete="off">
+    </label>
+    <div class="rd-chips" id="rd-status" role="group" aria-label="Filter by status"></div>
+    <label class="rd-sort">
+      <span>Sort</span>
+      <select id="rd-sort">
+        <option value="name">Name</option>
+        <option value="heard">Last heard</option>
+        <option value="installed">Newest install</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="rd-loading" class="rd-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span> Loading the directory…</div>
+  <p id="rd-error" class="wiki-warn" hidden></p>
+  <div class="rd-grid" id="rd-grid"></div>
+  <p class="rd-empty" id="rd-empty" hidden>No repeaters match that search.</p>
+
+  <p class="rd-foot">“Last heard” comes live from the <a href="{{ site.analyzer_url }}/#/nodes" target="_blank" rel="noopener">analyzer</a>. Own a repeater that's missing or out of date? <a href="{{ '/repeaters/manage/' | relative_url }}">Sign in to manage it</a>, or ask on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a>.</p>
+</section>
+
+<!-- ================= PREFIXES ================= -->
+<section class="wiki-panel" id="prefixes" role="tabpanel">
+  <h2>Reserved Prefixes</h2>
+  <p>Repeaters are told apart on the mesh by the first byte (or two) of their public key. Pick a prefix nobody else uses before you generate your repeater's key, then reserve it with an admin.</p>
+
+  <div class="rd-check">
+    <label for="rd-prefix-q">Is my prefix free?</label>
+    <div class="rd-check-row">
+      <input id="rd-prefix-q" maxlength="6" placeholder="e.g. B3 or B3A1" autocomplete="off" spellcheck="false">
+    </div>
+    <div id="rd-prefix-result" class="rd-check-result" aria-live="polite"></div>
+  </div>
+
+  <div class="rd-table-wrap">
+    <table class="rd-table">
+      <thead><tr><th>Prefix</th><th>Used by</th><th>Source</th></tr></thead>
+      <tbody id="rd-prefix-body"><tr><td colspan="3">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+  </div>
+</div>
+
+<dialog class="rd-dialog" id="rd-dialog" aria-labelledby="rd-d-name">
+  <div class="rd-d-head">
+    <div>
+      <h2 id="rd-d-name"></h2>
+      <div class="rd-d-sub" id="rd-d-sub"></div>
+    </div>
+    <button type="button" class="rd-close" id="rd-close" aria-label="Close">✕</button>
+  </div>
+  <div class="rd-d-body" id="rd-d-body"></div>
+</dialog>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ '/assets/js/tabs.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+<script src="{{ '/assets/js/repeaters.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
