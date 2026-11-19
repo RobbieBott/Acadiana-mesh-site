@@ -1,6 +1,6 @@
 # Added to /root/acadiana-stack/docker-compose.yml under "services:" by install.sh.
   pocketbase:
-    # Repeater directory backend (data.acadianamesh.com) — code from infra/pocketbase in the site repo
+    # Repeater directory backend (repeaters.acadianamesh.com) — code from infra/pocketbase in the site repo
     build: ./pocketbase
     image: acadiana-pocketbase:local
     container_name: pocketbase

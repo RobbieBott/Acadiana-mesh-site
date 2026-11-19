@@ -36,10 +36,19 @@ PY
   echo "[pb] added compose service"
 fi
 
-if ! grep -q '^data.acadianamesh.com' "$STACK/caddy-config/Caddyfile"; then
-  { echo; cat "$STACK/pocketbase/Caddyfile-block"; } >> "$STACK/caddy-config/Caddyfile"
-  echo "[pb] added Caddy block"
-fi
+# Caddy: one block for repeaters.acadianamesh.com (replaces the old data.acadianamesh.com block).
+# The Caddyfile is a single-file bind mount, so it is rewritten in place.
+python3 - "$STACK/caddy-config/Caddyfile" "$STACK/pocketbase/Caddyfile-block" <<'PY'
+import re, sys
+path, block = sys.argv[1], open(sys.argv[2]).read().strip() + "\n"
+s = open(path).read()
+new = re.sub(r"\n*^(data|repeaters)\.acadianamesh\.com \{\n.*?^\}\n?", "\n", s, flags=re.M | re.S)
+new = new.rstrip("\n") + "\n\n" + block
+if new != s:
+    with open(path, "r+") as f:
+        f.seek(0); f.write(new); f.truncate()
+    print("[pb] Caddy block written")
+PY
 
 cd "$STACK"
 docker compose config -q
