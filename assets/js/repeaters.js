@@ -69,6 +69,14 @@
     return byName.length === 1 ? byName[0] : null;
   }
 
+  // 3-byte prefix: the reserved one if set, otherwise the first 3 bytes of the
+  // key the mesh hears (or the key on file).
+  function prefix3(r) {
+    if (r.prefix_3byte) return { code: r.prefix_3byte.toUpperCase(), derived: false };
+    var key = (r._live && r._live.public_key) || r.public_key || '';
+    return key.length >= 6 ? { code: key.slice(0, 6).toUpperCase(), derived: true } : null;
+  }
+
   // ── data ─────────────────────────────────────────────────────
   function getAll(collection, query) {
     var out = [];
@@ -117,7 +125,7 @@
   }
 
   function haystack(r) {
-    return [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.manufacturer, r.model, r.firmware, r.public_key && r.public_key.slice(0, 8)]
+    return [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.prefix_3byte, r.manufacturer, r.model, r.firmware, r.public_key && r.public_key.slice(0, 8)]
       .join(' ').toLowerCase();
   }
 
@@ -226,8 +234,9 @@
       '<div class="rd-d-grid">' +
       contactHtml +
       section('Overview', [
-        row('Prefix', r.prefix ? '<span class="rd-mono">' + esc(r.prefix) + '</span>' : ''),
+        row('1-byte prefix', r.prefix ? '<span class="rd-mono">' + esc(r.prefix) + '</span>' : ''),
         row('2-byte prefix', r.prefix_2byte ? '<span class="rd-mono">' + esc(r.prefix_2byte) + '</span>' : ''),
+        row('3-byte prefix', (function (p) { return p ? '<span class="rd-mono">' + esc(p.code) + '</span>' + (p.derived ? ' <span class="rd-muted">from key</span>' : '') : ''; })(prefix3(r))),
         row('Prefix compliant', t(r.prefix_compliant)),
         row('Path hash', r.path_hash_bytes ? r.path_hash_bytes + '-byte' : ''),
         row('Installed', fmtDate(r.install_date)),
@@ -300,23 +309,34 @@
   function prefixRows() {
     var rows = [];
     repeaters.forEach(function (r) {
-      [r.prefix, r.prefix_2byte].forEach(function (p) {
+      var p3 = prefix3(r);
+      [r.prefix, r.prefix_2byte, p3 && p3.code].forEach(function (p) {
         if (p) rows.push({ code: p.toUpperCase(), who: r.name, src: 'Directory', id: r.id });
       });
     });
     prefixes.forEach(function (p) { rows.push({ code: p.code.toUpperCase(), who: p.label, src: 'Reserved' }); });
     var seen = {};
-    rows = rows.filter(function (x) { var k = x.code + '|' + x.who; if (seen[k]) return false; seen[k] = 1; return true; });
-    rows.sort(function (a, b) { return a.code.localeCompare(b.code) || a.who.localeCompare(b.who); });
-    return rows;
+    return rows.filter(function (x) { var k = x.code + '|' + x.who; if (seen[k]) return false; seen[k] = 1; return true; });
   }
   function renderPrefixes() {
-    var rows = prefixRows();
+    // one row per repeater, then one per reservation (code in the column for its length)
+    var rows = repeaters.map(function (r) {
+      var p3 = prefix3(r);
+      return { who: r.name, id: r.id, p1: (r.prefix || '').toUpperCase(), p2: (r.prefix_2byte || '').toUpperCase(), p3: p3 ? p3.code : '', p3d: p3 && p3.derived };
+    });
+    prefixes.forEach(function (p) {
+      var c = p.code.toUpperCase(), x = { who: p.label || '—', reserved: true, p1: '', p2: '', p3: '' };
+      x[c.length <= 2 ? 'p1' : c.length <= 4 ? 'p2' : 'p3'] = c;
+      rows.push(x);
+    });
+    var key = function (x) { return x.p1 || x.p2.slice(0, 2) || x.p3.slice(0, 2) || 'ZZ'; };
+    rows.sort(function (a, b) { return key(a).localeCompare(key(b)) || (a.p2 || a.p3).localeCompare(b.p2 || b.p3) || a.who.localeCompare(b.who); });
+    var cell = function (v, muted) { return '<td>' + (v ? '<span class="rd-mono' + (muted ? ' rd-derived' : '') + '"' + (muted ? ' title="From the public key"' : '') + '>' + esc(v) + '</span>' : '<span class="rd-muted">—</span>') + '</td>'; };
     $('rd-prefix-body').innerHTML = rows.map(function (x) {
-      return '<tr><td class="rd-mono">' + esc(x.code) + '</td><td>' +
-        (x.id ? '<a href="#r-' + esc(x.id) + '" data-open="' + esc(x.id) + '">' + esc(x.who) + '</a>' : esc(x.who)) +
-        '</td><td><span class="rd-pill ' + (x.src === 'Reserved' ? 'info' : 'ok') + '">' + x.src + '</span></td></tr>';
-    }).join('') || '<tr><td colspan="3">No prefixes yet.</td></tr>';
+      return '<tr><td>' + (x.id ? '<a href="#r-' + esc(x.id) + '" data-open="' + esc(x.id) + '">' + esc(x.who) + '</a>'
+        : esc(x.who) + ' <span class="rd-pill info">Reserved</span>') + '</td>' +
+        cell(x.p1) + cell(x.p2) + cell(x.p3, x.p3d) + '</tr>';
+    }).join('') || '<tr><td colspan="4">No prefixes yet.</td></tr>';
     checkPrefix();
   }
   function checkPrefix() {

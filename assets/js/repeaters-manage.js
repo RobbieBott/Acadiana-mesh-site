@@ -223,7 +223,7 @@
   function renderRepeaters() {
     var q = ($('rm-rep-q').value || '').toLowerCase();
     var rows = repeaters.filter(function (r) {
-      return !q || [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte].join(' ').toLowerCase().indexOf(q) >= 0;
+      return !q || [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.prefix_3byte].join(' ').toLowerCase().indexOf(q) >= 0;
     });
     $('rm-rep-sub').textContent = isAdmin
       ? repeaters.length + ' repeaters. ' + repeaters.filter(function (r) { return !r.owner_name; }).length + ' still need an owner.'
@@ -264,6 +264,7 @@
       { k: 'public_key', label: 'Public key', wide: true, mono: true, max: 64, help: '64 characters, 0–9 and a–f.' },
       { k: 'prefix', label: 'Reserved prefix (1 byte)', mono: true, max: 8, upper: true },
       { k: 'prefix_2byte', label: 'Reserved prefix (2 byte)', mono: true, max: 8, upper: true },
+      { k: 'prefix_3byte', label: 'Reserved prefix (3 byte)', mono: true, max: 8, upper: true, help: 'Left blank, it’s filled from the public key when you save.' },
       { k: 'prefix_compliant', label: 'Prefix compliant', type: 'select', opts: YESNO },
       { k: 'path_hash_bytes', label: 'Path hash size', type: 'select', opts: [['', '—'], ['1', '1-byte (mode 0)'], ['2', '2-byte (mode 1)'], ['3', '3-byte (mode 2)']] }
     ] },
@@ -369,6 +370,7 @@
     form.public_key.value = n.public_key;
     if (!form.prefix.value) form.prefix.value = n.public_key.slice(0, 2).toUpperCase();
     if (!form.prefix_2byte.value && n.hash_size >= 2) form.prefix_2byte.value = n.public_key.slice(0, 4).toUpperCase();
+    if (!form.prefix_3byte.value) form.prefix_3byte.value = n.public_key.slice(0, 6).toUpperCase();
     if (!form.path_hash_bytes.value && n.hash_size) form.path_hash_bytes.value = String(n.hash_size);
     if (!form.name.value) form.name.value = n.name || '';
     toast('Filled in the public key for “' + (n.name || n.public_key.slice(0, 8)) + '”.');
@@ -403,6 +405,7 @@
     if (!data.name) { toast('Give the repeater a name.', 'bad'); form.name.focus(); return; }
     if (!data.owner_name) { toast('The owner name is required.', 'bad'); form.owner_name.focus(); return; }
     if (data.public_key && !/^[0-9a-f]{64}$/.test(data.public_key)) { toast('The public key should be 64 characters, 0–9 and a–f.', 'bad'); form.public_key.focus(); return; }
+    if (!data.prefix_3byte && data.public_key) data.prefix_3byte = data.public_key.slice(0, 6).toUpperCase();
     if (!editing && !isAdmin) data.managers = [me.id];
     busy(form, true);
     var req = editing
