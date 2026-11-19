@@ -1066,7 +1066,8 @@ ul { list-style: none; }
 .rd-btn:disabled { opacity: 0.6; cursor: wait; }
 .rd-linkbtn { font: inherit; font-size: 0.88rem; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 .rd-linkbtn:hover { text-decoration: underline; }
-.rd-claim-cta { margin: 0.75rem 0 0; }
+.rd-claim-cta, .rd-msg-cta { margin: 0.75rem 0 0; }
+.rd-msg-cta[hidden] { display: none; }
 .rd-claim { display: grid; gap: 0.75rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
 .rd-claim[hidden], .rd-claim-cta[hidden] { display: none; }
 .rd-claim p { margin: 0; }

@@ -335,7 +335,7 @@
       { k: 'prefix_compliant', label: 'Prefix compliant', type: 'select', opts: YESNO },
       { k: 'path_hash_bytes', label: 'Path hash size', type: 'select', opts: [['', '—'], ['1', '1-byte (mode 0)'], ['2', '2-byte (mode 1)'], ['3', '3-byte (mode 2)']] }
     ] },
-    { title: 'Owner & contact', id: 'contact', note: 'The owner’s name always shows publicly. Tick “Show publicly” for each contact detail you want on the public directory; admins can always see them.', fields: [
+    { title: 'Owner & contact', id: 'contact', note: 'The owner’s name always shows publicly. Your email is never shown: tick “Let people message me” and visitors can send you a message through the directory, which you can answer by replying. Phone and Discord show publicly only if you tick “Show publicly”. Admins can always see these details.', fields: [
       { k: 'owner_name', label: 'Owner name', req: true, max: 100 },
       { k: 'owner_callsign', label: 'Owner callsign', max: 20, upper: true },
       { k: 'contact_email', label: 'Email', type: 'email', show: 'show_email' },
@@ -391,7 +391,7 @@
         (f.max ? ' maxlength="' + f.max + '"' : '') + (f.req ? ' required' : '') + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : '') +
         ' class="' + (f.mono ? 'rm-mono' : '') + (f.upper ? ' rm-upper' : '') + '" spellcheck="' + (f.mono ? 'false' : 'true') + '">';
     }
-    var show = f.show ? '<label class="rm-check rm-show"><input type="checkbox" name="' + f.show + '"' + (r && r[f.show] ? ' checked' : '') + '> Show publicly</label>' : '';
+    var show = f.show ? '<label class="rm-check rm-show"><input type="checkbox" name="' + f.show + '"' + (r && r[f.show] ? ' checked' : '') + '> ' + (f.show === 'show_email' ? 'Let people message me' : 'Show publicly') + '</label>' : '';
     return '<div class="rm-field' + (f.wide ? ' rm-wide-field' : '') + '">' + label + input + show +
       (f.help ? '<small class="rm-hint">' + esc(f.help) + '</small>' : '') + '</div>';
   }
