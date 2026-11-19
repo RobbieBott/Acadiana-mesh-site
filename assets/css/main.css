@@ -1007,6 +1007,7 @@ ul { list-style: none; }
 .rd-owner { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
 .rd-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; color: var(--text); background: rgba(255, 255, 255, 0.06); border-radius: 4px; padding: 0.05rem 0.35rem; }
 .rd-key { word-break: break-all; display: inline-block; }
+.rd-derived { color: var(--text-muted); }
 .rd-pill { display: inline-flex; align-items: center; white-space: nowrap; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; padding: 0.18rem 0.55rem; border-radius: 999px; border: 1px solid currentColor; background: transparent; }
 .rd-pill.ok { color: var(--ok); } .rd-pill.warn { color: var(--warn); } .rd-pill.bad { color: var(--bad); }
 .rd-pill.info { color: var(--info); } .rd-pill.off { color: var(--off); }
@@ -1024,8 +1025,8 @@ ul { list-style: none; }
 .rd-check-result { margin-top: 0.75rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.8; }
 .rd-check-result:empty { display: none; }
 .rd-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
-.rd-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-.rd-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); background: var(--bg-surface); padding: 0.7rem 0.9rem; }
+.rd-table, .wiki .wiki-panel table.rd-table { display: table; width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.rd-table th { white-space: nowrap; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); background: var(--bg-surface); padding: 0.7rem 0.9rem; }
 .rd-table td { padding: 0.6rem 0.9rem; border-top: 1px solid var(--border); vertical-align: middle; }
 
 .rd-dialog {

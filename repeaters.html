@@ -54,22 +54,23 @@ permalink: /repeaters/
 <!-- ================= PREFIXES ================= -->
 <section class="wiki-panel" id="prefixes" role="tabpanel">
   <h2>Reserved Prefixes</h2>
-  <p>Repeaters are told apart on the mesh by the first byte (or two) of their public key. Pick a prefix nobody else uses before you generate your repeater's key, then reserve it with an admin.</p>
+  <p>Repeaters are told apart on the mesh by the first 1, 2 or 3 bytes of their public key, depending on their path hash size. Pick a prefix nobody else uses before you generate your repeater's key, then reserve it with an admin.</p>
 
   <div class="rd-check">
     <label for="rd-prefix-q">Is my prefix free?</label>
     <div class="rd-check-row">
-      <input id="rd-prefix-q" maxlength="6" placeholder="e.g. B3 or B3A1" autocomplete="off" spellcheck="false">
+      <input id="rd-prefix-q" maxlength="6" placeholder="e.g. B3, B3A1 or B3A1C2" autocomplete="off" spellcheck="false">
     </div>
     <div id="rd-prefix-result" class="rd-check-result" aria-live="polite"></div>
   </div>
 
   <div class="rd-table-wrap">
     <table class="rd-table">
-      <thead><tr><th>Prefix</th><th>Used by</th><th>Source</th></tr></thead>
-      <tbody id="rd-prefix-body"><tr><td colspan="3">Loading…</td></tr></tbody>
+      <thead><tr><th>Repeater</th><th>1-byte</th><th>2-byte</th><th>3-byte</th></tr></thead>
+      <tbody id="rd-prefix-body"><tr><td colspan="4">Loading…</td></tr></tbody>
     </table>
   </div>
+  <p class="rd-foot">Grey prefixes come straight from the repeater's public key (the first 3 bytes); the others were reserved. A repeater set to a 3-byte path hash is identified on the mesh by its 3-byte prefix.</p>
 </section>
 
   </div>
