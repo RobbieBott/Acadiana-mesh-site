@@ -61,7 +61,7 @@
     var a = new Uint8Array(24); crypto.getRandomValues(a);
     return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
   }
-  function statusLabel(s) { return s === 'Built Waiting For Install' ? 'Waiting for install' : s; }
+  function statusLabel(s) { return s === 'Built Waiting For Install' ? 'Waiting for install' : s === 'Online' ? 'Installed' : s === 'Offline' ? 'Down (known)' : s; }
   function statusClass(s) { return { 'Online': 'ok', 'Offline': 'bad', 'Maintenance': 'warn', 'Retired': 'off' }[s] || 'info'; }
   function busy(form, on) {
     form.querySelectorAll('button[type=submit]').forEach(function (b) { b.disabled = on; });
@@ -323,7 +323,7 @@
   var GROUPS = [
     { title: 'Basics', fields: [
       { k: 'name', label: 'Repeater name', req: true, max: 100 },
-      { k: 'status', label: 'Status', req: true, type: 'select', opts: STATUSES.map(function (s) { return [s, statusLabel(s)]; }) },
+      { k: 'status', label: 'Status', req: true, type: 'select', opts: STATUSES.map(function (s) { return [s, statusLabel(s)]; }), help: 'For an installed repeater the public directory shows Online, Stale or Offline from when the mesh last heard it. Use Maintenance, Down or Retired to say so yourself.' },
       { k: 'area', label: 'General area', help: 'A town or area, like “NE of Rayne”. Don’t enter a street address.' },
       { k: 'install_date', label: 'Install date', type: 'date' },
       { k: 'antenna_height', label: 'Antenna height', ph: "40'" }

@@ -23,8 +23,8 @@ permalink: /repeaters/
   <div class="rd-stats" aria-live="polite">
     <div class="rd-stat"><span class="rd-stat-num" id="rd-count">—</span><span class="rd-stat-label">Repeaters</span></div>
     <div class="rd-stat"><span class="rd-stat-num" id="rd-online">—</span><span class="rd-stat-label">Online</span></div>
-    <div class="rd-stat"><span class="rd-stat-num" id="rd-heard">—</span><span class="rd-stat-label">Heard in 24 h</span></div>
-    <div class="rd-stat"><span class="rd-stat-num" id="rd-waiting">—</span><span class="rd-stat-label">Waiting for install</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="rd-stale">—</span><span class="rd-stat-label">Stale or offline</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="rd-unheard">—</span><span class="rd-stat-label">Not heard yet</span></div>
   </div>
 
   <div class="rd-toolbar">
@@ -48,6 +48,7 @@ permalink: /repeaters/
   <div class="rd-grid" id="rd-grid"></div>
   <p class="rd-empty" id="rd-empty" hidden>No repeaters match that search.</p>
 
+  <p class="rd-foot"><strong>Online</strong> = heard by the mesh in the last 24 hours · <strong>Stale</strong> = last heard 1–3 days ago · <strong>Offline</strong> = more than 3 days · <strong>Not heard</strong> = our observers haven't picked it up. Owners can mark a repeater Maintenance, Retired or Waiting for install.</p>
   <p class="rd-foot">“Last heard” comes live from the <a href="{{ site.analyzer_url }}/#/nodes" target="_blank" rel="noopener">analyzer</a>. Own a repeater that's missing or out of date? <a href="{{ '/repeaters/manage/' | relative_url }}">Sign in to manage it</a>, or ask on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a>.</p>
 </section>
 
