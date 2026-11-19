@@ -24,17 +24,22 @@ if [ ! -f "$STACK/pocketbase.env" ]; then
   echo "[pb] created pocketbase.env (encryption key)"
 fi
 
-if ! grep -q '^  pocketbase:' "$STACK/docker-compose.yml"; then
-  python3 - "$STACK/docker-compose.yml" "$STACK/pocketbase/compose-service.yml" <<'PY'
-import sys
+# compose: add the pocketbase service, or replace it with the current definition
+python3 - "$STACK/docker-compose.yml" "$STACK/pocketbase/compose-service.yml" <<'PY'
+import re, sys
 path, block = sys.argv[1], open(sys.argv[2]).read()
 block = ''.join(l for l in block.splitlines(True) if not l.startswith('#'))
 s = open(path).read()
-i = s.index('\nnetworks:\n')
-open(path, 'w').write(s[:i + 1] + block + s[i + 1:])
+m = re.search(r"^  pocketbase:\n(?:(?:    .*|\s*)\n)*", s, flags=re.M)
+if m:
+    new = s[:m.start()] + block + s[m.end():]
+else:
+    i = s.index('\nnetworks:\n')
+    new = s[:i + 1] + block + s[i + 1:]
+if new != s:
+    open(path, 'w').write(new)
+    print("[pb] compose service written")
 PY
-  echo "[pb] added compose service"
-fi
 
 # Caddy: one block for data.acadianamesh.com (replaces any earlier data. or repeaters. block).
 # The Caddyfile is a single-file bind mount, so it is rewritten in place.

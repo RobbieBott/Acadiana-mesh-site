@@ -9,6 +9,8 @@
       - /root/acadiana-stack/pocketbase.env
     expose:
       - "8090"
+    ports:
+      - "127.0.0.1:8090:8090"   # droplet-only: for the SSH tunnel to the dashboard
     volumes:
       - /root/acadiana-stack/pocketbase/pb_data:/pb/pb_data
     mem_limit: 128m

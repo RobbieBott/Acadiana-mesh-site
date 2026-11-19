@@ -705,8 +705,40 @@
     }).catch(function (err) { toast(errText(err), 'bad'); });
   });
 
+  // ── links from emails: #verify=TOKEN (invite) and #reset=TOKEN (set password) ──
+  var link = location.hash.match(/^#(verify|reset)=([A-Za-z0-9._-]+)$/);
+  if (link) history.replaceState(null, '', location.pathname);
+  if (link && link[1] === 'verify') {
+    pb.collection('users').confirmVerification(link[2]).then(function () {
+      toast('Your email is confirmed. Sign in below with that address.');
+    }).catch(function () {
+      toast('That confirmation link has expired or was already used. You can still sign in below with an emailed code.', 'warn', true);
+    });
+  }
+  $('rm-reset-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = this;
+    if (f.password.value.length < 8) { toast('Use at least 8 characters.', 'bad'); return; }
+    if (f.password.value !== f.confirm.value) { toast('The two passwords don’t match.', 'bad'); return; }
+    busy(f, true);
+    pb.collection('users').confirmPasswordReset(f.dataset.token, f.password.value, f.confirm.value).then(function () {
+      f.reset();
+      $('rm-reset').hidden = true;
+      toast('Password saved. Sign in with it below.');
+      document.querySelector('.rm-seg button[data-method=password]').click();
+      pb.authStore.clear();
+      signedOut();
+    }).catch(function (err) {
+      toast(err.status === 400 ? 'That link has expired or was already used. Ask for a new one from “Forgot your password”.' : errText(err), 'bad', true);
+    }).then(function () { busy(f, false); });
+  });
+
   // ── start ────────────────────────────────────────────────────
-  if (pb.authStore.isValid && pb.authStore.record && pb.authStore.record.collectionName === 'users') {
+  if (link && link[1] === 'reset') {
+    $('rm-reset-form').dataset.token = link[2];
+    $('rm-loading').hidden = true;
+    $('rm-reset').hidden = false;
+  } else if (pb.authStore.isValid && pb.authStore.record && pb.authStore.record.collectionName === 'users') {
     pb.collection('users').authRefresh().then(signedIn).catch(function () { pb.authStore.clear(); signedOut(); });
   } else {
     pb.authStore.clear();
