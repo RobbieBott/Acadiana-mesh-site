@@ -1058,6 +1058,28 @@ ul { list-style: none; }
 .rd-log li { display: grid; grid-template-columns: 110px 1fr; gap: 0.75rem; }
 .rd-log-date { color: var(--text-muted); }
 .rd-updated { margin-top: 1rem; font-size: 0.8rem; }
+.rd-btn { font: inherit; font-size: 0.9rem; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: var(--radius); padding: 0.55rem 1.1rem; cursor: pointer; }
+.rd-btn:hover { background: var(--accent-hover); }
+.rd-btn:disabled { opacity: 0.6; cursor: wait; }
+.rd-linkbtn { font: inherit; font-size: 0.88rem; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.rd-linkbtn:hover { text-decoration: underline; }
+.rd-claim-cta { margin: 0.75rem 0 0; }
+.rd-claim { display: grid; gap: 0.75rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+.rd-claim[hidden], .rd-claim-cta[hidden] { display: none; }
+.rd-claim p { margin: 0; }
+.rd-claim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
+.rd-claim label { display: grid; gap: 0.3rem; font-size: 0.82rem; color: var(--text-muted); }
+.rd-claim label em { color: var(--accent); font-style: normal; }
+.rd-claim input, .rd-claim textarea { width: 100%; font: inherit; font-size: 0.95rem; color: var(--text); background: var(--bg); border: 1px solid var(--border-hover); border-radius: var(--radius); padding: 0.55rem 0.7rem; }
+.rd-claim input:focus, .rd-claim textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.rd-claim textarea { resize: vertical; }
+.rd-upper { text-transform: uppercase; }
+.rd-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.rd-claim-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
+.rd-claim-msg { font-size: 0.9rem; }
+.rd-claim-msg:empty { display: none; }
+.rd-claim-msg.ok { color: #a7f3d0; }
+.rd-claim-msg.bad { color: #fecaca; }
 @media (max-width: 700px) {
   .rd-stats { grid-template-columns: repeat(2, 1fr); }
   .rd-stat-num { font-size: 1.6rem; }
@@ -1137,6 +1159,8 @@ ul { list-style: none; }
 .rm-checks legend { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem; }
 .rm-checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.4rem 1rem; max-height: 260px; overflow-y: auto; padding: 0.6rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
 .rm-maint { margin-top: 1.5rem; }
+.rm-subhead { font-size: 1rem; margin: 1.5rem 0 0.6rem; color: var(--text-muted); }
+.rm-handled { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; font-size: 0.9rem; }
 .rm-log li { grid-template-columns: 110px 1fr; }
 .rm-maint-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; margin-top: 1rem; }
 .rm-maint-form .rm-field { flex: 0 0 170px; }
