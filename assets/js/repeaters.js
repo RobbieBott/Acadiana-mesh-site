@@ -6,7 +6,6 @@
   if (!root) return;
   var API = (root.getAttribute('data-api') || '').replace(/\/$/, '');
   var ANALYZER = (root.getAttribute('data-analyzer') || 'https://analyzer.acadianamesh.com').replace(/\/$/, '');
-  var DISCORD = root.getAttribute('data-discord') || '';
 
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (t) {
@@ -190,9 +189,8 @@
     var hw = [r.manufacturer, r.model].filter(Boolean).join(' · ');
     var pre = r.prefix_2byte || r.prefix;
     return '<button type="button" class="rd-card" data-id="' + esc(r.id) + '">' +
-      '<span class="rd-card-top"><span class="rd-card-name">' + esc(r.name) + '</span>' +
-      pill(r) + '</span>' +
-      '<span class="rd-card-meta">' + (r.area ? '<span>📍 ' + esc(r.area) + '</span>' : '') +
+      '<span class="rd-card-top"><span class="rd-card-name">' + esc(r.name) + '</span></span>' +
+      '<span class="rd-card-meta">' + pill(r) + (r.area ? '<span>📍 ' + esc(r.area) + '</span>' : '') +
       (pre ? '<span class="rd-mono">' + esc(pre) + '</span>' : '') +
       (r.path_hash_bytes ? '<span>' + r.path_hash_bytes + '-byte path</span>' : '') + '</span>' +
       (hw ? '<span class="rd-card-hw">' + esc(hw) + '</span>' : '') +
@@ -248,7 +246,6 @@
     var contactHtml = '<section class="rd-d-sec rd-contact"><h3>Contact</h3>' +
       (hasOwner
         ? '<dl>' + contact.join('') + '</dl>' +
-          (!r.email && !r.phone && !r.discord ? '<p class="rd-muted">The owner hasn’t shared contact details. You can reach them through the Acadiana Mesh <a href="' + esc(DISCORD) + '" target="_blank" rel="noopener">Discord</a>.</p>' : '') +
           '<p class="rd-claim-cta"><button type="button" class="rd-linkbtn" data-claim>Help manage this repeater</button></p>'
         : '<p class="rd-muted">Owner details haven’t been added yet. Is this your repeater?</p>' +
           '<p class="rd-claim-cta"><button type="button" class="rd-btn" data-claim>Claim this repeater</button></p>') +
