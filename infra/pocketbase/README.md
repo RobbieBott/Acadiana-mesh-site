@@ -1,6 +1,6 @@
 # Repeater directory backend (PocketBase)
 
-Serves **repeaters.acadianamesh.com**, which the website's `/repeaters/` and `/repeaters/manage/` pages read and write.
+Serves **data.acadianamesh.com**, which the website's `/repeaters/` and `/repeaters/manage/` pages read and write.
 Jekyll ignores this folder (`exclude` in `_config.yml`). Nothing here is secret.
 
 - `Dockerfile`: PocketBase 0.40.6, checksum-verified, with the migrations baked in.
@@ -21,5 +21,5 @@ Jekyll ignores this folder (`exclude` in `_config.yml`). Nothing here is secret.
 - Code: `/root/acadiana-stack/pocketbase/` (copy of this folder). Data: `/root/acadiana-stack/pocketbase/pb_data/`.
 - Encryption key: `/root/acadiana-stack/pocketbase.env` (chmod 600).
 - Compose service: `compose-service.yml`. Caddy block: `Caddyfile-block`.
-- Dashboard: https://repeaters.acadianamesh.com/_/ (superusers only). SMTP login goes in Settings → Mail.
+- Dashboard: https://data.acadianamesh.com/_/ (superusers only). SMTP login goes in Settings → Mail.
 - Install or update: `bash /root/acadiana-stack/pocketbase/install.sh` (first time: `curl -fsSL https://raw.githubusercontent.com/RobbieBott/Acadiana-mesh-site/main/infra/pocketbase/install.sh | bash`). It downloads this folder from GitHub, keeps the data and key, adds the compose service and Caddy block once, rebuilds and restarts. Previous compose/Caddyfile go to `/root/archive/pocketbase-<time>/`.

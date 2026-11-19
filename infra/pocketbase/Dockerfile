@@ -1,4 +1,4 @@
-# PocketBase for the Acadiana Mesh repeater directory (repeaters.acadianamesh.com).
+# PocketBase for the Acadiana Mesh repeater directory (data.acadianamesh.com).
 FROM alpine:3.20
 ARG PB_VERSION=0.40.6
 ARG PB_SHA256=0e1f609158ed945f809f8a02ae012aa0427129c66ebb63c1aee76f2c0309373f
