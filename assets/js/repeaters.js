@@ -47,10 +47,37 @@
     var h = (Date.now() - new Date(iso).getTime()) / 3600000;
     return h < 24 ? 'fresh' : h < 72 ? 'stale' : 'old';
   }
-  function statusClass(s) {
-    return { 'Online': 'ok', 'Offline': 'bad', 'Maintenance': 'warn', 'Retired': 'off' }[s] || 'info';
+  // What the directory shows: live from the mesh for installed repeaters
+  // (Online < 24 h, Stale 1–3 days, Offline > 3 days, Not heard), while the
+  // owner's Retired / Maintenance / Down status always wins and Waiting for
+  // install shows until the mesh hears it.
+  var LIVE = {
+    online: { label: 'Online', cls: 'ok' },
+    stale: { label: 'Stale', cls: 'warn' },
+    offline: { label: 'Offline', cls: 'bad' },
+    unheard: { label: 'Not heard', cls: 'off' },
+    waiting: { label: 'Waiting for install', cls: 'info' },
+    maintenance: { label: 'Maintenance', cls: 'warn' },
+    retired: { label: 'Retired', cls: 'off' },
+    checking: { label: 'Checking…', cls: 'off' }
+  };
+  var LIVE_ORDER = ['online', 'stale', 'offline', 'unheard', 'waiting', 'maintenance', 'retired'];
+  function liveStatus(r) {
+    if (r.status === 'Retired') return 'retired';
+    if (r.status === 'Maintenance') return 'maintenance';
+    if (r.status === 'Offline') return 'offline';
+    if (!liveReady) return 'checking';
+    var f = freshness(r._heard);
+    if (f === 'fresh') return 'online';
+    if (r.status === 'Built Waiting For Install') return 'waiting';
+    if (f === 'stale') return 'stale';
+    if (f === 'old') return 'offline';
+    return 'unheard';
   }
-  function statusLabel(s) { return s === 'Built Waiting For Install' ? 'Waiting for install' : s; }
+  function pill(r) {
+    var st = LIVE[r._st || 'checking'];
+    return '<span class="rd-pill ' + st.cls + '">' + esc(st.label) + '</span>';
+  }
 
   // Match a directory entry to a live analyzer node: exact key, then the
   // reserved 2-byte prefix, then the same name.
@@ -94,7 +121,7 @@
       .then(function (res) {
         repeaters = res[0]; prefixes = res[1];
         $('rd-loading').hidden = true;
-        buildChips(); render(); renderPrefixes(); openFromHash();
+        render(); renderPrefixes(); openFromHash();
       })
       .catch(function () { fail('The repeater directory couldn’t be loaded right now. Please try again in a few minutes.'); });
 
@@ -113,15 +140,16 @@
   }
 
   // ── list ─────────────────────────────────────────────────────
-  var STATUS_ORDER = ['Online', 'Built Waiting For Install', 'Maintenance', 'Offline', 'Retired'];
-  function buildChips() {
+  function buildChips(list) {
     var counts = {};
-    repeaters.forEach(function (r) { counts[r.status] = (counts[r.status] || 0) + 1; });
-    var html = '<button type="button" class="rd-chip active" data-status="all">All <span>' + repeaters.length + '</span></button>';
-    STATUS_ORDER.forEach(function (s) {
-      if (counts[s]) html += '<button type="button" class="rd-chip" data-status="' + esc(s) + '">' + esc(statusLabel(s)) + ' <span>' + counts[s] + '</span></button>';
-    });
-    $('rd-status').innerHTML = html;
+    list.forEach(function (r) { counts[r._st] = (counts[r._st] || 0) + 1; });
+    if (state.status !== 'all' && !counts[state.status]) state.status = 'all';
+    var chip = function (key, label, n) {
+      return '<button type="button" class="rd-chip' + (state.status === key ? ' active' : '') + '" data-status="' + key + '">' + esc(label) + ' <span>' + n + '</span></button>';
+    };
+    $('rd-status').innerHTML = chip('all', 'All', list.length) + LIVE_ORDER.map(function (k) {
+      return counts[k] ? chip(k, LIVE[k].label, counts[k]) : '';
+    }).join('');
   }
 
   function haystack(r) {
@@ -131,19 +159,17 @@
 
   function render() {
     var q = state.q.trim().toLowerCase();
-    var list = repeaters.map(function (r) { r._live = matchLive(r); r._heard = heardAt(r._live); return r; });
-
-    var online = list.filter(function (r) { return r.status === 'Online'; }).length;
-    var heard = list.filter(function (r) { return freshness(r._heard) === 'fresh'; }).length;
-    var waiting = list.filter(function (r) { return r.status === 'Built Waiting For Install'; }).length;
+    var list = repeaters.map(function (r) { r._live = matchLive(r); r._heard = heardAt(r._live); r._st = liveStatus(r); return r; });
+    var count = function (keys) { return liveReady ? list.filter(function (r) { return keys.indexOf(r._st) >= 0; }).length : '…'; };
     $('rd-count').textContent = list.length;
-    $('rd-online').textContent = online;
-    $('rd-heard').textContent = liveReady ? heard : '…';
-    $('rd-waiting').textContent = waiting;
+    $('rd-online').textContent = count(['online']);
+    $('rd-stale').textContent = count(['stale', 'offline']);
+    $('rd-unheard').textContent = count(['unheard', 'waiting']);
+    buildChips(list);
     document.querySelectorAll('.tab-count[data-count-from="rd-count"]').forEach(function (el) { el.textContent = list.length; });
 
     var shown = list.filter(function (r) {
-      if (state.status !== 'all' && r.status !== state.status) return false;
+      if (state.status !== 'all' && r._st !== state.status) return false;
       return !q || haystack(r).indexOf(q) >= 0;
     });
     shown.sort(function (a, b) {
@@ -165,7 +191,7 @@
     var pre = r.prefix_2byte || r.prefix;
     return '<button type="button" class="rd-card" data-id="' + esc(r.id) + '">' +
       '<span class="rd-card-top"><span class="rd-card-name">' + esc(r.name) + '</span>' +
-      '<span class="rd-pill ' + statusClass(r.status) + '">' + esc(statusLabel(r.status)) + '</span></span>' +
+      pill(r) + '</span>' +
       '<span class="rd-card-meta">' + (r.area ? '<span>📍 ' + esc(r.area) + '</span>' : '') +
       (pre ? '<span class="rd-mono">' + esc(pre) + '</span>' : '') +
       (r.path_hash_bytes ? '<span>' + r.path_hash_bytes + '-byte path</span>' : '') + '</span>' +
@@ -202,7 +228,8 @@
   function fillDialog(r) {
     var n = r._live, f = freshness(r._heard);
     $('rd-d-name').textContent = r.name;
-    $('rd-d-sub').innerHTML = '<span class="rd-pill ' + statusClass(r.status) + '">' + esc(statusLabel(r.status)) + '</span>' +
+    r._st = liveStatus(r);
+    $('rd-d-sub').innerHTML = pill(r) +
       (r.area ? '<span>📍 ' + esc(r.area) + '</span>' : '');
 
     var liveHtml = !liveReady ? 'Checking…'
