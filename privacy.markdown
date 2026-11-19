@@ -32,7 +32,7 @@ If you create an account on [analyzer.acadianamesh.com]({{ site.analyzer_url }})
 
 ## Repeater directory
 
-The [repeater directory](/repeaters/) lists the community's repeaters and is stored on our own server (data.acadianamesh.com). For each repeater we keep its hardware and setup details and the owner's name, which is shown publicly. Owners can also add an email, phone number and Discord name; each one is shown publicly **only if the owner turns on "Show publicly"** for it. Admins can always see them.
+The [repeater directory](/repeaters/) lists the community's repeaters and is stored on our own server (repeaters.acadianamesh.com). For each repeater we keep its hardware and setup details and the owner's name, which is shown publicly. Owners can also add an email, phone number and Discord name; each one is shown publicly **only if the owner turns on "Show publicly"** for it. Admins can always see them.
 
 People who manage repeaters have an account with their name, email and (optionally) callsign. Their email is used only to sign in (with an emailed code or a password reset link) and is never shown publicly. Sign-in emails are delivered through Brevo. To remove your account or your contact details, edit your repeater or email us.
 

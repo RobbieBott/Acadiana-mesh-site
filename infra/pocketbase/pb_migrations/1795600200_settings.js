@@ -5,7 +5,7 @@
 migrate((app) => {
   const s = app.settings();
   s.meta.appName = "Acadiana Mesh";
-  s.meta.appURL = "https://data.acadianamesh.com";
+  s.meta.appURL = "https://repeaters.acadianamesh.com";
   s.meta.senderName = "Acadiana Mesh";
   s.meta.senderAddress = "info@acadianamesh.com";
   s.meta.hideControls = true;

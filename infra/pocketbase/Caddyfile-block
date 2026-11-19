@@ -1,4 +1,7 @@
-data.acadianamesh.com {
+repeaters.acadianamesh.com {
 	encode zstd gzip
+	# Someone opening the bare address gets the public directory page
+	@home path /
+	redir @home https://acadianamesh.com/repeaters/ 302
 	reverse_proxy pocketbase:8090
 }
