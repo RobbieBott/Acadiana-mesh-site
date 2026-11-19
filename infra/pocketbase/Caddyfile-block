@@ -1,4 +1,4 @@
-repeaters.acadianamesh.com {
+data.acadianamesh.com {
 	encode zstd gzip
 	# Someone opening the bare address gets the public directory page
 	@home path /

@@ -36,7 +36,7 @@ PY
   echo "[pb] added compose service"
 fi
 
-# Caddy: one block for repeaters.acadianamesh.com (replaces the old data.acadianamesh.com block).
+# Caddy: one block for data.acadianamesh.com (replaces any earlier data. or repeaters. block).
 # The Caddyfile is a single-file bind mount, so it is rewritten in place.
 python3 - "$STACK/caddy-config/Caddyfile" "$STACK/pocketbase/Caddyfile-block" <<'PY'
 import re, sys

@@ -6,7 +6,7 @@ url: "https://acadianamesh.com"
 discord_url: "https://discord.com/channels/1416518070415134732/1416571085637288067"
 analyzer_url: "https://analyzer.acadianamesh.com"
 map_url: "https://map.acadianamesh.com"
-directory_api: "https://repeaters.acadianamesh.com"
+directory_api: "https://data.acadianamesh.com"
 
 plugins:
   - jekyll-feed
