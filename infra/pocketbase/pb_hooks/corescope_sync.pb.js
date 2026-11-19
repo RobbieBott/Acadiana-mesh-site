@@ -1,13 +1,24 @@
 /// <reference path="../pb_data/types.d.ts" />
-// Hourly CoreScope → directory sync, an admin "Sync now" endpoint, and a
+// Hourly (and at startup) CoreScope → directory sync, an admin "Sync now" endpoint, and a
 // delete hook so a deleted repeater isn't added back by the next sync.
 
 cronAdd("corescope-sync", "17 * * * *", () => {
   try {
     const r = require(`${__hooks}/corescope_sync.js`)($app);
-    if (r.added.length || r.rekeyed.length) console.log("[corescope-sync] added " + r.added.length + ", re-keyed " + r.rekeyed.length);
+    if (r.added.length || r.rekeyed.length || r.removed.length) console.log("[corescope-sync] added " + r.added.length + ", re-keyed " + r.rekeyed.length + ", removed " + r.removed.length);
   } catch (err) {
     console.log("[corescope-sync] failed: " + err);
+  }
+});
+
+// also run once when the server starts (so a deploy applies changes right away)
+onBootstrap((e) => {
+  e.next();
+  try {
+    const r = require(`${__hooks}/corescope_sync.js`)(e.app);
+    console.log("[corescope-sync] startup: " + r.heard_in_region + " in " + r.region + "; added " + r.added.length + ", re-keyed " + r.rekeyed.length + ", removed " + r.removed.length);
+  } catch (err) {
+    console.log("[corescope-sync] startup sync failed: " + err);
   }
 });
 
