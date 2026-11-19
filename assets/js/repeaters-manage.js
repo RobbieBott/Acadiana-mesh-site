@@ -176,6 +176,7 @@
     $('rm-me-name').textContent = me.name || me.email;
     $('rm-me-role').textContent = isAdmin ? 'Admin' : 'User';
     $('rm-rep-title').textContent = isAdmin ? 'All Repeaters' : 'My Repeaters';
+    $('rm-sync').hidden = !isAdmin;
     var af = $('rm-account-form');
     af.name.value = me.name || ''; af.callsign.value = me.callsign || ''; af.email.value = me.email || '';
     var start = location.hash.replace('#', '');
@@ -247,6 +248,18 @@
     openEditor(repeaters.find(function (r) { return r.id === b.getAttribute('data-edit'); }));
   });
   $('rm-add-repeater').addEventListener('click', function () { openEditor(null); });
+  $('rm-sync').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Syncing…';
+    pb.send('/api/directory/sync', { method: 'POST' }).then(function (r) {
+      var parts = [];
+      if (r.added.length) parts.push('added ' + r.added.length + (r.added.length === 1 ? ' repeater' : ' repeaters'));
+      if (r.rekeyed.length) parts.push('updated the public key on ' + r.rekeyed.join(', '));
+      toast(parts.length ? 'CoreScope sync: ' + parts.join('; ') + '.' : 'CoreScope sync: already up to date (' + r.heard_in_region + ' repeaters in ' + r.region + ').');
+      return loadAll();
+    }).catch(function (err) { toast(errText(err), 'bad', true); })
+      .then(function () { btn.disabled = false; btn.textContent = 'Sync from CoreScope'; });
+  });
 
   // ── repeater editor ──────────────────────────────────────────
   var STATUSES = ['Online', 'Offline', 'Built Waiting For Install', 'Maintenance', 'Retired'];
@@ -407,6 +420,7 @@
     if (data.public_key && !/^[0-9a-f]{64}$/.test(data.public_key)) { toast('The public key should be 64 characters, 0–9 and a–f.', 'bad'); form.public_key.focus(); return; }
     if (!data.prefix_3byte && data.public_key) data.prefix_3byte = data.public_key.slice(0, 6).toUpperCase();
     if (!editing && !isAdmin) data.managers = [me.id];
+    if (!editing) data.source = 'manual';
     busy(form, true);
     var req = editing
       ? pb.collection('repeaters').update(editing.id, data, { expand: 'managers' })
