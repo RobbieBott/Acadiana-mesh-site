@@ -1,0 +1,9 @@
+# Added to /root/acadiana-stack/docker-compose.yml under "services:".
+  pocketbase:
+    build: ./pocketbase
+    container_name: pocketbase
+    restart: unless-stopped
+    env_file: ./pocketbase.env          # PB_ENCRYPTION_KEY only (chmod 600, never in git)
+    volumes:
+      - ./pocketbase/pb_data:/pb/pb_data
+    mem_limit: 128m
