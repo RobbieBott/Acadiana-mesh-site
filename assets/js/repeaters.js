@@ -187,7 +187,7 @@
       : r._heard ? '<span class="rd-live ' + f + '"><i></i>Heard ' + esc(ago(r._heard)) + '</span>'
       : '<span class="rd-live none"><i></i>Not heard by observers</span>';
     var hw = [r.manufacturer, r.model].filter(Boolean).join(' · ');
-    var pre = r.prefix_2byte || r.prefix;
+    var p3 = prefix3(r), pre = p3 && p3.code;
     return '<button type="button" class="rd-card" data-id="' + esc(r.id) + '">' +
       '<span class="rd-card-top"><span class="rd-card-name">' + esc(r.name) + '</span></span>' +
       '<span class="rd-card-meta">' + pill(r) + (r.area ? '<span>📍 ' + esc(r.area) + '</span>' : '') +
@@ -262,9 +262,7 @@
       '<div class="rd-d-grid">' +
       contactHtml +
       section('Overview', [
-        row('1-byte prefix', r.prefix ? '<span class="rd-mono">' + esc(r.prefix) + '</span>' : ''),
-        row('2-byte prefix', r.prefix_2byte ? '<span class="rd-mono">' + esc(r.prefix_2byte) + '</span>' : ''),
-        row('3-byte prefix', (function (p) { return p ? '<span class="rd-mono">' + esc(p.code) + '</span>' + (p.derived ? ' <span class="rd-muted">from key</span>' : '') : ''; })(prefix3(r))),
+        row('Prefix', (function (p) { return p ? '<span class="rd-mono">' + esc(p.code) + '</span>' + (p.derived ? ' <span class="rd-muted">from key</span>' : '') : ''; })(prefix3(r))),
         row('Prefix compliant', t(r.prefix_compliant)),
         row('Path hash', r.path_hash_bytes ? r.path_hash_bytes + '-byte' : ''),
         row('Installed', fmtDate(r.install_date)),
@@ -394,40 +392,33 @@
     var rows = [];
     repeaters.forEach(function (r) {
       var p3 = prefix3(r);
-      [r.prefix, r.prefix_2byte, p3 && p3.code].forEach(function (p) {
-        if (p) rows.push({ code: p.toUpperCase(), who: r.name, src: 'Directory', id: r.id });
-      });
+      if (p3) rows.push({ code: p3.code, who: r.name, src: 'Directory', id: r.id });
     });
     prefixes.forEach(function (p) { rows.push({ code: p.code.toUpperCase(), who: p.label, src: 'Reserved' }); });
     var seen = {};
     return rows.filter(function (x) { var k = x.code + '|' + x.who; if (seen[k]) return false; seen[k] = 1; return true; });
   }
   function renderPrefixes() {
-    // one row per repeater, then one per reservation (code in the column for its length)
+    // one row per repeater (its 3-byte prefix), then one per reservation
     var rows = repeaters.map(function (r) {
       var p3 = prefix3(r);
-      return { who: r.name, id: r.id, p1: (r.prefix || '').toUpperCase(), p2: (r.prefix_2byte || '').toUpperCase(), p3: p3 ? p3.code : '', p3d: p3 && p3.derived };
+      return { who: r.name, id: r.id, code: p3 ? p3.code : '', derived: p3 && p3.derived };
     });
-    prefixes.forEach(function (p) {
-      var c = p.code.toUpperCase(), x = { who: p.label || '—', reserved: true, p1: '', p2: '', p3: '' };
-      x[c.length <= 2 ? 'p1' : c.length <= 4 ? 'p2' : 'p3'] = c;
-      rows.push(x);
-    });
-    var key = function (x) { return x.p1 || x.p2.slice(0, 2) || x.p3.slice(0, 2) || 'ZZ'; };
-    rows.sort(function (a, b) { return key(a).localeCompare(key(b)) || (a.p2 || a.p3).localeCompare(b.p2 || b.p3) || a.who.localeCompare(b.who); });
-    var cell = function (v, muted) { return '<td>' + (v ? '<span class="rd-mono' + (muted ? ' rd-derived' : '') + '"' + (muted ? ' title="From the public key"' : '') + '>' + esc(v) + '</span>' : '<span class="rd-muted">—</span>') + '</td>'; };
+    prefixes.forEach(function (p) { rows.push({ who: p.label || '—', reserved: true, code: p.code.toUpperCase() }); });
+    rows.sort(function (a, b) { return (a.code || 'ZZZZZZ').localeCompare(b.code || 'ZZZZZZ') || a.who.localeCompare(b.who); });
     $('rd-prefix-body').innerHTML = rows.map(function (x) {
       return '<tr><td>' + (x.id ? '<a href="#r-' + esc(x.id) + '" data-open="' + esc(x.id) + '">' + esc(x.who) + '</a>'
         : esc(x.who) + ' <span class="rd-pill info">Reserved</span>') + '</td>' +
-        cell(x.p1) + cell(x.p2) + cell(x.p3, x.p3d) + '</tr>';
-    }).join('') || '<tr><td colspan="4">No prefixes yet.</td></tr>';
+        '<td>' + (x.code ? '<span class="rd-mono' + (x.derived ? ' rd-derived' : '') + '"' + (x.derived ? ' title="From the public key"' : '') + '>' + esc(x.code) + '</span>' : '<span class="rd-muted">—</span>') + '</td></tr>';
+    }).join('') || '<tr><td colspan="2">No prefixes yet.</td></tr>';
     checkPrefix();
   }
   function checkPrefix() {
     var out = $('rd-prefix-result');
     var q = ($('rd-prefix-q').value || '').trim().toUpperCase();
     if (!q) { out.innerHTML = ''; return; }
-    if (!/^[0-9A-F]{2,6}$/.test(q)) { out.innerHTML = '<span class="rd-pill warn">Hex only</span> Use 2–6 characters, 0–9 and A–F.'; return; }
+    if (!/^[0-9A-F]+$/.test(q)) { out.innerHTML = '<span class="rd-pill warn">Hex only</span> Use 0–9 and A–F.'; return; }
+    if (q.length < 4 || q.length > 6) { out.innerHTML = '<span class="rd-pill warn">2 or 3 bytes</span> Enter 4 characters (2 bytes) or 6 characters (3 bytes), like B3A1 or B3A1C2.'; return; }
     var taken = prefixRows().filter(function (x) { return x.code.indexOf(q) === 0 || q.indexOf(x.code) === 0; });
     var onAir = liveNodes.filter(function (n) { return n.role === 'repeater' && n.public_key.toUpperCase().indexOf(q) === 0; });
     var parts = [];
