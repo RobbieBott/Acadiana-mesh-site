@@ -238,7 +238,6 @@
     var contact = [];
     if (r.owner_name || r.owner_callsign) {
       contact.push(row('Owner', esc(r.owner_name) + (r.owner_callsign ? ' <span class="rd-mono">' + esc(r.owner_callsign) + '</span>' : '')));
-      if (r.email) contact.push(row('Email', '<a href="mailto:' + esc(r.email) + '">' + esc(r.email) + '</a>'));
       if (r.phone) contact.push(row('Phone', '<a href="tel:' + esc(r.phone.replace(/[^0-9+]/g, '')) + '">' + esc(r.phone) + '</a>'));
       if (r.discord) contact.push(row('Discord', '<span class="rd-mono">' + esc(r.discord) + '</span>'));
     }
@@ -246,6 +245,7 @@
     var contactHtml = '<section class="rd-d-sec rd-contact"><h3>Contact</h3>' +
       (hasOwner
         ? '<dl>' + contact.join('') + '</dl>' +
+          (r.can_message ? '<p class="rd-msg-cta"><button type="button" class="rd-btn" data-msg>✉️ Message the owner</button></p>' + msgFormHtml(r) : '') +
           '<p class="rd-claim-cta"><button type="button" class="rd-linkbtn" data-claim>Help manage this repeater</button></p>'
         : '<p class="rd-muted">Owner details haven’t been added yet. Is this your repeater?</p>' +
           '<p class="rd-claim-cta"><button type="button" class="rd-btn" data-claim>Claim this repeater</button></p>') +
@@ -313,6 +313,58 @@
       '<p class="rd-claim-msg" aria-live="polite"></p>' +
       '</form>';
   }
+  // ── message the owner (relayed by the server; the owner's address stays private) ──
+  function msgFormHtml(r) {
+    return '<form class="rd-claim" id="rd-msg" hidden novalidate>' +
+      '<p class="rd-muted">We’ll email your message to the owner of <strong>' + esc(r.name) + '</strong>. They can reply to you directly. Their email address isn’t shown here.</p>' +
+      '<div class="rd-claim-grid">' +
+      '<label><span>Your name <em>*</em></span><input name="name" maxlength="100" autocomplete="name" required></label>' +
+      '<label><span>Your email <em>*</em></span><input name="email" type="email" autocomplete="email" required></label>' +
+      '</div>' +
+      '<label><span>Message <em>*</em></span><textarea name="message" rows="4" maxlength="2000" required></textarea></label>' +
+      '<label class="rd-hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>' +
+      '<div class="rd-claim-actions"><button type="button" class="rd-linkbtn" data-msg-cancel>Cancel</button><button type="submit" class="rd-btn">Send message</button></div>' +
+      '<p class="rd-claim-msg" aria-live="polite"></p>' +
+      '</form>';
+  }
+  function toggleForm(id, cta, open) {
+    var form = $(id);
+    if (!form) return;
+    form.hidden = !open;
+    var c = form.parentNode.querySelector(cta); if (c) c.hidden = open;
+    claimOpen = open || !!document.querySelector('#rd-claim:not([hidden]), #rd-msg:not([hidden])');
+    if (open) form.name.focus();
+  }
+  $('rd-d-body').addEventListener('click', function (e) {
+    if (e.target.closest('[data-msg]')) toggleForm('rd-msg', '.rd-msg-cta', true);
+    else if (e.target.closest('[data-msg-cancel]')) toggleForm('rd-msg', '.rd-msg-cta', false);
+  });
+  $('rd-d-body').addEventListener('submit', function (e) {
+    var form = e.target.closest('#rd-msg');
+    if (!form || !current) return;
+    e.preventDefault();
+    var msg = form.querySelector('.rd-claim-msg'), btn = form.querySelector('button[type=submit]');
+    var say = function (t, bad) { msg.textContent = t; msg.className = 'rd-claim-msg ' + (bad ? 'bad' : 'ok'); };
+    var data = { repeater: current.id, name: form.name.value.trim(), email: form.email.value.trim(), message: form.message.value.trim(), website: form.website.value };
+    if (!data.name) { say('Please enter your name.', true); form.name.focus(); return; }
+    if (!/^\S+@\S+\.\S+$/.test(data.email)) { say('Please enter a valid email so they can reply.', true); form.email.focus(); return; }
+    if (data.message.length < 10) { say('Please write a little more.', true); form.message.focus(); return; }
+    btn.disabled = true;
+    fetch(API + '/api/directory/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      .then(function (res) {
+        if (res.ok) {
+          claimOpen = !!document.querySelector('#rd-claim:not([hidden])');
+          form.innerHTML = '<p class="rd-claim-msg ok">Sent! The owner will reply to <strong>' + esc(data.email) + '</strong> if they can.</p>';
+          return;
+        }
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          btn.disabled = false;
+          say(res.status === 429 ? 'Too many messages from this connection. Please try again in a few minutes.' : (j && j.message) || 'That didn’t go through. Please try again.', true);
+        });
+      })
+      .catch(function () { btn.disabled = false; say('Couldn’t reach the directory server. Please try again.', true); });
+  });
+
   var claimOpen = false;
   $('rd-d-body').addEventListener('click', function (e) {
     var form = $('rd-claim');
