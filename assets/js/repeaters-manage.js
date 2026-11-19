@@ -349,6 +349,7 @@
       { k: 'model', label: 'Model', ph: '19007 + 4631' },
       { k: 'board_revision', label: 'Board revision' },
       { k: 'gps_module', label: 'GPS module', type: 'select', opts: YESNO },
+      { k: 'gps_model', label: 'GPS module model', max: 100, ph: 'e.g. ATGM336H, L76K, RAK12500', help: 'If you know it.' },
       { k: 'screen', label: 'Screen installed', type: 'select', opts: YESNO },
       { k: 'wifi_bt_antenna', label: 'WiFi / Bluetooth antenna', ph: 'Yes, Onboard…' },
       { k: 'antenna_gain', label: 'Antenna gain', ph: '5.8 dBi' },

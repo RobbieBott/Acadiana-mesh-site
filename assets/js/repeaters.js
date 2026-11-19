@@ -153,7 +153,7 @@
   }
 
   function haystack(r) {
-    return [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.prefix_3byte, r.manufacturer, r.model, r.firmware, r.public_key && r.public_key.slice(0, 8)]
+    return [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.prefix_3byte, r.manufacturer, r.model, r.gps_model, r.firmware, r.public_key && r.public_key.slice(0, 8)]
       .join(' ').toLowerCase();
   }
 
@@ -276,7 +276,7 @@
       ]) +
       section('Hardware', [
         row('Manufacturer', t(r.manufacturer)), row('Model', t(r.model)), row('Board revision', t(r.board_revision)),
-        row('GPS module', t(r.gps_module)), row('Screen', t(r.screen)), row('WiFi / BT antenna', t(r.wifi_bt_antenna)),
+        row('GPS module', esc([r.gps_module, r.gps_model].filter(Boolean).join(' · '))), row('Screen', t(r.screen)), row('WiFi / BT antenna', t(r.wifi_bt_antenna)),
         row('Antenna gain', t(r.antenna_gain)), row('Antenna SWR @ 910 MHz', t(r.antenna_swr))
       ]) +
       section('Firmware & radio', [
