@@ -182,11 +182,11 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>Reserved Prefixes</h2>
-            <p class="rd-muted">Reservations show on the public Prefixes tab. Prefixes set on a repeater show there automatically.</p>
+            <p class="rd-muted">Reservations must be at least 2 bytes (4 characters). They show on the public Prefixes tab, along with every repeater's 3-byte prefix. Old 1-byte reservations are marked; reserve them again with 2 bytes and remove the old one.</p>
           </div>
         </div>
         <form id="rm-prefix-form" class="rm-card rm-maint-form" novalidate>
-          <label class="rm-field"><span>Prefix</span><input name="code" required maxlength="6" class="rm-upper" placeholder="B3"></label>
+          <label class="rm-field"><span>Prefix</span><input name="code" required minlength="4" maxlength="6" class="rm-upper" placeholder="B3A1"></label>
           <label class="rm-field rm-grow"><span>Reserved for</span><input name="label" maxlength="120" placeholder="Repeater or person"></label>
           <button class="btn btn-primary" type="submit">Reserve</button>
         </form>

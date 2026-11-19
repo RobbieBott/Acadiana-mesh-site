@@ -331,9 +331,7 @@
     { title: 'On the mesh', fields: [
       { k: 'meshfind', label: 'Find it on the mesh', type: 'meshfind', wide: true, help: 'Start typing the repeater’s name as the mesh hears it to fill in the public key.' },
       { k: 'public_key', label: 'Public key', wide: true, mono: true, max: 64, help: '64 characters, 0–9 and a–f.' },
-      { k: 'prefix', label: 'Reserved prefix (1 byte)', mono: true, max: 8, upper: true },
-      { k: 'prefix_2byte', label: 'Reserved prefix (2 byte)', mono: true, max: 8, upper: true },
-      { k: 'prefix_3byte', label: 'Reserved prefix (3 byte)', mono: true, max: 8, upper: true, help: 'Left blank, it’s filled from the public key when you save.' },
+      { k: 'prefix_3byte', label: 'Prefix (3 byte)', mono: true, max: 8, upper: true, help: 'Left blank, it’s filled from the public key when you save.' },
       { k: 'prefix_compliant', label: 'Prefix compliant', type: 'select', opts: YESNO },
       { k: 'path_hash_bytes', label: 'Path hash size', type: 'select', opts: [['', '—'], ['1', '1-byte (mode 0)'], ['2', '2-byte (mode 1)'], ['3', '3-byte (mode 2)']] }
     ] },
@@ -438,8 +436,6 @@
     if (!n) return;
     var form = $('rm-editor');
     form.public_key.value = n.public_key;
-    if (!form.prefix.value) form.prefix.value = n.public_key.slice(0, 2).toUpperCase();
-    if (!form.prefix_2byte.value && n.hash_size >= 2) form.prefix_2byte.value = n.public_key.slice(0, 4).toUpperCase();
     if (!form.prefix_3byte.value) form.prefix_3byte.value = n.public_key.slice(0, 6).toUpperCase();
     if (!form.path_hash_bytes.value && n.hash_size) form.path_hash_bytes.value = String(n.hash_size);
     if (!form.name.value) form.name.value = n.name || '';
@@ -668,14 +664,14 @@
   function renderPrefixes() {
     if (!isAdmin) return;
     $('rm-prefix-body').innerHTML = prefixes.map(function (p) {
-      return '<tr><td class="rd-mono">' + esc(p.code) + '</td><td>' + esc(p.label) + '</td>' +
+      return '<tr><td><span class="rd-mono">' + esc(p.code) + '</span>' + (p.code.length < 4 ? ' <span class="rd-pill warn">1-byte</span>' : '') + '</td><td>' + esc(p.label) + '</td>' +
         '<td class="rm-right"><button type="button" class="rm-link rm-x" data-del-prefix="' + esc(p.id) + '">Remove</button></td></tr>';
     }).join('') || '<tr><td colspan="3" class="rd-muted">No reservations yet.</td></tr>';
   }
   $('rm-prefix-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var f = this, code = f.code.value.trim().toUpperCase();
-    if (!/^[0-9A-F]{2,6}$/.test(code)) { toast('Prefixes are 2–6 characters, 0–9 and A–F.', 'bad'); return; }
+    if (!/^[0-9A-F]{4,6}$/.test(code)) { toast('Reserve at least 2 bytes: 4 characters (like B3A1) or 6 (like B3A1C2), 0–9 and A–F.', 'bad'); return; }
     busy(f, true);
     pb.collection('prefixes').create({ code: code, label: f.label.value.trim() }).then(function (p) {
       prefixes.push(p); prefixes.sort(function (a, b) { return a.code.localeCompare(b.code); });
