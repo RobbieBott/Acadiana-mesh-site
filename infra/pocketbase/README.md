@@ -19,4 +19,4 @@ Jekyll ignores this folder (`exclude` in `_config.yml`). Nothing here is secret.
 - Encryption key: `/root/acadiana-stack/pocketbase.env` (chmod 600).
 - Compose service: `compose-service.yml`. Caddy block: `Caddyfile-block`.
 - Dashboard: https://data.acadianamesh.com/_/ (superusers only). SMTP login goes in Settings → Mail.
-- Update after changing migrations: copy the folder over, then `docker compose build pocketbase && docker compose up -d pocketbase`.
+- Install or update: `bash /root/acadiana-stack/pocketbase/install.sh` (first time: `curl -fsSL https://raw.githubusercontent.com/RobbieBott/Acadiana-mesh-site/main/infra/pocketbase/install.sh | bash`). It downloads this folder from GitHub, keeps the data and key, adds the compose service and Caddy block once, rebuilds and restarts. Previous compose/Caddyfile go to `/root/archive/pocketbase-<time>/`.
