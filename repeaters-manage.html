@@ -23,6 +23,16 @@ sitemap: false
     <div class="rm-toast" id="rm-toast" role="status" aria-live="polite" hidden></div>
 
     <!-- ================= SIGN IN ================= -->
+    <section class="rm-signin" id="rm-reset" hidden>
+      <form class="rm-card rm-form" id="rm-reset-form" novalidate>
+        <h2>Set your password</h2>
+        <p class="rd-muted">Choose a password for signing in to the repeater directory. You can still sign in with an emailed code any time.</p>
+        <label class="rm-field"><span>New password</span><input type="password" name="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="rm-field"><span>Type it again</span><input type="password" name="confirm" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn btn-primary rm-wide" type="submit">Save password</button>
+      </form>
+    </section>
+
     <section class="rm-signin" id="rm-signin" hidden>
       <div class="rm-card">
         <h2>Sign in</h2>

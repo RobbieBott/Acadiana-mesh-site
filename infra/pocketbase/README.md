@@ -21,5 +21,7 @@ Jekyll ignores this folder (`exclude` in `_config.yml`). Nothing here is secret.
 - Code: `/root/acadiana-stack/pocketbase/` (copy of this folder). Data: `/root/acadiana-stack/pocketbase/pb_data/`.
 - Encryption key: `/root/acadiana-stack/pocketbase.env` (chmod 600).
 - Compose service: `compose-service.yml`. Caddy block: `Caddyfile-block`.
-- Dashboard: https://data.acadianamesh.com/_/ (superusers only). SMTP login goes in Settings → Mail.
+- Dashboard: **not public** (Caddy returns 404 for `/_/` and the superuser/settings/backups/logs APIs). Open an SSH tunnel to the droplet — `ssh -L 8090:127.0.0.1:8090 root@134.122.27.51` — then browse to http://localhost:8090/_/. Sign-in is password + a one-time code emailed to the superuser (MFA, migration 1795601100). SMTP login goes in Settings → Mail.
+- Locked out of the dashboard (lost password or email)? On the droplet: `docker exec pocketbase /pb/pocketbase superuser upsert you@example.com 'new-password' --dir=/pb/pb_data` (the emailed code is still required).
+- Users' invite and set-password emails link to acadianamesh.com/repeaters/manage/#verify=… / #reset=…, which the manage page handles.
 - Install or update: `bash /root/acadiana-stack/pocketbase/install.sh` (first time: `curl -fsSL https://raw.githubusercontent.com/RobbieBott/Acadiana-mesh-site/main/infra/pocketbase/install.sh | bash`). It downloads this folder from GitHub, keeps the data and key, adds the compose service and Caddy block once, rebuilds and restarts. Previous compose/Caddyfile go to `/root/archive/pocketbase-<time>/`.

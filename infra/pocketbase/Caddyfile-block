@@ -3,5 +3,9 @@ data.acadianamesh.com {
 	# Someone opening the bare address gets the public directory page
 	@home path /
 	redir @home https://acadianamesh.com/repeaters/ 302
+	# The dashboard and superuser/admin APIs are not public: use an SSH tunnel
+	# to 127.0.0.1:8090 on the droplet and open http://localhost:8090/_/
+	@private path /_ /_/* /api/collections/_superusers/* /api/settings /api/settings/* /api/backups /api/backups/* /api/logs /api/logs/* /api/crons /api/crons/*
+	respond @private 404
 	reverse_proxy pocketbase:8090
 }
