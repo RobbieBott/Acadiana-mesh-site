@@ -12,6 +12,7 @@ sitemap: false
     <p>Sign in to keep your repeaters up to date. You choose which contact details show on the <a href="{{ '/repeaters/' | relative_url }}">public directory</a>.</p>
     <nav class="wiki-tabs" id="rm-tabs" role="tablist" aria-label="Manage sections" hidden>
       <a href="#repeaters" role="tab" data-panel="repeaters">Repeaters</a>
+      <a href="#claims" role="tab" data-panel="claims" data-admin>Claims <span class="tab-count" id="rm-claims-count"></span></a>
       <a href="#people" role="tab" data-panel="people" data-admin>People</a>
       <a href="#prefixes" role="tab" data-panel="prefixes" data-admin>Prefixes</a>
       <a href="#account" role="tab" data-panel="account">My Account</a>
@@ -58,7 +59,7 @@ sitemap: false
           <button class="rm-link" type="button" id="rm-forgot">Forgot your password, or never set one?</button>
         </form>
 
-        <p class="rm-help">Accounts are added by an Acadiana Mesh admin. Need access to manage your repeater? Ask on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a> or email <a href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>
+        <p class="rm-help">Accounts are added by an Acadiana Mesh admin. Own a repeater? Find it in the <a href="{{ '/repeaters/' | relative_url }}">directory</a> and tap “Claim this repeater”, or ask on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a> or email <a href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>
       </div>
     </section>
 
@@ -117,6 +118,24 @@ sitemap: false
             <button class="btn btn-secondary" type="submit">Add entry</button>
           </form>
         </section>
+      </section>
+
+      <!-- Claims (admins) -->
+      <section class="rm-panel" id="rm-p-claims" data-panel="claims" hidden>
+        <div class="rm-head">
+          <div>
+            <h2>Claims</h2>
+            <p class="rd-muted">People who tapped “Claim this repeater” on the directory. <strong>Approve</strong> makes their account if needed, adds them as a manager of that repeater, fills in the owner if it’s empty and emails them. Check that they really own it first.</p>
+          </div>
+        </div>
+        <div class="rd-table-wrap">
+          <table class="rd-table rm-table">
+            <thead><tr><th>Repeater</th><th>Person</th><th class="rm-hide-sm">Note</th><th class="rm-hide-sm">Sent</th><th></th></tr></thead>
+            <tbody id="rm-claims-body"></tbody>
+          </table>
+        </div>
+        <h3 class="rm-subhead">Recently handled</h3>
+        <ul class="rm-handled" id="rm-claims-done"></ul>
       </section>
 
       <!-- People (admins) -->

@@ -197,7 +197,7 @@
     if (push) history.replaceState(null, '', '#r-' + id);
     loadMaintenance(r);
   }
-  function refreshDialog() { if (current && dialog.open) { current._live = matchLive(current); current._heard = heardAt(current._live); fillDialog(current); loadMaintenance(current); } }
+  function refreshDialog() { if (current && dialog.open && !claimOpen) { current._live = matchLive(current); current._heard = heardAt(current._live); fillDialog(current); loadMaintenance(current); } }
 
   function fillDialog(r) {
     var n = r._live, f = freshness(r._heard);
@@ -217,11 +217,15 @@
       if (r.phone) contact.push(row('Phone', '<a href="tel:' + esc(r.phone.replace(/[^0-9+]/g, '')) + '">' + esc(r.phone) + '</a>'));
       if (r.discord) contact.push(row('Discord', '<span class="rd-mono">' + esc(r.discord) + '</span>'));
     }
-    var contactHtml = contact.length
-      ? '<section class="rd-d-sec rd-contact"><h3>Contact</h3><dl>' + contact.join('') + '</dl>' +
-        (!r.email && !r.phone && !r.discord ? '<p class="rd-muted">The owner hasn’t shared contact details. You can reach them through the Acadiana Mesh <a href="' + esc(DISCORD) + '" target="_blank" rel="noopener">Discord</a>.</p>' : '') +
-        '</section>'
-      : '<section class="rd-d-sec rd-contact"><h3>Contact</h3><p class="rd-muted">Owner details haven’t been added yet. Is this your repeater? <a href="/repeaters/manage/">Sign in</a> or ask an admin on <a href="' + esc(DISCORD) + '" target="_blank" rel="noopener">Discord</a> to link it to you.</p></section>';
+    var hasOwner = !!(r.owner_name || r.owner_callsign);
+    var contactHtml = '<section class="rd-d-sec rd-contact"><h3>Contact</h3>' +
+      (hasOwner
+        ? '<dl>' + contact.join('') + '</dl>' +
+          (!r.email && !r.phone && !r.discord ? '<p class="rd-muted">The owner hasn’t shared contact details. You can reach them through the Acadiana Mesh <a href="' + esc(DISCORD) + '" target="_blank" rel="noopener">Discord</a>.</p>' : '') +
+          '<p class="rd-claim-cta"><button type="button" class="rd-linkbtn" data-claim>Help manage this repeater</button></p>'
+        : '<p class="rd-muted">Owner details haven’t been added yet. Is this your repeater?</p>' +
+          '<p class="rd-claim-cta"><button type="button" class="rd-btn" data-claim>Claim this repeater</button></p>') +
+      claimFormHtml(r) + '</section>';
 
     var key = r.public_key || (n && n.public_key) || '';
     var keyHtml = key ? '<span class="rd-mono rd-key">' + esc(key) + '</span>' : '';
@@ -272,6 +276,62 @@
     }
   }
 
+  // ── claim a repeater ─────────────────────────────────────────
+  function claimFormHtml(r) {
+    return '<form class="rd-claim" id="rd-claim" hidden novalidate>' +
+      '<p class="rd-muted">Tell us who you are. An admin checks every claim and emails you when you can sign in and edit <strong>' + esc(r.name) + '</strong>. Your email is never shown publicly.</p>' +
+      '<div class="rd-claim-grid">' +
+      '<label><span>Your name <em>*</em></span><input name="name" maxlength="100" autocomplete="name" required></label>' +
+      '<label><span>Email <em>*</em></span><input name="email" type="email" autocomplete="email" required></label>' +
+      '<label><span>Callsign</span><input name="callsign" maxlength="20" autocomplete="off" class="rd-upper"></label>' +
+      '</div>' +
+      '<label><span>How do you know it’s yours?</span><textarea name="note" rows="2" maxlength="1000" placeholder="e.g. It’s on my house in Rayne, I built it in March"></textarea></label>' +
+      '<label class="rd-hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>' +
+      '<div class="rd-claim-actions"><button type="button" class="rd-linkbtn" data-claim-cancel>Cancel</button><button type="submit" class="rd-btn">Send claim</button></div>' +
+      '<p class="rd-claim-msg" aria-live="polite"></p>' +
+      '</form>';
+  }
+  var claimOpen = false;
+  $('rd-d-body').addEventListener('click', function (e) {
+    var form = $('rd-claim');
+    if (!form) return;
+    if (e.target.closest('[data-claim]')) {
+      claimOpen = true; form.hidden = false;
+      var cta = form.parentNode.querySelector('.rd-claim-cta'); if (cta) cta.hidden = true;
+      form.name.focus();
+    } else if (e.target.closest('[data-claim-cancel]')) {
+      claimOpen = false; form.hidden = true;
+      var cta2 = form.parentNode.querySelector('.rd-claim-cta'); if (cta2) cta2.hidden = false;
+    }
+  });
+  $('rd-d-body').addEventListener('submit', function (e) {
+    var form = e.target.closest('#rd-claim');
+    if (!form || !current) return;
+    e.preventDefault();
+    var msg = form.querySelector('.rd-claim-msg'), btn = form.querySelector('button[type=submit]');
+    var say = function (t, bad) { msg.textContent = t; msg.className = 'rd-claim-msg ' + (bad ? 'bad' : 'ok'); };
+    if (form.website.value) { say('Thanks!'); return; }
+    var data = { repeater: current.id, name: form.name.value.trim(), email: form.email.value.trim(), callsign: form.callsign.value.trim().toUpperCase(), note: form.note.value.trim() };
+    if (!data.name) { say('Please enter your name.', true); form.name.focus(); return; }
+    if (!/^\S+@\S+\.\S+$/.test(data.email)) { say('Please enter a valid email.', true); form.email.focus(); return; }
+    btn.disabled = true;
+    fetch(API + '/api/collections/claims/records', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      .then(function (res) {
+        if (res.ok) {
+          claimOpen = false;
+          form.innerHTML = '<p class="rd-claim-msg ok">Thanks, ' + esc(data.name) + '! Your claim was sent. An admin will review it and email <strong>' + esc(data.email) + '</strong>.</p>';
+          return;
+        }
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          btn.disabled = false;
+          if (res.status === 429) say('Too many claims from this connection. Please try again in a few minutes.', true);
+          else if (j && j.data && j.data.email && j.data.email.code === 'validation_not_unique') say('You already have a claim waiting for this repeater. An admin will get to it soon.', true);
+          else say('That didn’t go through. Please check your details and try again.', true);
+        });
+      })
+      .catch(function () { btn.disabled = false; say('Couldn’t reach the directory server. Please try again.', true); });
+  });
+
   function loadMaintenance(r) {
     var box = $('rd-maint');
     if (!box) return;
@@ -292,7 +352,7 @@
     if (dialog.open) dialog.close();
   }
   dialog.addEventListener('close', function () {
-    current = null;
+    current = null; claimOpen = false;
     if (map) { map.remove(); map = null; }
     if (/^#r-/.test(location.hash)) history.replaceState(null, '', '#list');
   });

@@ -24,7 +24,7 @@
   pb.autoCancellation(false);
 
   var me = null, isAdmin = false;
-  var repeaters = [], people = [], prefixes = [], liveNodes = [];
+  var repeaters = [], people = [], prefixes = [], liveNodes = [], claims = [];
   var editing = null;        // repeater record being edited (null = new)
   var editingPerson = null;  // user record being edited (null = new)
 
@@ -145,9 +145,9 @@
   });
 
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['repeaters', 'people', 'prefixes', 'account'];
+  var PANELS = ['repeaters', 'claims', 'people', 'prefixes', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || ((name === 'people' || name === 'prefixes') && !isAdmin)) name = 'repeaters';
+    if (PANELS.indexOf(name) < 0 || ((name === 'people' || name === 'prefixes' || name === 'claims') && !isAdmin)) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -202,9 +202,64 @@
       pb.collection('prefixes').getFullList({ sort: 'code' }).then(function (l) { prefixes = l; })
     ];
     if (isAdmin) jobs.push(pb.collection('users').getFullList({ sort: 'name' }).then(function (l) { people = l; }));
+    if (isAdmin) jobs.push(loadClaims());
     return Promise.all(jobs).then(renderAll).catch(function (err) { toast(errText(err), 'bad', true); });
   }
-  function renderAll() { renderRepeaters(); renderPeople(); renderPrefixes(); }
+  function renderAll() { renderRepeaters(); renderPeople(); renderPrefixes(); renderClaims(); }
+
+  // ── claims (admins) ──────────────────────────────────────────
+  function loadClaims() {
+    return pb.collection('claims').getList(1, 200, { sort: '-created', expand: 'repeater,handled_by' }).then(function (res) { claims = res.items; });
+  }
+  function ago(v) {
+    var s = (Date.now() - new Date(String(v).replace(' ', 'T')).getTime()) / 1000;
+    if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' h ago';
+    return fmtDate(v);
+  }
+  function renderClaims() {
+    if (!isAdmin) return;
+    var pending = claims.filter(function (c) { return c.status === 'pending'; });
+    $('rm-claims-count').textContent = pending.length ? pending.length : '';
+    $('rm-claims-body').innerHTML = pending.map(function (c) {
+      var rep = (c.expand && c.expand.repeater) || {};
+      return '<tr><td><strong>' + esc(rep.name || '—') + '</strong>' + (rep.owner_name ? '<div class="rm-sub">Owner: ' + esc(rep.owner_name) + '</div>' : '<div class="rm-sub">No owner yet</div>') + '</td>' +
+        '<td>' + esc(c.name) + (c.callsign ? ' <span class="rd-mono">' + esc(c.callsign.toUpperCase()) + '</span>' : '') + '<div class="rm-sub">' + esc(c.email) + '</div>' +
+        (c.note ? '<div class="rm-sub rm-show-sm">“' + esc(c.note) + '”</div>' : '') + '</td>' +
+        '<td class="rm-hide-sm">' + (c.note ? esc(c.note) : '<span class="rd-muted">—</span>') + '</td>' +
+        '<td class="rm-hide-sm rd-muted">' + esc(ago(c.created)) + '</td>' +
+        '<td class="rm-right rm-nowrap"><button type="button" class="btn btn-primary rm-sm" data-approve="' + esc(c.id) + '">Approve</button> ' +
+        '<button type="button" class="rm-link rm-x" data-decline="' + esc(c.id) + '">Decline</button></td></tr>';
+    }).join('') || '<tr><td colspan="5" class="rd-muted">No claims waiting.</td></tr>';
+    var done = claims.filter(function (c) { return c.status !== 'pending'; }).slice(0, 15);
+    $('rm-claims-done').innerHTML = done.map(function (c) {
+      var rep = (c.expand && c.expand.repeater) || {}, by = (c.expand && c.expand.handled_by) || {};
+      return '<li><span class="rd-pill ' + (c.status === 'approved' ? 'ok' : 'off') + '">' + (c.status === 'approved' ? 'Approved' : 'Declined') + '</span> ' +
+        esc(c.name) + ' → ' + esc(rep.name || '—') + ' <span class="rd-muted">' + (by.name ? 'by ' + esc(by.name) + ', ' : '') + esc(ago(c.updated)) + '</span></li>';
+    }).join('') || '<li class="rd-muted">Nothing yet.</li>';
+  }
+  $('rm-claims-body').addEventListener('click', function (e) {
+    var ok = e.target.closest('[data-approve]'), no = e.target.closest('[data-decline]');
+    if (ok) {
+      var id = ok.getAttribute('data-approve');
+      confirmClick(ok, 'Approve', function () {
+        ok.disabled = true;
+        pb.send('/api/directory/claims/' + encodeURIComponent(id) + '/approve', { method: 'POST' }).then(function (r) {
+          toast('Approved: ' + r.user + ' can now manage ' + r.repeater + '.' + (r.new_account ? ' Their account was created.' : '') +
+            (r.emailed ? ' They’ve been emailed.' : ' The email couldn’t be sent; let them know to sign in at /repeaters/manage/.'), r.emailed ? 'ok' : 'warn', !r.emailed);
+          return loadAll();
+        }).catch(function (err) { ok.disabled = false; toast(errText(err), 'bad'); });
+      });
+    }
+    if (no) {
+      var did = no.getAttribute('data-decline');
+      confirmClick(no, 'Decline', function () {
+        pb.collection('claims').update(did, { status: 'declined', handled_by: me.id }).then(function () {
+          toast('Claim declined.'); return loadClaims().then(renderClaims);
+        }).catch(function (err) { toast(errText(err), 'bad'); });
+      });
+    }
+  });
 
   function loadLive() {
     fetch(ANALYZER + '/api/nodes?limit=2000').then(function (r) { return r.json(); }).then(function (d) {
