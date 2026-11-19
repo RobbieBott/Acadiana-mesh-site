@@ -1,16 +1,34 @@
-// Adds repeaters that CoreScope (the analyzer) places in the LFT region to the
-// directory. Runs hourly (corescope_sync.pb.js) and from the admin "Sync now"
+// Adds repeaters whose advertised location is inside the us-la-lft (Lafayette
+// area) boundary — the same boundary the Scope Finder uses — to the directory.
+// Repeaters that don't advertise a location are skipped. (CoreScope's own
+// "LFT" region placement isn't used: it means "heard by our observers", which
+// includes repeaters far outside Lafayette.)
+// Entries the sync added earlier that are now outside the boundary are removed,
+// but only while nobody has touched them (no owner, managers, claims or
+// maintenance entries). Runs hourly (corescope_sync.pb.js) and from the admin "Sync now"
 // button. It never changes anything an owner or admin entered, except that a
 // directory entry whose public key the mesh no longer hears takes the mesh
 // key of the one repeater that matches it by reserved 2-byte prefix or name.
 
-const REGION = "LFT";
+const REGION = "us-la-lft";
+const BOUNDARY = require(`${__hooks}/lft_boundary.js`);
 
 function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
 
+function inRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+
+function hasLocation(n) { return typeof n.lat === "number" && typeof n.lon === "number" && !(n.lat === 0 && n.lon === 0); }
+
 function inRegion(n) {
-  const p = n.region_placement || {};
-  return (p.regions || []).indexOf(REGION) >= 0;
+  if (!hasLocation(n)) return false;
+  return BOUNDARY.some((poly) => inRing(n.lon, n.lat, poly[0]) && !poly.slice(1).some((hole) => inRing(n.lon, n.lat, hole)));
 }
 
 module.exports = function sync(app) {
@@ -35,7 +53,25 @@ module.exports = function sync(app) {
   // entries whose key isn't heard on the mesh (or that have no key) can be re-keyed
   const stale = records.filter((r) => !heard[r.getString("public_key").toLowerCase()]);
   const claimed = {};
-  const out = { region: REGION, heard_in_region: wanted.length, added: [], rekeyed: [], skipped_ignored: 0 };
+  const out = { region: REGION, heard_in_region: wanted.length, added: [], rekeyed: [], removed: [], skipped_ignored: 0 };
+
+  // remove untouched auto-added entries that aren't (or are no longer) inside the area
+  const wantedKey = {};
+  wanted.forEach((n) => { wantedKey[n.public_key] = true; });
+  records.forEach((r) => {
+    if (r.getString("source") !== "corescope") return;
+    const key = r.getString("public_key").toLowerCase();
+    if (wantedKey[key]) return;
+    if (r.getString("owner_name") || r.getStringSlice("managers").length) return;
+    const refs = app.countRecords("claims", $dbx.exp("repeater = {:id}", { id: r.id })) +
+      app.countRecords("maintenance", $dbx.exp("repeater = {:id}", { id: r.id }));
+    if (refs) return;
+    // direct delete so the delete hook doesn't put it on the ignore list
+    app.db().newQuery("DELETE FROM repeaters WHERE id = {:id}").bind({ id: r.id }).execute();
+    delete byKey[key];
+    out.removed.push(r.getString("name"));
+  });
+
 
   wanted.forEach((n) => {
     const key = n.public_key;

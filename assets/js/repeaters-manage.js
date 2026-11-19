@@ -310,7 +310,8 @@
       var parts = [];
       if (r.added.length) parts.push('added ' + r.added.length + (r.added.length === 1 ? ' repeater' : ' repeaters'));
       if (r.rekeyed.length) parts.push('updated the public key on ' + r.rekeyed.join(', '));
-      toast(parts.length ? 'CoreScope sync: ' + parts.join('; ') + '.' : 'CoreScope sync: already up to date (' + r.heard_in_region + ' repeaters in ' + r.region + ').');
+      if (r.removed && r.removed.length) parts.push('removed ' + r.removed.length + ' outside the Lafayette area');
+      toast(parts.length ? 'CoreScope sync: ' + parts.join('; ') + '.' : 'CoreScope sync: already up to date (' + r.heard_in_region + ' repeaters in the Lafayette area).');
       return loadAll();
     }).catch(function (err) { toast(errText(err), 'bad', true); })
       .then(function () { btn.disabled = false; btn.textContent = 'Sync from CoreScope'; });
