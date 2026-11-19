@@ -7,6 +7,7 @@ RUN apk add --no-cache ca-certificates tzdata \
  && echo "${PB_SHA256}  /tmp/pb.zip" | sha256sum -c - \
  && mkdir -p /pb && unzip -q /tmp/pb.zip pocketbase -d /pb && rm /tmp/pb.zip
 COPY pb_migrations /pb/pb_migrations
+COPY pb_hooks /pb/pb_hooks
 EXPOSE 8090
 # Settings (including the SMTP login) are encrypted at rest with the key in $PB_ENCRYPTION_KEY.
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb/pb_data", "--migrationsDir=/pb/pb_migrations", "--automigrate=false", "--encryptionEnv=PB_ENCRYPTION_KEY"]
+CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb/pb_data", "--migrationsDir=/pb/pb_migrations", "--hooksDir=/pb/pb_hooks", "--automigrate=false", "--encryptionEnv=PB_ENCRYPTION_KEY"]

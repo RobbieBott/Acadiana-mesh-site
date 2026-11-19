@@ -11,6 +11,7 @@ Jekyll ignores this folder (`exclude` in `_config.yml`). Nothing here is secret.
   - `prefixes`: reserved prefixes (public; admins edit).
   - `maintenance`: repairs log (public; admins and the repeater's managers write).
 - `pb_migrations/1795600100_import_sheet.js`: one-time import of the sheet (17 repeaters, 14 reserved prefixes), exported 2026-11-19.
+- `pb_hooks/corescope_sync.js` + `corescope_sync.pb.js`: every hour (minute 17) and from the admin "Sync from CoreScope" button (`POST /api/directory/sync`), adds repeaters the analyzer places in the **LFT** region (`region_placement.regions`). New entries get name, key, 1/2/3-byte prefixes, path hash size, status Online, `source = corescope` and no owner. It never overwrites entered data, except that an entry whose key the mesh doesn't hear adopts the mesh key of the single repeater matching its reserved 2-byte prefix or name. Deleting a repeater adds its key to `sync_ignore` so the sync won't add it back (remove it there to allow it again). Analyzer URL: `ANALYZER_URL` env, default https://analyzer.acadianamesh.com.
 - `pb_migrations/1795600200_settings.js`: app name/URL, sender info@acadianamesh.com, rate limits, proxy header, nightly backups (7 kept).
 
 ## On the droplet

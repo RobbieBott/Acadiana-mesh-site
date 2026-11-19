@@ -76,7 +76,10 @@ sitemap: false
             <h2 id="rm-rep-title">My Repeaters</h2>
             <p class="rd-muted" id="rm-rep-sub"></p>
           </div>
-          <button type="button" class="btn btn-primary" id="rm-add-repeater">+ Add repeater</button>
+          <div class="rm-actions">
+            <button type="button" class="btn btn-secondary" id="rm-sync" hidden title="Add repeaters the analyzer places in the LFT region">Sync from CoreScope</button>
+            <button type="button" class="btn btn-primary" id="rm-add-repeater">+ Add repeater</button>
+          </div>
         </div>
         <input type="search" id="rm-rep-q" class="rm-filter" placeholder="Filter repeaters" autocomplete="off">
         <div class="rd-table-wrap">

@@ -15,8 +15,8 @@ TMP=$(mktemp -d)
 curl -fsSL "https://codeload.github.com/RobbieBott/Acadiana-mesh-site/tar.gz/$REF" | tar xz -C "$TMP"
 SRC=$(echo "$TMP"/*/infra/pocketbase)
 mkdir -p "$STACK/pocketbase/pb_data"
-rm -rf "$STACK/pocketbase/pb_migrations"
-cp -r "$SRC/Dockerfile" "$SRC/pb_migrations" "$SRC/README.md" "$SRC/compose-service.yml" "$SRC/Caddyfile-block" "$SRC/install.sh" "$STACK/pocketbase/"
+rm -rf "$STACK/pocketbase/pb_migrations" "$STACK/pocketbase/pb_hooks"
+cp -r "$SRC/Dockerfile" "$SRC/pb_migrations" "$SRC/pb_hooks" "$SRC/README.md" "$SRC/compose-service.yml" "$SRC/Caddyfile-block" "$SRC/install.sh" "$STACK/pocketbase/"
 rm -rf "$TMP"
 
 if [ ! -f "$STACK/pocketbase.env" ]; then
