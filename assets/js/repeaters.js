@@ -482,12 +482,21 @@
     lastChecked = q;
     if (!q) { out.innerHTML = ''; return; }
     var bad = prefixProblem(q);
-    if (bad) { out.innerHTML = '<span class="rd-pill warn">' + bad[0] + '</span> ' + bad[1]; return; }
+    if (bad && !/^[0-9A-F]+$/.test(q)) { out.innerHTML = '<span class="rd-pill warn">' + bad[0] + '</span> ' + bad[1]; return; }
     var taken = prefixRows().filter(function (x) { return x.code.indexOf(q) === 0 || q.indexOf(x.code) === 0; });
     var onAir = liveNodes.filter(function (n) { return n.role === 'repeater' && n.public_key.toUpperCase().indexOf(q) === 0; });
     var parts = [];
-    if (taken.length) parts.push('<strong>In the directory:</strong> ' + taken.map(function (x) { return '<span class="rd-mono">' + esc(x.code) + '</span> ' + esc(x.who); }).join(', '));
+    var list = function (rows) { return rows.map(function (x) { return '<span class="rd-mono">' + esc(x.code) + '</span> ' + (x.who ? esc(x.who) : '<span class="rd-muted">(no name)</span>'); }).join(', '); };
+    var res = taken.filter(function (x) { return x.src === 'Reserved'; }), dir = taken.filter(function (x) { return x.src !== 'Reserved'; });
+    if (res.length) parts.push('<strong>Reserved:</strong> ' + list(res));
+    if (dir.length) parts.push('<strong>In the directory:</strong> ' + list(dir));
     if (onAir.length) parts.push('<strong>On the air:</strong> ' + onAir.slice(0, 8).map(function (n) { return esc(n.name || n.public_key.slice(0, 8)); }).join(', ') + (onAir.length > 8 ? ' and ' + (onAir.length - 8) + ' more' : ''));
+    // an invalid code can still be taken (e.g. an old reservation): say both
+    if (bad) {
+      out.innerHTML = (parts.length ? '<span class="rd-pill bad">Taken</span> ' + parts.join('<br>') + '<br>' : '') +
+        '<span class="rd-pill warn">' + bad[0] + '</span> ' + bad[1];
+      return;
+    }
     out.innerHTML = parts.length
       ? '<span class="rd-pill bad">Taken</span> ' + parts.join('<br>')
       : '<span class="rd-pill ok">Looks free</span> No repeater in the directory or on the air uses <span class="rd-mono">' + esc(q) + '</span>' + (liveReady ? '' : ' (still checking the mesh)') + '.' +

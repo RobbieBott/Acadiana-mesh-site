@@ -742,7 +742,7 @@
     var cols = isAdmin ? 5 : 4;
     $('rm-prefix-body').innerHTML = prefixes.map(function (p) {
       var who = [p.reserved_by_name, p.reserved_by_callsign, p.reserved_by_email].filter(Boolean).map(esc).join(' · ');
-      return '<tr data-prefix-row="' + esc(p.id) + '"><td><span class="rd-mono">' + esc(p.code) + '</span>' + (p.code.length < 4 ? ' <span class="rd-pill warn">1-byte</span>' : '') + '</td>' +
+      return '<tr data-prefix-row="' + esc(p.id) + '"><td><span class="rd-mono">' + esc(p.code) + '</span>' + (p.code.length === 2 ? ' <span class="rd-pill warn">1-byte</span>' : prefixProblem(String(p.code).toUpperCase()) ? ' <span class="rd-pill bad" title="Not a valid prefix. Remove it and reserve a 4- or 6-character one.">Invalid</span>' : '') + '</td>' +
         '<td><span class="rm-prefix-label">' + esc(p.label) + '</span></td>' +
         (isAdmin ? '<td class="rd-muted">' + (who || '—') + '</td>' : '') +
         '<td class="rd-muted rm-since rm-hide-sm">' + esc(fmtDate(p.created)) + '</td>' +

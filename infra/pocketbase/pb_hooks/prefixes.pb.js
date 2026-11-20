@@ -52,10 +52,13 @@ onRecordCreateRequest((e) => {
 }, "prefixes");
 
 onRecordUpdateRequest((e) => {
+  // Only a changed code is checked, so old reservations can still be renamed.
   const code = e.record.getString("code").trim().toUpperCase();
-  e.record.set("code", code);
-  if (!/^[0-9A-F]{4}([0-9A-F]{2})?$/.test(code) || /^(00|FF)/.test(code))
-    throw new BadRequestError("A prefix is 4 or 6 characters (0–9, A–F) and can't start with 00 or FF.");
+  if (code !== e.record.original().getString("code")) {
+    e.record.set("code", code);
+    if (!/^[0-9A-F]{4}([0-9A-F]{2})?$/.test(code) || /^(00|FF)/.test(code))
+      throw new BadRequestError("A prefix is 4 or 6 characters (0–9, A–F) and can't start with 00 or FF.");
+  }
   e.next();
 }, "prefixes");
 
