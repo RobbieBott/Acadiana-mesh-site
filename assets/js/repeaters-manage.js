@@ -465,12 +465,16 @@
     view.hidden = !r;
     if (r) view.href = '/repeaters/#r-' + r.id;
     $('rm-delete').hidden = !(r && isAdmin);
-    var defaults = r || { status: 'Online', owner_name: me.name || '', owner_callsign: me.callsign || '', contact_email: me.email || '' };
+    var defaults = r || { status: 'Online', owner_name: me.name || '', owner_callsign: me.callsign || '', contact_email: me.email || '', show_email: !!me.email };
     $('rm-editor-fields').innerHTML = GROUPS.map(function (g) {
       return '<fieldset class="rm-group"' + (g.id ? ' id="rm-g-' + g.id + '"' : '') + '><legend>' + esc(g.title) + '</legend>' +
         (g.note ? '<p class="rm-hint rm-note">' + esc(g.note) + '</p>' : '') +
         '<div class="rm-grid">' + g.fields.map(function (f) { return fieldHtml(f, defaults); }).join('') + '</div></fieldset>';
     }).join('') + managersHtml(r);
+    // "Let people message me" turns on by itself when an email is added to a
+    // repeater that had none, unless the owner has set the box themselves.
+    var em = $('rm-f-contact_email');
+    if (em) em.dataset.startedEmpty = em.value.trim() ? '' : '1';
     if (r && !r.owner_name) toast('This repeater needs an owner name before it can be saved.', 'warn');
     $('rm-maint').hidden = !r;
     if (r) loadMaint(r);
@@ -478,7 +482,13 @@
     window.scrollTo(0, $('rm-p-editor').getBoundingClientRect().top + window.pageYOffset - 90);
   }
 
+  $('rm-editor-fields').addEventListener('input', function (e) {
+    if (e.target.id !== 'rm-f-contact_email' || !e.target.dataset.startedEmpty) return;
+    var box = $('rm-editor').show_email;
+    if (box && !box.dataset.touched) box.checked = !!e.target.value.trim();
+  });
   $('rm-editor-fields').addEventListener('change', function (e) {
+    if (e.target.name === 'show_email') e.target.dataset.touched = '1';
     if (e.target.id !== 'rm-f-meshfind') return;
     var v = e.target.value;
     var tail = (v.match(/([0-9a-f]{8})$/) || [])[1];
