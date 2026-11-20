@@ -1078,6 +1078,8 @@ ul { list-style: none; }
 .rd-claim input:focus, .rd-claim textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .rd-claim textarea { resize: vertical; }
 .rd-check .rd-reserve { line-height: 1.5; color: var(--text); }
+.rd-edit-cta { margin: 0.75rem 0 0; }
+.rd-edit { display: inline-block; text-decoration: none; }
 .rd-check .rd-reserve label { display: grid; font-weight: 400; margin: 0; }
 .rd-check .rd-reserve input { max-width: none; text-transform: none; font-family: inherit; }
 .rd-check .rd-reserve input.rd-upper { text-transform: uppercase; }
