@@ -62,7 +62,6 @@
     return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
   }
   function statusLabel(s) { return s === 'Built Waiting For Install' ? 'Waiting for install' : s === 'Online' ? 'Installed' : s === 'Offline' ? 'Down (known)' : s; }
-  function statusClass(s) { return { 'Online': 'ok', 'Offline': 'bad', 'Maintenance': 'warn', 'Retired': 'off' }[s] || 'info'; }
   function busy(form, on) {
     form.querySelectorAll('button[type=submit]').forEach(function (b) { b.disabled = on; });
   }
@@ -263,12 +262,62 @@
 
   function loadLive() {
     fetch(ANALYZER + '/api/nodes?limit=2000').then(function (r) { return r.json(); }).then(function (d) {
-      liveNodes = (d.nodes || []).filter(function (n) { return n.role === 'repeater'; });
+      liveNodes = (d.nodes || []).filter(function (n) { return n.role === 'repeater'; })
+        .map(function (n) { n.public_key = String(n.public_key || '').toLowerCase(); return n; });
+      liveReady = true;
       liveNodes.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
       $('rm-nodes').innerHTML = liveNodes.map(function (n) {
         return '<option value="' + esc((n.name || 'Unnamed') + ' — ' + n.public_key.slice(0, 8)) + '"></option>';
       }).join('');
-    }).catch(function () {});
+      renderRepeaters();
+    }).catch(function () { liveReady = true; renderRepeaters(); });
+  }
+
+  // Live status from the mesh, same rules as the public directory:
+  // Online < 24 h, Stale 1–3 days, Offline > 3 days, Not heard; the owner's
+  // Maintenance / Retired / Down always win, Waiting for install until heard.
+  var liveReady = false;
+  var LIVE = {
+    online: ['Online', 'ok'], stale: ['Stale', 'warn'], offline: ['Offline', 'bad'], unheard: ['Not heard', 'off'],
+    waiting: ['Waiting for install', 'info'], maintenance: ['Maintenance', 'warn'], retired: ['Retired', 'off'], checking: ['Checking…', 'off']
+  };
+  function normName(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function matchLive(r) {
+    var key = (r.public_key || '').toLowerCase();
+    var hit = key && liveNodes.find(function (n) { return n.public_key === key; });
+    if (hit) return hit;
+    var p2 = (r.prefix_2byte || '').toLowerCase();
+    if (/^[0-9a-f]{4}$/.test(p2)) {
+      var byPrefix = liveNodes.filter(function (n) { return n.public_key.indexOf(p2) === 0; });
+      if (byPrefix.length === 1) return byPrefix[0];
+    }
+    var nm = normName(r.name);
+    var byName = liveNodes.filter(function (n) { return normName(n.name) === nm; });
+    return byName.length === 1 ? byName[0] : null;
+  }
+  function heardAt(n) {
+    if (!n) return null;
+    var t = Math.max(n.last_heard ? new Date(n.last_heard).getTime() : 0, n.last_seen ? new Date(n.last_seen).getTime() : 0);
+    return t || null;
+  }
+  function liveStatus(r) {
+    if (r.status === 'Retired') return 'retired';
+    if (r.status === 'Maintenance') return 'maintenance';
+    if (r.status === 'Offline') return 'offline';
+    if (!liveReady) return 'checking';
+    var t = heardAt(matchLive(r)), h = t ? (Date.now() - t) / 3600000 : null;
+    if (h !== null && h < 24) return 'online';
+    if (r.status === 'Built Waiting For Install') return 'waiting';
+    if (h === null) return 'unheard';
+    return h < 72 ? 'stale' : 'offline';
+  }
+  function heardText(r) {
+    if (!liveReady) return '';
+    var t = heardAt(matchLive(r));
+    if (!t) return '';
+    var s = (Date.now() - t) / 1000;
+    var ago = s < 90 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
+    return 'Heard ' + ago;
   }
 
   // ── repeaters list ───────────────────────────────────────────
@@ -287,7 +336,8 @@
     $('rm-rep-body').innerHTML = rows.map(function (r) {
       return '<tr><td><button type="button" class="rm-rowlink" data-edit="' + esc(r.id) + '">' + esc(r.name) + '</button>' +
         (r.area ? '<div class="rm-sub">' + esc(r.area) + '</div>' : '') + '</td>' +
-        '<td><span class="rd-pill ' + statusClass(r.status) + '">' + esc(statusLabel(r.status)) + '</span></td>' +
+        (function () { var st = LIVE[liveStatus(r)]; return '<td><span class="rd-pill ' + st[1] + '">' + esc(st[0]) + '</span>' +
+          (heardText(r) ? '<div class="rm-sub">' + esc(heardText(r)) + '</div>' : '') + '</td>'; })() +
         '<td class="rm-hide-sm">' + (r.owner_name ? esc(r.owner_name) : '<span class="rd-pill warn">Needs owner</span>') + '</td>' +
         '<td class="rm-hide-sm rm-admin-col">' + (esc(managerNames(r).join(', ')) || '<span class="rd-muted">—</span>') + '</td>' +
         '<td class="rm-hide-sm rd-muted">' + esc(fmtDate(r.updated)) + '</td>' +
