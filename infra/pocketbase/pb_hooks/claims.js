@@ -53,7 +53,7 @@ module.exports.approve = function (app, claimId, adminId) {
   let mailed = true;
   try {
     if (!user.verified()) {
-      $mails.sendRecordVerification(app, user);
+      $mails.sendRecordPasswordReset(app, user);   // its link sets a password and confirms the email
     } else {
       send(app, user.email(), "You can now manage " + repName,
         "<p>Hello " + esc(user.getString("name")) + ",</p>" +

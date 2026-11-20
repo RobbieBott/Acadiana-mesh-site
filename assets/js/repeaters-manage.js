@@ -89,7 +89,7 @@
   $('rm-code-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var f = this;
-    var email = f.email.value.trim();
+    var email = f.email.value.trim().toLowerCase();
     if (!otpId) {
       if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter your email address.', 'bad'); return; }
       busy(f, true);
@@ -123,14 +123,14 @@
     e.preventDefault();
     var f = this;
     busy(f, true);
-    pb.collection('users').authWithPassword(f.email.value.trim(), f.password.value).then(function () {
+    pb.collection('users').authWithPassword(f.email.value.trim().toLowerCase(), f.password.value).then(function () {
       f.password.value = ''; signedIn();
     }).catch(function (err) {
       toast(err.status === 400 ? 'Email or password is wrong. You can also sign in with an emailed code.' : errText(err), 'bad');
     }).then(function () { busy(f, false); });
   });
   $('rm-forgot').addEventListener('click', function () {
-    var email = $('rm-pass-form').email.value.trim();
+    var email = $('rm-pass-form').email.value.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Enter your email above first.', 'bad'); return; }
     pb.collection('users').requestPasswordReset(email).then(function () {
       toast('If that email has an account, we sent a link to set a password.');
@@ -702,7 +702,7 @@
       if (i >= 0) people[i] = user; else people.push(user);
       people.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
       return syncRepeaters(user, wanted).then(function () {
-        if (invite) return pb.collection('users').requestVerification(user.email).then(function () { return 'invited'; }, function () { return 'invite-failed'; });
+        if (invite) return pb.collection('users').requestPasswordReset(user.email).then(function () { return 'invited'; }, function () { return 'invite-failed'; });
       }).then(function (inv) {
         f.hidden = true;
         toast((editingPerson ? 'Saved ' : 'Added ') + user.name + '.' +
@@ -719,7 +719,7 @@
     if (edit) openPersonForm(people.find(function (u) { return u.id === edit.getAttribute('data-person'); }));
     if (inv) {
       var u = people.find(function (x) { return x.id === inv.getAttribute('data-invite'); });
-      pb.collection('users').requestVerification(u.email).then(function () { toast('Invite sent to ' + u.email + '.'); })
+      pb.collection('users').requestPasswordReset(u.email).then(function () { toast('Invite sent to ' + u.email + '. Its link lets them choose a password.'); })
         .catch(function (err) { toast(errText(err), 'bad'); });
     }
     if (rm) {
@@ -837,12 +837,29 @@
     }).catch(function (err) { toast(errText(err), 'bad'); });
   });
 
-  // ── links from emails: #verify=TOKEN (invite) and #reset=TOKEN (set password) ──
+  // email inside a PocketBase token (verify / reset links carry it)
+  function tokenEmail(tok) {
+    try { return JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || ''; } catch (_) { return ''; }
+  }
+  // ── links from emails: #verify=TOKEN (old invites) and #reset=TOKEN (invite / set password) ──
   var link = location.hash.match(/^#(verify|reset)=([A-Za-z0-9._-]+)$/);
   if (link) history.replaceState(null, '', location.pathname);
   if (link && link[1] === 'verify') {
     pb.collection('users').confirmVerification(link[2]).then(function () {
-      toast('Your email is confirmed. Sign in below with that address.');
+      var addr = tokenEmail(link[2]);
+      toast('Your email is confirmed. Sign in below with an emailed code' + (addr ? ', or set a password:' : '.'), 'ok', true);
+      if (addr) {
+        var t = $('rm-toast'), b = document.createElement('button');
+        b.type = 'button'; b.className = 'rm-link'; b.textContent = 'Email me a link to set a password';
+        b.addEventListener('click', function () {
+          b.disabled = true;
+          pb.collection('users').requestPasswordReset(addr).then(function () { toast('Sent. Check ' + addr + ' for “Set your password”.', 'ok', true); })
+            .catch(function (err) { b.disabled = false; toast(errText(err), 'bad'); });
+        });
+        t.appendChild(document.createTextNode(' ')); t.appendChild(b);
+      }
+      var pf = $('rm-pass-form'), cf = $('rm-code-form');
+      if (addr) { if (cf && cf.email) cf.email.value = addr; if (pf && pf.email) pf.email.value = addr; }
     }).catch(function () {
       toast('That confirmation link has expired or was already used. You can still sign in below with an emailed code.', 'warn', true);
     });
@@ -853,13 +870,20 @@
     if (f.password.value.length < 8) { toast('Use at least 8 characters.', 'bad'); return; }
     if (f.password.value !== f.confirm.value) { toast('The two passwords don’t match.', 'bad'); return; }
     busy(f, true);
-    pb.collection('users').confirmPasswordReset(f.dataset.token, f.password.value, f.confirm.value).then(function () {
+    var pw = f.password.value, addr = tokenEmail(f.dataset.token);
+    pb.collection('users').confirmPasswordReset(f.dataset.token, pw, f.confirm.value).then(function () {
       f.reset();
       $('rm-reset').hidden = true;
-      toast('Password saved. Sign in with it below.');
-      document.querySelector('.rm-seg button[data-method=password]').click();
-      pb.authStore.clear();
-      signedOut();
+      // sign straight in with the new password
+      return (addr ? pb.collection('users').authWithPassword(addr, pw) : Promise.reject()).then(function () {
+        toast('Password saved. You’re signed in.');
+        signedIn();
+      }, function () {
+        toast('Password saved. Sign in with it below.');
+        document.querySelector('.rm-seg button[data-method=password]').click();
+        pb.authStore.clear();
+        signedOut();
+      });
     }).catch(function (err) {
       toast(err.status === 400 ? 'That link has expired or was already used. Ask for a new one from “Forgot your password”.' : errText(err), 'bad', true);
     }).then(function () { busy(f, false); });
@@ -868,6 +892,8 @@
   // ── start ────────────────────────────────────────────────────
   if (link && link[1] === 'reset') {
     $('rm-reset-form').dataset.token = link[2];
+    var who = tokenEmail(link[2]);
+    if (who) { $('rm-reset-for').textContent = ' as ' + who; $('rm-reset-user').value = who; }
     $('rm-loading').hidden = true;
     $('rm-reset').hidden = false;
   } else if (pb.authStore.isValid && pb.authStore.record && pb.authStore.record.collectionName === 'users') {
