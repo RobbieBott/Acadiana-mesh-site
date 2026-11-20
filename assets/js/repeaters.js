@@ -287,6 +287,8 @@
       '</div>' +
       '<p class="rd-muted rd-updated">Directory entry updated ' + esc(fmtDate(r.updated)) + '.</p>';
 
+    applyEdit(r);
+
     if (mapHtml && window.L) {
       setTimeout(function () {
         if (map) { map.remove(); map = null; }
@@ -296,6 +298,34 @@
         }).addTo(map);
         L.circleMarker([n.lat, n.lon], { radius: 8, color: '#fff', weight: 2, fillColor: '#f94d00', fillOpacity: 1 }).addTo(map);
       }, 30);
+    }
+  }
+
+  // ── edit link for people who manage this repeater ─────────────
+  // Signed in on the manage page (same site)? Ask the server whether this
+  // account may see the full record; that's true for its managers and admins.
+  var canEdit = {};
+  function applyEdit(r) {
+    var a = account();
+    if (!a) return;
+    if (canEdit[r.id] === undefined) {
+      canEdit[r.id] = null;   // checking
+      fetch(API + '/api/collections/repeaters/records/' + encodeURIComponent(r.id) + '?fields=id', { headers: { Authorization: a.token } })
+        .then(function (res) { canEdit[r.id] = res.ok; if (res.ok && current && current.id === r.id) applyEdit(r); })
+        .catch(function () { delete canEdit[r.id]; });
+      return;
+    }
+    if (!canEdit[r.id] || $('rd-edit')) return;
+    var link = document.createElement('a');
+    link.id = 'rd-edit'; link.className = 'rd-btn rd-edit';
+    link.href = MANAGE + '#edit-' + r.id;
+    link.textContent = '✏️ Edit this repeater';
+    var sec = $('rd-d-body').querySelector('.rd-contact');
+    if (sec) {
+      var p = document.createElement('p'); p.className = 'rd-edit-cta'; p.appendChild(link);
+      var claim = sec.querySelector('.rd-claim-cta');
+      if (claim) { claim.parentNode.insertBefore(p, claim); claim.hidden = true; }   // they already manage it
+      else sec.appendChild(p);
     }
   }
 
