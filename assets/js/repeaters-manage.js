@@ -485,9 +485,21 @@
       toast(editing ? 'Saved “' + rec.name + '”.' : 'Added “' + rec.name + '”.');
       renderRepeaters();
       openEditor(rec);
-    }).catch(function (err) { toast(errText(err), 'bad', true); })
-      .then(function () { busy(form, false); });
+    }).catch(function (err) {
+      if (editing && err.status === 404) return goneFromList(editing);
+      toast(errText(err), 'bad', true);
+    }).then(function () { busy(form, false); });
   });
+
+  // The repeater was deleted (e.g. in another tab) or the user lost access:
+  // say so plainly and reload the list instead of a vague permission error.
+  function goneFromList(r) {
+    toast('“' + r.name + '” isn’t in your list anymore. It was already deleted' +
+      (isAdmin ? '' : ', or you’re no longer one of its managers') + '. The list has been refreshed.', 'warn', true);
+    editing = null;
+    showPanel('repeaters', true);
+    return loadAll();
+  }
 
   $('rm-editor-back').addEventListener('click', function () { showPanel('repeaters', true); renderRepeaters(); });
   $('rm-delete').addEventListener('click', function () {
@@ -498,7 +510,10 @@
         repeaters = repeaters.filter(function (x) { return x.id !== r.id; });
         toast('Deleted “' + r.name + '”.');
         showPanel('repeaters', true); renderRepeaters();
-      }).catch(function (err) { toast(errText(err), 'bad'); });
+      }).catch(function (err) {
+        if (err.status === 404) return goneFromList(r);
+        toast(errText(err), 'bad');
+      });
     });
   });
 
