@@ -219,7 +219,10 @@ sitemap: false
             <label class="rm-field"><span>Name <em>*</em></span><input name="name" required maxlength="100"></label>
             <label class="rm-field"><span>Callsign</span><input name="callsign" maxlength="20" class="rm-upper"></label>
             <label class="rm-field"><span>Email</span><input name="email" disabled></label>
+            <label class="rm-field"><span>Phone</span><input name="phone" type="tel" maxlength="40" autocomplete="tel"></label>
+            <label class="rm-field"><span>Discord username</span><input name="discord" maxlength="60" autocomplete="off"></label>
           </div>
+          <p class="rd-muted rm-account-note">Repeaters set to <strong>Use my profile</strong> (in each repeater's Owner &amp; contact section) take their owner name, callsign, email, phone and Discord from here, and update when you save. What shows publicly is still set per repeater.</p>
           <div class="rm-actions rm-actions-end"><button class="btn btn-primary" type="submit">Save</button></div>
         </form>
         <div class="rm-card">
