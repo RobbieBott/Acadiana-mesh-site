@@ -4,7 +4,7 @@ title: "Repeater Directory"
 description: "Every Acadiana Mesh repeater in one place: where it is, the hardware it runs, when the mesh last heard it, reserved prefixes, and how to reach its owner."
 permalink: /repeaters/
 ---
-<div class="wiki rd" id="rd" data-api="{{ site.directory_api }}" data-analyzer="{{ site.analyzer_url }}" data-discord="{{ site.discord_url }}">
+<div class="wiki rd" id="rd" data-api="{{ site.directory_api }}" data-analyzer="{{ site.analyzer_url }}" data-discord="{{ site.discord_url }}" data-manage="{{ '/repeaters/manage/' | relative_url }}">
   <section class="wiki-hero">
     <span class="wiki-kicker">Repeater Directory</span>
     <h1>Acadiana Mesh Repeaters</h1>
@@ -55,7 +55,7 @@ permalink: /repeaters/
 <!-- ================= PREFIXES ================= -->
 <section class="wiki-panel" id="prefixes" role="tabpanel">
   <h2>Reserved Prefixes</h2>
-  <p>Repeaters are told apart on the mesh by the first bytes of their public key. Pick a prefix of at least 2 bytes that nobody else uses before you generate your repeater's key, then reserve it with an admin.</p>
+  <p>Repeaters are told apart on the mesh by the first bytes of their public key. Before you generate your repeater's key, pick a 2-byte or 3-byte prefix nobody else uses and reserve it here. Then generate a key that starts with it.</p>
 
   <div class="rd-check">
     <label for="rd-prefix-q">Is my prefix free?</label>
@@ -71,7 +71,7 @@ permalink: /repeaters/
       <tbody id="rd-prefix-body"><tr><td colspan="2">Loading…</td></tr></tbody>
     </table>
   </div>
-  <p class="rd-foot">Repeaters show their 3-byte prefix. Grey ones come straight from the repeater's public key; the others were reserved.</p>
+  <p class="rd-foot">Repeaters show their 3-byte prefix. Grey ones come straight from the repeater's public key; the others were reserved. A prefix is 4 or 6 characters (0–9, A–F) and can't start with 00 or FF, which MeshCore keeps for itself. Reserved a prefix? <a href="{{ '/repeaters/manage/' | relative_url }}#prefixes">Sign in</a> with the same email to rename or release it.</p>
 </section>
 
   </div>

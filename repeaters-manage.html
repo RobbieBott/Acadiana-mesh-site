@@ -14,7 +14,7 @@ sitemap: false
       <a href="#repeaters" role="tab" data-panel="repeaters">Repeaters</a>
       <a href="#claims" role="tab" data-panel="claims" data-admin>Claims <span class="tab-count" id="rm-claims-count"></span></a>
       <a href="#people" role="tab" data-panel="people" data-admin>People</a>
-      <a href="#prefixes" role="tab" data-panel="prefixes" data-admin>Prefixes</a>
+      <a href="#prefixes" role="tab" data-panel="prefixes">Prefixes</a>
       <a href="#account" role="tab" data-panel="account">My Account</a>
     </nav>
   </section>
@@ -153,7 +153,7 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>People</h2>
-            <p class="rd-muted"><strong>Users</strong> edit only the repeaters assigned to them. <strong>Admins</strong> edit every repeater and manage people and prefixes.</p>
+            <p class="rd-muted"><strong>Users</strong> edit only the repeaters assigned to them. <strong>Admins</strong> edit every repeater, manage people and see every prefix reservation.</p>
           </div>
           <button type="button" class="btn btn-primary" id="rm-add-person">+ Add person</button>
         </div>
@@ -187,22 +187,24 @@ sitemap: false
         </div>
       </section>
 
-      <!-- Prefixes (admins) -->
+      <!-- Prefixes (everyone: users see their own reservations, admins see all) -->
       <section class="rm-panel" id="rm-p-prefixes" data-panel="prefixes" hidden>
         <div class="rm-head">
           <div>
-            <h2>Reserved Prefixes</h2>
-            <p class="rd-muted">Reservations must be at least 2 bytes (4 characters). They show on the public Prefixes tab, along with every repeater's 3-byte prefix. Old 1-byte reservations are marked; reserve them again with 2 bytes and remove the old one.</p>
+            <h2 id="rm-prefix-title">My Reserved Prefixes</h2>
+            <p class="rd-muted" id="rm-prefix-sub">A prefix is 4 characters (2 bytes) or 6 characters (3 bytes), 0–9 and A–F, and can't start with 00 or FF. Reserve one before you generate your repeater's key, then generate a key that starts with it. You can hold up to 5.</p>
           </div>
         </div>
         <form id="rm-prefix-form" class="rm-card rm-maint-form" novalidate>
-          <label class="rm-field"><span>Prefix</span><input name="code" required minlength="4" maxlength="6" class="rm-upper" placeholder="B3A1"></label>
-          <label class="rm-field rm-grow"><span>Reserved for</span><input name="label" maxlength="120" placeholder="Repeater or person"></label>
+          <label class="rm-field"><span>Prefix</span><input name="code" required minlength="4" maxlength="6" class="rm-upper" placeholder="B3A1" autocomplete="off" spellcheck="false"></label>
+          <label class="rm-field rm-grow"><span>What's it for?</span><input name="label" maxlength="120" required placeholder="Repeater name or location"></label>
+          <label class="rm-field rm-grow" data-admin-only hidden><span>Reserved by (email, optional)</span><input name="email" type="email" maxlength="200" placeholder="Lets that person manage it"></label>
           <button class="btn btn-primary" type="submit">Reserve</button>
         </form>
+        <p class="rd-muted rm-prefix-hint" id="rm-prefix-hint" aria-live="polite"></p>
         <div class="rd-table-wrap">
           <table class="rd-table rm-table">
-            <thead><tr><th>Prefix</th><th>Reserved for</th><th></th></tr></thead>
+            <thead><tr><th>Prefix</th><th>Reserved for</th><th data-admin-only hidden>Reserved by</th><th class="rm-since rm-hide-sm">Since</th><th></th></tr></thead>
             <tbody id="rm-prefix-body"></tbody>
           </table>
         </div>

@@ -146,7 +146,7 @@
   // ── layout / tabs ────────────────────────────────────────────
   var PANELS = ['repeaters', 'claims', 'people', 'prefixes', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || ((name === 'people' || name === 'prefixes' || name === 'claims') && !isAdmin)) name = 'repeaters';
+    if (PANELS.indexOf(name) < 0 || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -171,7 +171,7 @@
     $('rm-tabs').hidden = false;
     $('rm-loading').hidden = true;
     root.classList.toggle('rm-is-admin', isAdmin);
-    document.querySelectorAll('#rm-tabs [data-admin]').forEach(function (a) { a.hidden = !isAdmin; });
+    document.querySelectorAll('#rm-tabs [data-admin], [data-admin-only]').forEach(function (a) { a.hidden = !isAdmin; });
     $('rm-me-name').textContent = me.name || me.email;
     $('rm-me-role').textContent = isAdmin ? 'Admin' : 'User';
     $('rm-rep-title').textContent = isAdmin ? 'All Repeaters' : 'My Repeaters';
@@ -725,31 +725,88 @@
     }
   });
 
-  // ── prefixes (admins) ────────────────────────────────────────
-  function renderPrefixes() {
-    if (!isAdmin) return;
-    $('rm-prefix-body').innerHTML = prefixes.map(function (p) {
-      return '<tr><td><span class="rd-mono">' + esc(p.code) + '</span>' + (p.code.length < 4 ? ' <span class="rd-pill warn">1-byte</span>' : '') + '</td><td>' + esc(p.label) + '</td>' +
-        '<td class="rm-right"><button type="button" class="rm-link rm-x" data-del-prefix="' + esc(p.id) + '">Remove</button></td></tr>';
-    }).join('') || '<tr><td colspan="3" class="rd-muted">No reservations yet.</td></tr>';
+  // ── prefixes (users: their own reservations; admins: all) ─────
+  // A prefix is whole bytes (4 or 6 hex characters). MeshCore throws away keys
+  // whose first byte is 00 or FF ("reserved id hashes"), so those never occur.
+  function prefixProblem(code) {
+    if (!/^[0-9A-F]+$/.test(code)) return 'Use only 0–9 and A–F.';
+    if (code.length !== 4 && code.length !== 6) return 'A prefix is exactly 4 characters (2 bytes) or 6 characters (3 bytes), like B3A1 or B3A1C2.';
+    if (/^(00|FF)/.test(code)) return 'Prefixes can’t start with 00 or FF. MeshCore reserves those.';
+    return '';
   }
+  function renderPrefixes() {
+    $('rm-prefix-title').textContent = isAdmin ? 'Reserved Prefixes' : 'My Reserved Prefixes';
+    $('rm-prefix-sub').textContent = 'A prefix is 4 characters (2 bytes) or 6 characters (3 bytes), 0–9 and A–F, and can’t start with 00 or FF. ' +
+      (isAdmin ? 'Anyone can reserve up to 5 from the public Prefixes page. Admins have no limit and can replace old 1-byte reservations, which are marked; reserve them again with 2 bytes, then remove the old one.'
+        : 'Reserve one before you generate your repeater’s key, then generate a key that starts with it. You can hold up to 5.');
+    var cols = isAdmin ? 5 : 4;
+    $('rm-prefix-body').innerHTML = prefixes.map(function (p) {
+      var who = [p.reserved_by_name, p.reserved_by_callsign, p.reserved_by_email].filter(Boolean).map(esc).join(' · ');
+      return '<tr data-prefix-row="' + esc(p.id) + '"><td><span class="rd-mono">' + esc(p.code) + '</span>' + (p.code.length < 4 ? ' <span class="rd-pill warn">1-byte</span>' : '') + '</td>' +
+        '<td><span class="rm-prefix-label">' + esc(p.label) + '</span></td>' +
+        (isAdmin ? '<td class="rd-muted">' + (who || '—') + '</td>' : '') +
+        '<td class="rd-muted rm-since rm-hide-sm">' + esc(fmtDate(p.created)) + '</td>' +
+        '<td class="rm-right"><button type="button" class="rm-link" data-rename-prefix="' + esc(p.id) + '">Rename</button> ' +
+        '<button type="button" class="rm-link rm-x" data-del-prefix="' + esc(p.id) + '">' + (isAdmin ? 'Remove' : 'Release') + '</button></td></tr>';
+    }).join('') || '<tr><td colspan="' + cols + '" class="rd-muted">' + (isAdmin ? 'No reservations yet.' : 'You haven’t reserved a prefix yet. Reserve one above, or from the public Prefixes page.') + '</td></tr>';
+  }
+  $('rm-prefix-form').code.addEventListener('input', function () {
+    var code = this.value.trim().toUpperCase();
+    $('rm-prefix-hint').textContent = code.length >= 4 || /[^0-9A-Fa-f]/.test(code) || /^(00|FF)/.test(code) ? prefixProblem(code) : '';
+  });
   $('rm-prefix-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    var f = this, code = f.code.value.trim().toUpperCase();
-    if (!/^[0-9A-F]{4,6}$/.test(code)) { toast('Reserve at least 2 bytes: 4 characters (like B3A1) or 6 (like B3A1C2), 0–9 and A–F.', 'bad'); return; }
+    var f = this, code = f.code.value.trim().toUpperCase(), label = f.label.value.trim();
+    var bad = prefixProblem(code);
+    if (bad) { toast(bad, 'bad'); f.code.focus(); return; }
+    if (!label) { toast('Say what the prefix is for, like the repeater’s name or location.', 'bad'); f.label.focus(); return; }
+    var data = { code: code, label: label };
+    if (isAdmin) {
+      var email = f.email.value.trim();
+      if (email) { data.reserved_by_email = email; var u = people.find(function (x) { return (x.email || '').toLowerCase() === email.toLowerCase(); }); if (u) { data.user = u.id; data.reserved_by_name = u.name; data.reserved_by_callsign = u.callsign || ''; } }
+    } else {
+      data.reserved_by_name = me.name || me.email; data.reserved_by_email = me.email; data.reserved_by_callsign = me.callsign || '';
+    }
     busy(f, true);
-    pb.collection('prefixes').create({ code: code, label: f.label.value.trim() }).then(function (p) {
+    pb.collection('prefixes').create(data).then(function (p) {
       prefixes.push(p); prefixes.sort(function (a, b) { return a.code.localeCompare(b.code); });
-      f.reset(); renderPrefixes(); toast('Reserved ' + code + '.');
-    }).catch(function (err) { toast(errText(err), 'bad'); }).then(function () { busy(f, false); });
+      f.reset(); $('rm-prefix-hint').textContent = ''; renderPrefixes();
+      toast('Reserved ' + code + '.' + (isAdmin ? '' : ' A confirmation email is on its way.'));
+    }).catch(function (err) {
+      toast(err && err.status === 429 ? 'Too many reservations in a short time. Please wait a few minutes.' : errText(err), 'bad');
+    }).then(function () { busy(f, false); });
   });
   $('rm-prefix-body').addEventListener('click', function (e) {
+    var ren = e.target.closest('[data-rename-prefix]');
+    if (ren) {
+      var p = prefixes.find(function (x) { return x.id === ren.getAttribute('data-rename-prefix'); });
+      var cell = ren.closest('tr').querySelector('.rm-prefix-label');
+      if (!p || cell.querySelector('input')) return;
+      cell.innerHTML = '<input class="rm-inline" maxlength="120" value="' + esc(p.label) + '" aria-label="What it’s for">';
+      var inp = cell.querySelector('input');
+      inp.focus(); inp.select();
+      var done = false;
+      var finish = function (save) {
+        if (done) return; done = true;
+        var v = inp.value.trim();
+        if (!save || !v || v === p.label) { renderPrefixes(); return; }
+        pb.collection('prefixes').update(p.id, { label: v }).then(function (rec) {
+          Object.assign(p, rec); renderPrefixes(); toast('Renamed ' + p.code + '.');
+        }).catch(function (err) { renderPrefixes(); toast(errText(err), 'bad'); });
+      };
+      inp.addEventListener('keydown', function (k) { if (k.key === 'Enter') { k.preventDefault(); finish(true); } else if (k.key === 'Escape') finish(false); });
+      inp.addEventListener('blur', function () { finish(true); });
+      return;
+    }
     var b = e.target.closest('[data-del-prefix]');
     if (!b) return;
-    confirmClick(b, 'Remove', function () {
+    var label = b.textContent;
+    confirmClick(b, label, function () {
       var id = b.getAttribute('data-del-prefix');
       pb.collection('prefixes').delete(id).then(function () {
+        var gone = prefixes.find(function (p) { return p.id === id; });
         prefixes = prefixes.filter(function (p) { return p.id !== id; }); renderPrefixes();
+        if (gone) toast((isAdmin ? 'Removed ' : 'Released ') + gone.code + '.');
       }).catch(function (err) { toast(errText(err), 'bad'); });
     });
   });

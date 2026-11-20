@@ -36,6 +36,8 @@ The [repeater directory](/repeaters/) lists the community's repeaters and is sto
 
 People who manage repeaters have an account with their name, email and (optionally) callsign. Their email is used only to sign in (with an emailed code or a password reset link) and is never shown publicly. Sign-in emails are delivered through Brevo. To remove your account or your contact details, edit your repeater or email us.
 
+When you reserve a repeater prefix, we keep the prefix, what it's for, your name, your email and (optionally) your callsign. Only the prefix, what it's for and the date are shown publicly. We email you a confirmation through Brevo. Your email lets you sign in to rename or release the reservation, and admins can see who reserved each prefix. Releasing a reservation deletes it.
+
 ## Mesh network data
 
 Acadiana Mesh is a radio network, and anything sent over it can be received by anyone in range. Community observers — radios that listen to the mesh — report what they hear to our servers, and our analyzer and Live Map display it publicly. This can include:
