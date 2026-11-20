@@ -178,6 +178,7 @@
     $('rm-sync').hidden = !isAdmin;
     var af = $('rm-account-form');
     af.name.value = me.name || ''; af.callsign.value = me.callsign || ''; af.email.value = me.email || '';
+    af.phone.value = me.phone || ''; af.discord.value = me.discord || '';
     var start = location.hash.replace('#', '');
     showPanel(start || 'repeaters', false);
     loadAll().then(function () {
@@ -197,7 +198,7 @@
   // ── data ─────────────────────────────────────────────────────
   function loadAll() {
     var jobs = [
-      pb.collection('repeaters').getFullList({ sort: 'name', expand: 'managers' }).then(function (l) { repeaters = l; }),
+      pb.collection('repeaters').getFullList({ sort: 'name', expand: 'managers,contact_from' }).then(function (l) { repeaters = l; }),
       pb.collection('prefixes').getFullList({ sort: 'code' }).then(function (l) { prefixes = l; })
     ];
     if (isAdmin) jobs.push(pb.collection('users').getFullList({ sort: 'name' }).then(function (l) { people = l; }));
@@ -471,6 +472,7 @@
         (g.note ? '<p class="rm-hint rm-note">' + esc(g.note) + '</p>' : '') +
         '<div class="rm-grid">' + g.fields.map(function (f) { return fieldHtml(f, defaults); }).join('') + '</div></fieldset>';
     }).join('') + managersHtml(r);
+    followSetup(r);
     // "Let people message me" turns on by itself when an email is added to a
     // repeater that had none, unless the owner has set the box themselves.
     var em = $('rm-f-contact_email');
@@ -480,6 +482,57 @@
     if (r) loadMaint(r);
     history.replaceState(null, '', r ? '#edit-' + r.id : '#new');
     window.scrollTo(0, $('rm-p-editor').getBoundingClientRect().top + window.pageYOffset - 90);
+  }
+
+  // ── "Use my profile" for a repeater's owner/contact info ─────
+  var FOLLOW = ['owner_name', 'owner_callsign', 'contact_email', 'contact_phone', 'contact_discord'];
+  function profileValues(u) {
+    return { owner_name: u.name || '', owner_callsign: (u.callsign || '').toUpperCase(), contact_email: u.email || '', contact_phone: u.phone || '', contact_discord: u.discord || '' };
+  }
+  function followSetup(r) {
+    var grid = document.querySelector('#rm-g-contact .rm-grid');
+    if (!grid) return;
+    var linked = r ? (r.contact_from || '') : '';
+    var other = linked && linked !== me.id;
+    var otherName = other && r.expand && r.expand.contact_from ? (r.expand.contact_from.name || r.expand.contact_from.email) : '';
+    var startOn = r ? !!linked : !isAdmin;   // new repeaters you add follow your profile
+    var box = document.createElement('div');
+    box.className = 'rm-follow rm-wide-field';
+    box.innerHTML = '<label class="rm-check"><input type="checkbox" id="rm-follow"' + (startOn ? ' checked' : '') + '> ' +
+      (other ? 'Uses ' + esc(otherName || 'another manager') + '’s profile' : 'Use my profile for this repeater’s owner &amp; contact info') + '</label>' +
+      '<small class="rm-hint">' + (other ? 'Untick to edit these details here instead.'
+        : 'Name, callsign, email, phone and Discord come from <a href="#account" data-goto-account>My Account</a> and update when you change it there. Untick if this repeater needs different details. The ticks for what shows publicly stay per repeater.') + '</small>';
+    box.dataset.linked = linked;
+    grid.parentNode.insertBefore(box, grid);
+    followApply(startOn && !other, startOn);
+  }
+  function followApply(fillFromMe, locked) {
+    var form = $('rm-editor');
+    if (fillFromMe) {
+      var v = profileValues(me);
+      FOLLOW.forEach(function (k) {
+        var el = form.elements[k];
+        if (el && el.value !== v[k]) { el.value = v[k]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+    }
+    FOLLOW.forEach(function (k) { var el = form.elements[k]; if (el) { el.readOnly = !!locked; el.classList.toggle('rm-locked', !!locked); } });
+  }
+  $('rm-editor-fields').addEventListener('change', function (e) {
+    if (e.target.id !== 'rm-follow') return;
+    var linked = e.target.closest('.rm-follow').dataset.linked;
+    var other = linked && linked !== me.id;
+    followApply(e.target.checked && !other, e.target.checked);
+  });
+  $('rm-editor-fields').addEventListener('click', function (e) {
+    if (e.target.closest('[data-goto-account]')) { e.preventDefault(); showPanel('account', true); }
+  });
+  // what to send for contact_from: only when the tick changed
+  function followData(data) {
+    var cb = $('rm-follow');
+    if (!cb) return;
+    var linked = cb.closest('.rm-follow').dataset.linked;
+    if (cb.checked && !linked) data.contact_from = me.id;
+    else if (!cb.checked && linked) data.contact_from = '';
   }
 
   $('rm-editor-fields').addEventListener('input', function (e) {
@@ -534,10 +587,11 @@
     if (!data.prefix_3byte && data.public_key) data.prefix_3byte = data.public_key.slice(0, 6).toUpperCase();
     if (!editing && !isAdmin) data.managers = [me.id];
     if (!editing) data.source = 'manual';
+    followData(data);
     busy(form, true);
     var req = editing
-      ? pb.collection('repeaters').update(editing.id, data, { expand: 'managers' })
-      : pb.collection('repeaters').create(data, { expand: 'managers' });
+      ? pb.collection('repeaters').update(editing.id, data, { expand: 'managers,contact_from' })
+      : pb.collection('repeaters').create(data, { expand: 'managers,contact_from' });
     req.then(function (rec) {
       var i = repeaters.findIndex(function (x) { return x.id === rec.id; });
       if (i >= 0) repeaters[i] = rec; else repeaters.push(rec);
@@ -827,8 +881,11 @@
     var f = this, name = f.name.value.trim();
     if (!name) { toast('Your name is required.', 'bad'); return; }
     busy(f, true);
-    pb.collection('users').update(me.id, { name: name, callsign: f.callsign.value.trim().toUpperCase() }).then(function (u) {
-      me = u; $('rm-me-name').textContent = u.name; toast('Saved.');
+    pb.collection('users').update(me.id, { name: name, callsign: f.callsign.value.trim().toUpperCase(), phone: f.phone.value.trim(), discord: f.discord.value.trim() }).then(function (u) {
+      me = u; $('rm-me-name').textContent = u.name;
+      var linked = repeaters.filter(function (r) { return r.contact_from === me.id; }).length;
+      toast('Saved.' + (linked ? ' Updated the contact info on ' + linked + (linked === 1 ? ' repeater that uses' : ' repeaters that use') + ' your profile.' : ''));
+      if (linked) return loadAll();
     }).catch(function (err) { toast(errText(err), 'bad'); }).then(function () { busy(f, false); });
   });
   $('rm-set-password').addEventListener('click', function () {
