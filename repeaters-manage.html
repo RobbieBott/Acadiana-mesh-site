@@ -26,7 +26,8 @@ sitemap: false
     <section class="rm-signin" id="rm-reset" hidden>
       <form class="rm-card rm-form" id="rm-reset-form" novalidate>
         <h2>Set your password</h2>
-        <p class="rd-muted">Choose a password for signing in to the repeater directory. You can still sign in with an emailed code any time.</p>
+        <p class="rd-muted">Choose a password for signing in to the repeater directory<span id="rm-reset-for"></span>. You can still sign in with an emailed code any time.</p>
+        <input type="email" name="username" autocomplete="username" id="rm-reset-user" hidden>
         <label class="rm-field"><span>New password</span><input type="password" name="password" autocomplete="new-password" minlength="8" required></label>
         <label class="rm-field"><span>Type it again</span><input type="password" name="confirm" autocomplete="new-password" minlength="8" required></label>
         <button class="btn btn-primary rm-wide" type="submit">Save password</button>
@@ -49,7 +50,7 @@ sitemap: false
             <button class="btn btn-primary rm-wide" type="submit">Send me a code</button>
           </div>
           <div id="rm-code-step2" hidden>
-            <p class="rd-muted">If <strong id="rm-code-email"></strong> has an account, a 6-digit code is on its way. It works for 10 minutes.</p>
+            <p class="rd-muted">If <strong id="rm-code-email"></strong> has an account, a 6-digit code is on its way. It works for 10 minutes. Nothing after a minute? Check your spam folder, and make sure it's the email address your invite was sent to.</p>
             <label class="rm-field"><span>Code</span>
               <input name="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="123456" class="rm-otp">
             </label>
