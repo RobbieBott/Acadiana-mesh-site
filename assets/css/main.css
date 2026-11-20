@@ -1077,6 +1077,11 @@ ul { list-style: none; }
 .rd-claim input, .rd-claim textarea { width: 100%; font: inherit; font-size: 0.95rem; color: var(--text); background: var(--bg); border: 1px solid var(--border-hover); border-radius: var(--radius); padding: 0.55rem 0.7rem; }
 .rd-claim input:focus, .rd-claim textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .rd-claim textarea { resize: vertical; }
+.rd-check .rd-reserve { line-height: 1.5; color: var(--text); }
+.rd-check .rd-reserve label { display: grid; font-weight: 400; margin: 0; }
+.rd-check .rd-reserve input { max-width: none; text-transform: none; font-family: inherit; }
+.rd-check .rd-reserve input.rd-upper { text-transform: uppercase; }
+.rd-reserve .rd-span { grid-column: 1 / -1; }
 .rd-upper { text-transform: uppercase; }
 .rd-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .rd-claim-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
@@ -1169,6 +1174,8 @@ ul { list-style: none; }
 .rm-maint-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; margin-top: 1rem; }
 .rm-maint-form .rm-field { flex: 0 0 170px; }
 .rm-maint-form .rm-grow { flex: 1 1 240px; }
+.rm-prefix-hint { min-height: 1.2em; margin: 0.4rem 0 0; color: var(--warn); font-size: 0.85rem; }
+.rm-inline { width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--accent); border-radius: var(--radius); padding: 0.3rem 0.5rem; }
 .rm-loading[hidden], #rm-loading[hidden] { display: none; }
 @media (max-width: 700px) {
   .rm-hide-sm { display: none; }

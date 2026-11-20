@@ -5,6 +5,7 @@
   var root = document.getElementById('rd');
   if (!root) return;
   var API = (root.getAttribute('data-api') || '').replace(/\/$/, '');
+  var MANAGE = root.getAttribute('data-manage') || '/repeaters/manage/';
   var ANALYZER = (root.getAttribute('data-analyzer') || 'https://analyzer.acadianamesh.com').replace(/\/$/, '');
 
   var $ = function (id) { return document.getElementById(id); };
@@ -116,7 +117,7 @@
 
   function load() {
     if (!API) { fail('The directory server isn’t configured yet.'); return; }
-    Promise.all([getAll('repeaters_public', '&sort=name'), getAll('prefixes', '&sort=code')])
+    Promise.all([getAll('repeaters_public', '&sort=name'), getAll('prefixes_public', '&sort=code')])
       .then(function (res) {
         repeaters = res[0]; prefixes = res[1];
         $('rd-loading').hidden = true;
@@ -465,12 +466,23 @@
     }).join('') || '<tr><td colspan="2">No prefixes yet.</td></tr>';
     checkPrefix();
   }
+  // A prefix is whole bytes (4 or 6 hex characters). MeshCore throws away keys
+  // whose first byte is 00 or FF ("reserved id hashes"), so those never occur.
+  function prefixProblem(q) {
+    if (!/^[0-9A-F]+$/.test(q)) return ['Hex only', 'Use 0–9 and A–F.'];
+    if (q.length !== 4 && q.length !== 6) return ['2 or 3 bytes', 'Enter exactly 4 characters (2 bytes) or 6 characters (3 bytes), like B3A1 or B3A1C2.'];
+    if (/^(00|FF)/.test(q)) return ['Not allowed', 'Prefixes can’t start with 00 or FF. MeshCore reserves those and never gives a repeater a key that starts with them.'];
+    return null;
+  }
+  var lastChecked = '';
   function checkPrefix() {
     var out = $('rd-prefix-result');
     var q = ($('rd-prefix-q').value || '').trim().toUpperCase();
+    if (q === lastChecked && out.querySelector('#rd-reserve')) return;   // keep a half-filled form
+    lastChecked = q;
     if (!q) { out.innerHTML = ''; return; }
-    if (!/^[0-9A-F]+$/.test(q)) { out.innerHTML = '<span class="rd-pill warn">Hex only</span> Use 0–9 and A–F.'; return; }
-    if (q.length < 4 || q.length > 6) { out.innerHTML = '<span class="rd-pill warn">2 or 3 bytes</span> Enter 4 characters (2 bytes) or 6 characters (3 bytes), like B3A1 or B3A1C2.'; return; }
+    var bad = prefixProblem(q);
+    if (bad) { out.innerHTML = '<span class="rd-pill warn">' + bad[0] + '</span> ' + bad[1]; return; }
     var taken = prefixRows().filter(function (x) { return x.code.indexOf(q) === 0 || q.indexOf(x.code) === 0; });
     var onAir = liveNodes.filter(function (n) { return n.role === 'repeater' && n.public_key.toUpperCase().indexOf(q) === 0; });
     var parts = [];
@@ -478,8 +490,82 @@
     if (onAir.length) parts.push('<strong>On the air:</strong> ' + onAir.slice(0, 8).map(function (n) { return esc(n.name || n.public_key.slice(0, 8)); }).join(', ') + (onAir.length > 8 ? ' and ' + (onAir.length - 8) + ' more' : ''));
     out.innerHTML = parts.length
       ? '<span class="rd-pill bad">Taken</span> ' + parts.join('<br>')
-      : '<span class="rd-pill ok">Looks free</span> No repeater in the directory or on the air uses <span class="rd-mono">' + esc(q) + '</span>' + (liveReady ? '' : ' (still checking the mesh)') + '. Ask an admin to reserve it.';
+      : '<span class="rd-pill ok">Looks free</span> No repeater in the directory or on the air uses <span class="rd-mono">' + esc(q) + '</span>' + (liveReady ? '' : ' (still checking the mesh)') + '.' +
+        ' <button type="button" class="rd-linkbtn" data-reserve>Reserve it</button>' + reserveFormHtml(q);
   }
+
+  // ── reserve a prefix ─────────────────────────────────────────
+  // Signed in on the manage page? Reserve under that account (same site, so
+  // the PocketBase SDK's saved session is readable here).
+  function account() {
+    try {
+      var a = JSON.parse(localStorage.getItem('pocketbase_auth') || 'null');
+      if (!a || !a.token || !a.record || a.record.collectionName !== 'users') return null;
+      var exp = JSON.parse(atob(a.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp;
+      return exp * 1000 > Date.now() + 60000 ? a : null;
+    } catch (_) { return null; }
+  }
+  function reserveFormHtml(q) {
+    var a = account(), u = a && a.record;
+    return '<form class="rd-claim rd-reserve" id="rd-reserve" hidden novalidate>' +
+      '<p class="rd-muted">' + (u
+        ? 'Reserving <strong class="rd-mono">' + esc(q) + '</strong> as <strong>' + esc(u.name || u.email) + '</strong>. You can rename or release it under <a href="' + esc(MANAGE) + '#prefixes">Manage → Prefixes</a>.'
+        : 'Reserve <strong class="rd-mono">' + esc(q) + '</strong> for your repeater. We’ll email you a confirmation. Your name and email aren’t shown publicly. Sign in to <a href="' + esc(MANAGE) + '">Manage</a> with the same email later to rename or release it.') + '</p>' +
+      '<div class="rd-claim-grid">' +
+      (u ? '' :
+        '<label><span>Your name <em>*</em></span><input name="name" maxlength="100" autocomplete="name" required></label>' +
+        '<label><span>Email <em>*</em></span><input name="email" type="email" autocomplete="email" required></label>' +
+        '<label><span>Callsign</span><input name="callsign" maxlength="20" autocomplete="off" class="rd-upper"></label>') +
+      '<label' + (u ? ' class="rd-span"' : '') + '><span>What’s it for? <em>*</em></span><input name="label" maxlength="120" required placeholder="e.g. Rayne water tower repeater"></label>' +
+      '</div>' +
+      '<label class="rd-hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>' +
+      '<div class="rd-claim-actions"><button type="button" class="rd-linkbtn" data-reserve-cancel>Cancel</button><button type="submit" class="rd-btn">Reserve ' + esc(q) + '</button></div>' +
+      '<p class="rd-claim-msg" aria-live="polite"></p>' +
+      '</form>';
+  }
+  $('rd-prefix-result').addEventListener('click', function (e) {
+    var form = $('rd-reserve');
+    if (!form) return;
+    var cta = this.querySelector('[data-reserve]');
+    if (e.target.closest('[data-reserve]')) { form.hidden = false; cta.hidden = true; (form.name || form.label).focus(); }
+    else if (e.target.closest('[data-reserve-cancel]')) { form.hidden = true; cta.hidden = false; }
+  });
+  $('rd-prefix-result').addEventListener('submit', function (e) {
+    var form = e.target.closest('#rd-reserve');
+    if (!form) return;
+    e.preventDefault();
+    var msg = form.querySelector('.rd-claim-msg'), btn = form.querySelector('button[type=submit]');
+    var say = function (t, bad) { msg.textContent = t; msg.className = 'rd-claim-msg ' + (bad ? 'bad' : 'ok'); };
+    var code = lastChecked, a = account();
+    if (form.website.value) { say('Thanks!'); return; }
+    var data = { code: code, label: form.label.value.trim() };
+    if (a) { data.reserved_by_name = a.record.name || a.record.email; data.reserved_by_email = a.record.email; data.reserved_by_callsign = a.record.callsign || ''; }
+    else { data.reserved_by_name = form.name.value.trim(); data.reserved_by_email = form.email.value.trim(); data.reserved_by_callsign = form.callsign.value.trim().toUpperCase(); }
+    if (!data.reserved_by_name) { say('Please enter your name.', true); form.name.focus(); return; }
+    if (!/^\S+@\S+\.\S+$/.test(data.reserved_by_email)) { say('Please enter a valid email.', true); form.email.focus(); return; }
+    if (!data.label) { say('Please say what it’s for, like the repeater’s name or location.', true); form.label.focus(); return; }
+    btn.disabled = true;
+    var headers = { 'Content-Type': 'application/json' };
+    if (a) headers.Authorization = a.token;
+    fetch(API + '/api/collections/prefixes/records', { method: 'POST', headers: headers, body: JSON.stringify(data) })
+      .then(function (res) {
+        if (res.ok) {
+          prefixes.push({ code: code, label: data.label });
+          lastChecked = '';
+          renderPrefixes();
+          $('rd-prefix-result').innerHTML = '<span class="rd-pill ok">Reserved</span> <span class="rd-mono">' + esc(code) + '</span> is yours. A confirmation is on its way to <strong>' + esc(data.reserved_by_email) + '</strong>.';
+          lastChecked = code;
+          return;
+        }
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          btn.disabled = false;
+          if (res.status === 429) say('Too many reservations from this connection. Please try again in a few minutes.', true);
+          else if (res.status === 400 && j && j.message && !/^Failed to create/.test(j.message)) say(j.message, true);
+          else say('That didn’t go through. Please check your details and try again.', true);
+        });
+      })
+      .catch(function () { btn.disabled = false; say('Couldn’t reach the directory server. Please try again.', true); });
+  });
 
   // ── events ───────────────────────────────────────────────────
   $('rd-grid').addEventListener('click', function (e) {
