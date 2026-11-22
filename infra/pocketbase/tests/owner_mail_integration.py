@@ -314,7 +314,7 @@ def run(folder):
     api(permissions, owner, mail_only, "PATCH")
     api(permissions, owner, mail_only, "PATCH", expected=400)
     assert api(ROUTE + "/access", member) == {"owner": False, "sender": True}
-    assert api(ROUTE + "/preview", member, draft)["count"] == 1
+    assert api(ROUTE + "/preview", member, dict(draft, scope="owners", ids=[PEOPLE["member"]]))["count"] == 1
     api("/api/directory/sync", member, {}, expected=403)
     api(permissions, member, {"id": PEOPLE["member"], "role": "admin"}, "PATCH", expected=403)
     api(permissions, owner, {"id": PEOPLE["member"], "enabled": False}, "PATCH")
