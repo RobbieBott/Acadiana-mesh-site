@@ -143,10 +143,17 @@
     location.reload();
   });
 
+  var ownerMail = window.createOwnerMail(pb, $, function (access) {
+    $('rm-mail-tab').hidden = !access.sender;
+    if (access.owner) $('rm-me-role').textContent = 'Site Owner';
+    if (access.sender && location.hash === '#owner-mail') showPanel('owner-mail', false);
+    if (!access.sender && !$('rm-p-owner-mail').hidden) showPanel('repeaters', false);
+  });
+
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'account'];
+  var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
+    if (PANELS.indexOf(name) < 0 || (name === 'owner-mail' && !ownerMail.canSend()) || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -154,6 +161,7 @@
       a.classList.toggle('active', on);
       a.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    if (name === 'owner-mail') ownerMail.open();
     if (push) history.replaceState(null, '', '#' + name);
   }
   $('rm-tabs').addEventListener('click', function (e) {
@@ -181,6 +189,7 @@
     af.phone.value = me.phone || ''; af.discord.value = me.discord || '';
     var start = location.hash.replace('#', '');
     showPanel(start || 'repeaters', false);
+    ownerMail.signIn();
     loadAll().then(function () {
       var m = location.hash.match(/^#edit-([a-z0-9]+)$/);
       if (m) { var r = repeaters.find(function (x) { return x.id === m[1]; }); if (r) openEditor(r); }
@@ -191,6 +200,7 @@
   }
 
   function signedOut() {
+    ownerMail.signOut();
     $('rm-loading').hidden = true;
     $('rm-signin').hidden = false;
     $('rm-app').hidden = true;
@@ -379,6 +389,7 @@
       { k: 'status', label: 'Status', req: true, type: 'select', opts: STATUSES.map(function (s) { return [s, statusLabel(s)]; }), help: 'For an installed repeater the public directory shows Online, Stale or Offline from when the mesh last heard it. Use Maintenance, Down or Retired to say so yourself.' },
       { k: 'area', label: 'General area', help: 'A town or area, like “NE of Rayne”. Don’t enter a street address.' },
       { k: 'install_date', label: 'Install date', type: 'date' },
+      { k: 'offline_pause_until', label: 'Pause offline alerts until', type: 'date', help: 'Alerts resume at the start of this date in Central time.' },
       { k: 'antenna_height', label: 'Antenna height', ph: "40'" }
     ] },
     { title: 'On the mesh', fields: [
@@ -425,7 +436,7 @@
 
   function fieldHtml(f, r) {
     var v = r ? r[f.k] : '';
-    if (f.k === 'install_date') v = toInputDate(v);
+    if (f.k === 'install_date' || f.k === 'offline_pause_until') v = toInputDate(v);
     if (f.k === 'path_hash_bytes') v = v ? String(v) : '';
     if (v == null) v = '';
     var id = 'rm-f-' + f.k;
@@ -567,6 +578,7 @@
         if (f.upper) v = v.toUpperCase();
         if (f.k === 'public_key') v = v.toLowerCase();
         if (f.k === 'install_date') v = fromInputDate(v);
+        if (f.k === 'offline_pause_until') v = ownerMail.pauseValue(v);
         if (f.k === 'path_hash_bytes') v = v ? Number(v) : 0;
         data[f.k] = v;
         if (f.show) data[f.show] = !!form.elements[f.show].checked;
@@ -980,12 +992,14 @@
       return '<form class="rm-card rm-form" data-observer-edit="'+esc(o.id)+'"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
         '<p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
         '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+options+
+        '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small>Alerts resume at the start of this date in Central time.</small></label>'+
         '<div class="rm-actions rm-actions-end"><button type="submit" class="btn btn-primary">Save observer</button></div></form>';
     }).join('')||'<p class="rd-muted">No observers assigned yet. <a href="/repeaters/#observers">Claim an observer</a>.</p>';
   }
   $('rm-obs-list').addEventListener('submit',function(e){
     var form=e.target.closest('[data-observer-edit]');if(!form)return;e.preventDefault();
     var body={};['display_name','area','hardware','public_owner','notes'].forEach(function(k){body[k]=form.elements[k].value.trim();});
+    body.offline_pause_until=ownerMail.pauseValue(form.elements.offline_pause_until.value);
     if(isAdmin)body.managers=Array.from(form.querySelectorAll('input[name=managers]:checked')).map(function(x){return x.value;});
     busy(form,true);
     pb.collection('managed_observers').update(form.getAttribute('data-observer-edit'),body).then(function(o){
