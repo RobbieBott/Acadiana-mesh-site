@@ -25,7 +25,7 @@ function snapshot(base, now) {
     if (!row || !row.id) continue;
     const time = timestamp(row.last_seen, now);
     observerTimes.set(String(row.id), Math.max(time, (observerTimes.get(String(row.id)) || 0) || 0));
-    if (String(row.iata || "").toUpperCase() === "LFT") regionalObserverTime = Math.max(regionalObserverTime, time);
+    if (String(row.iata || "").trim().toUpperCase() === "LFT") regionalObserverTime = Math.max(regionalObserverTime, time);
   }
   for (const row of repeaters) {
     if (!row || row.role !== "repeater" || !row.public_key) continue;
@@ -72,7 +72,7 @@ function check(app) {
         const label = device.type === "repeater" ? "Repeater" : "Observer";
         if (sending) {
           const notice = {
-            subject: label + " not heard for 24 hours: " + device.name.slice(0, 108),
+            subject: label + " not heard for 24 hours: " + device.name.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 108),
             message: device.name + " has not reported " + (device.type === "observer" ? "its status" : "activity") +
               " to the Acadiana Mesh analyzer for at least 24 hours.\n\nLast report: " +
               new Date(last).toISOString().replace("T", " ").slice(0, 16) + " UTC.\n\nPlease check the device when you can.",

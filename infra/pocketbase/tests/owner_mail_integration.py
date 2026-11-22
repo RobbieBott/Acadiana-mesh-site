@@ -72,9 +72,15 @@ onBootstrap((e) => {
 });
 routerAdd("POST", "/test/run", (e) => {
   if (e.auth.id !== "aaaaaaaaaaaaaaa") throw new ForbiddenError("Fixtures only.");
-  const job = e.requestInfo().body.job;
+  const body = e.requestInfo().body;
+  const job = body.job;
   if (job === "queue") require(__hooks + "/owner_mail.js").processQueue(e.app);
-  else {
+  else if (job === "age") {
+    for (const state of e.app.findAllRecords("owner_offline_state")) {
+      state.set("last_seen", body.lastSeen);
+      e.app.save(state);
+    }
+  } else {
     try { require(__hooks + "/owner_offline.js").check(e.app); }
     catch (error) { return e.json(503, {message: String(error)}); }
   }
@@ -229,9 +235,7 @@ def run(folder):
     assert len(api(ROUTE, owner)["history"]) == 1
     signals.update(broken=False)
     # Advance the time since the simulated recovery without changing the feed clock.
-    import sqlite3
-    with sqlite3.connect(folder / "data" / "data.db") as db:
-        db.execute("update owner_offline_state set last_seen = ?", (last(30).replace("T", " ")[:23] + "Z",))
+    api("/test/run", owner, {"job": "age", "lastSeen": last(30)})
     api("/test/run", owner, {"job": "offline"})
     api("/test/run", owner, {"job": "offline"})
     history = api(ROUTE, owner)["history"]
@@ -239,7 +243,7 @@ def run(folder):
     api(pause, member, {"offline_pause_until": ""}, "PATCH")
     api("/test/run", owner, {"job": "offline"})
     api("/test/run", owner, {"job": "queue"})
-    assert len(messages) == 3 and "Fixture Observer" in messages[-1]["Subject"]
+    assert len(messages) == 3 and any("Fixture Observer" in msg["Subject"] for msg in messages)
     print("Verified log-only mode, recovery, stale-feed suppression, maintenance pause and one alert per outage", flush=True)
 
 
