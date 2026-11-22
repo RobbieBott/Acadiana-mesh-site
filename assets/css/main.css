@@ -1116,6 +1116,18 @@ ul { list-style: none; }
 .rm-form { display: grid; gap: 0.9rem; }
 .rm-form > div { display: grid; gap: 0.9rem; }
 .rm-form > div[hidden] { display: none; }
+.rm-mail-compose { align-items: start; grid-template-columns: minmax(0, 1fr); }
+.rm-mail-fields { display: grid; gap: 0.75rem; min-width: 0; }
+.rm-mail-fields .rm-hint { margin: -0.35rem 0 0; }
+.rm-mail-live { min-width: 0; }
+.rm-mail-live iframe {
+  display: block; width: 100%; height: 26rem; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--bg);
+}
+@media (min-width: 860px) {
+  .rm-mail-compose { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+}
+
 .rm-field { display: grid; gap: 0.35rem; min-width: 0; align-content: start; }
 .rm-field > span, .rm-label { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
 .rm-field em, .rm-label em { color: var(--accent); font-style: normal; }

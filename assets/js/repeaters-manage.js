@@ -174,6 +174,8 @@
   function signedIn() {
     me = pb.authStore.record;
     isAdmin = me && me.role === 'admin';
+    managedObservers = [];
+    peopleObserverStatus = 'Loading…';
     $('rm-signin').hidden = true;
     $('rm-app').hidden = false;
     $('rm-tabs').hidden = false;
@@ -684,18 +686,26 @@
     if (!isAdmin) return;
     $('rm-people-body').innerHTML = people.map(function (u) {
       var reps = repsFor(u.id);
+      var observerNames = managedObservers.filter(function (observer) {
+        return (observer.managers || []).includes(u.id);
+      }).map(function (observer) {
+        return observer.display_name || observer.observer_name;
+      }).filter(Boolean).sort(function (a, b) { return a.localeCompare(b); }).join(', ');
+      var observerSummary = observerNames || peopleObserverStatus;
       var self = u.id === me.id;
       return '<tr><td><strong>' + esc(u.name || '—') + '</strong>' + (u.callsign ? ' <span class="rd-mono">' + esc(u.callsign) + '</span>' : '') +
         (self ? ' <span class="rd-muted">(you)</span>' : '') +
         '<div class="rm-sub rm-show-sm">' + esc(u.email) + '</div>' +
+        (observerSummary ? '<div class="rm-sub rm-show-sm">Observers · ' + esc(observerSummary) + '</div>' : '') +
         (!u.verified ? '<div class="rm-sub"><span class="rd-pill warn">Hasn’t signed in yet</span></div>' : '') + '</td>' +
         '<td class="rm-hide-sm">' + esc(u.email) + '</td>' +
         '<td><span class="rd-pill ' + (u.role === 'admin' ? 'ok' : 'info') + '">' + (u.role === 'admin' ? 'Admin' : 'User') + '</span></td>' +
         '<td class="rm-hide-sm">' + (reps.length ? esc(reps.map(function (r) { return r.name; }).join(', ')) : '<span class="rd-muted">—</span>') + '</td>' +
+        '<td class="rm-hide-sm">' + (observerNames ? esc(observerNames) : '<span class="rd-muted">' + esc(peopleObserverStatus || '—') + '</span>') + '</td>' +
         '<td class="rm-right rm-nowrap"><button type="button" class="btn btn-secondary rm-sm" data-person="' + esc(u.id) + '">Edit</button>' +
         (!u.verified ? ' <button type="button" class="rm-link" data-invite="' + esc(u.id) + '">Resend invite</button>' : '') +
         (!self ? ' <button type="button" class="rm-link rm-x" data-remove="' + esc(u.id) + '">Remove</button>' : '') + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" class="rd-muted">No people yet.</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="rd-muted">No people yet.</td></tr>';
   }
 
   function personRepsHtml(selected) {
@@ -1043,7 +1053,7 @@
 
 
   // Observer ownership lives in PocketBase, independent of the live analyzer.
-  var managedObservers=[], observerClaims=[];
+  var managedObservers=[], observerClaims=[], peopleObserverStatus='Loading…';
   function updateClaimCount(){
     var n=claims.filter(function(c){return c.status==='pending';}).length+observerClaims.filter(function(c){return c.status==='pending';}).length;
     $('rm-claims-count').textContent=n||'';
@@ -1053,11 +1063,15 @@
     $('rm-obs-msg').textContent='Loading observers…';
     return pb.collection('managed_observers').getFullList({sort:'observer_name'}).then(function(records){
       managedObservers=records;
+      peopleObserverStatus='';
       if(isAdmin)return pb.collection('users').getFullList({sort:'name'}).then(function(p){people=p;});
     }).then(function(){
       $('rm-obs-msg').textContent='';
       renderObservers();
+      renderPeople();
     }).catch(function(err){
+      peopleObserverStatus='Unavailable';
+      renderPeople();
       $('rm-obs-msg').textContent='Observer management is not available: '+errText(err);
       $('rm-obs-list').innerHTML='';
     });
@@ -1085,6 +1099,7 @@
     busy(form,true);
     pb.collection('managed_observers').update(form.getAttribute('data-observer-edit'),body).then(function(o){
       var i=managedObservers.findIndex(function(x){return x.id===o.id;});if(i>=0)managedObservers[i]=o;
+      renderPeople();
       toast('Observer saved.');
     }).catch(function(err){toast(errText(err),'bad');}).then(function(){busy(form,false);});
   });
