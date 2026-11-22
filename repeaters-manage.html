@@ -17,6 +17,7 @@ sitemap: false
       <a href="#people" role="tab" data-panel="people" data-admin>People</a>
       <a href="#prefixes" role="tab" data-panel="prefixes">Prefixes</a>
       <a href="#owner-mail" role="tab" data-panel="owner-mail" id="rm-mail-tab" hidden>Owner Emails</a>
+      <a href="#permissions" role="tab" data-panel="permissions" id="rm-permissions-tab" hidden>Permissions</a>
       <a href="#account" role="tab" data-panel="account">My Account</a>
     </nav>
   </section>
@@ -183,10 +184,9 @@ sitemap: false
             <label class="rm-field"><span>Name <em>*</em></span><input name="name" required maxlength="100"></label>
             <label class="rm-field"><span>Email <em>*</em></span><input type="email" name="email" required></label>
             <label class="rm-field"><span>Callsign</span><input name="callsign" maxlength="20" class="rm-upper"></label>
-            <label class="rm-field"><span>Role</span>
-              <select name="role"><option value="user">User — edits assigned devices</option><option value="admin">Admin — edits everything</option></select>
-            </label>
+
           </div>
+          <p id="rm-person-email-hint" class="rm-hint" hidden>Changing their sign-in email signs them out and requires them to verify the new address and set a new password.</p>
           <fieldset class="rm-field rm-checks">
             <legend>Repeaters they manage</legend>
             <input type="search" class="rm-filter" id="rm-person-rep-q" placeholder="Filter repeaters" autocomplete="off">
@@ -298,11 +298,23 @@ sitemap: false
           <div class="rm-head"><h3>Recent sends</h3><button class="btn btn-secondary" type="button" id="rm-mail-refresh">Refresh history</button></div>
           <ul id="rm-mail-history"></ul>
         </section>
-        <section class="rm-card" id="rm-mail-permissions" hidden>
-          <h3>Who can send owner emails</h3>
-          <p class="rd-muted">Grant sending access to verified directory admins.</p>
-          <div id="rm-mail-admins" class="rm-checklist"></div>
-        </section>
+      </section>
+
+      <section class="rm-panel" id="rm-p-permissions" data-panel="permissions" hidden>
+        <div class="rm-head">
+          <div>
+            <h2>Permissions</h2>
+            <p class="rd-muted">Admins manage the directory. Owner Emails can be granted to any verified account.</p>
+          </div>
+          <button class="btn btn-secondary" type="button" id="rm-permissions-refresh">Refresh</button>
+        </div>
+        <p id="rm-permissions-status" role="status" aria-live="polite"></p>
+        <div class="rd-table-wrap">
+          <table class="rd-table rm-table">
+            <thead><tr><th>Account</th><th>Role</th><th>Owner Emails</th><th><span class="rd-muted">Save changes</span></th></tr></thead>
+            <tbody id="rm-permissions-body"></tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Account -->

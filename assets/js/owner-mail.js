@@ -170,32 +170,6 @@ window.createOwnerMail = function (pb, $, onAccess) {
     });
   }
 
-  function showAdmins(admins) {
-    var list = $('rm-mail-admins');
-    list.replaceChildren();
-    if (!admins.length) list.textContent = 'No other verified admins.';
-    admins.forEach(function (admin) {
-      var input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = admin.enabled;
-      input.addEventListener('change', function () {
-        var current = generation;
-        input.disabled = true;
-        request('/permissions', { id: admin.id, enabled: input.checked }).then(function (result) {
-          if (current !== generation) return;
-          showAdmins(result.admins);
-          status.textContent = 'Email permission updated.';
-        }).catch(function () {
-          if (current !== generation) return;
-          input.checked = admin.enabled;
-          input.disabled = false;
-          status.textContent = 'Could not update email permission.';
-        });
-      });
-      list.append(label(admin.name, input));
-    });
-  }
-
   function load(includeCatalog) {
     var current = generation;
     return request('').then(function (result) {
@@ -213,17 +187,8 @@ window.createOwnerMail = function (pb, $, onAccess) {
   }
 
   function open() {
-    var current = generation;
     load(true);
     loadSamples();
-    $('rm-mail-permissions').hidden = !access.owner;
-    if (access.owner) {
-      request('/permissions').then(function (result) {
-        if (current === generation) showAdmins(result.admins);
-      }).catch(function () {
-        if (current === generation) status.textContent = 'Could not load admin permissions.';
-      });
-    }
   }
 
   function renderSample() {
@@ -416,7 +381,6 @@ window.createOwnerMail = function (pb, $, onAccess) {
       sampleFrame.hidden = true;
       sampleFrame.removeAttribute('srcdoc');
       sampleStatus.textContent = '';
-      $('rm-mail-admins').replaceChildren();
     },
     pauseValue: function (date) {
       if (!date) return '';

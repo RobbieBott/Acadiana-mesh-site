@@ -304,6 +304,50 @@ def run(folder):
     api(ROUTE + "/preview", owner, dict(draft, signature="x" * 501), expected=400)
     print("Verified button variants, signature placement and escaping, and final SMTP content", flush=True)
 
+    permissions = "/api/directory/permissions"
+    accounts = api(permissions, owner)["accounts"]
+    assert next(row for row in accounts if row["id"] == PEOPLE["siteowner"])["owner"]
+    api(permissions, admin, expected=403)
+    api(permissions, member, expected=403)
+    mail_only = {"id": PEOPLE["member"], "enabled": True, "previousEnabled": False, "previousRole": "user"}
+    api(permissions, admin, mail_only, "PATCH", expected=403)
+    api(permissions, owner, mail_only, "PATCH")
+    api(permissions, owner, mail_only, "PATCH", expected=400)
+    assert api(ROUTE + "/access", member) == {"owner": False, "sender": True}
+    assert api(ROUTE + "/preview", member, dict(draft, scope="owners", ids=[PEOPLE["member"]]))["count"] == 1
+    api("/api/directory/sync", member, {}, expected=403)
+    api(permissions, member, {"id": PEOPLE["member"], "role": "admin"}, "PATCH", expected=403)
+    api(permissions, owner, {"id": PEOPLE["member"], "enabled": False}, "PATCH")
+    api(ROUTE, member, expected=403)
+
+    users = "/api/collections/users/records"
+    target = users + "/" + PEOPLE["member"]
+    api(target, admin, {"name": "Updated directory profile"}, "PATCH")
+    api(target, admin, {"role": "admin"}, "PATCH", expected=403)
+    api(target, admin, {"email": "changed@example.com"}, "PATCH", expected=403)
+    api(target, admin, {"verified": False}, "PATCH", expected=403)
+    api(target, admin, method="DELETE", expected=403)
+    api("/api/collections/repeaters/records/" + REPEATER, admin, method="DELETE", expected=403)
+    api("/api/collections/managed_observers/records/" + OBSERVER, admin, method="DELETE", expected=403)
+    signup = {"email": "new@example.com", "name": "New user", "role": "admin", "password": PASSWORD,
+              "passwordConfirm": PASSWORD}
+    api(users, admin, signup, expected=403)
+    created = api(users, admin, dict(signup, role="user", verified=True))
+    assert created["role"] == "user" and not created["verified"]
+    assert api(permissions, owner, {"id": created["id"], "role": "admin"}, "PATCH")["accounts"]
+    assert api(users + "/" + created["id"], owner)["role"] == "admin"
+    api(permissions, owner, {"id": PEOPLE["siteowner"], "role": "user"}, "PATCH", expected=400)
+    api(permissions + "/" + PEOPLE["member"] + "/email", admin,
+        {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH", expected=403)
+    api(permissions + "/" + PEOPLE["member"] + "/email", owner,
+        {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH")
+    changed = api(target, owner)
+    assert changed["email"] == "changed@example.com" and not changed["verified"]
+    api(ROUTE + "/access", member, expected=401)
+    api(users + "/" + created["id"], owner, method="DELETE", expected=204)
+    api("/api/collections/managed_observers/records/" + OBSERVER, owner, method="DELETE", expected=204)
+    print("Verified independent email grants, Site Owner-only role and identity changes, and deletion limits", flush=True)
+
 
 if __name__ == "__main__":
     docker("build", "-q", "-t", IMAGE, str(ROOT))

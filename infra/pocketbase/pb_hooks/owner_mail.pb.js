@@ -34,19 +34,17 @@ routerAdd("POST", "/api/directory/owner-mail/send", (e) => {
 routerAdd("GET", "/api/directory/owner-mail/permissions", (e) => {
   const mail = require(__hooks + "/owner_mail.js");
   if (!mail.isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can grant email access.");
-  return e.json(200, { admins: mail.permissionList(e.app) });
+  return e.json(200, { admins: mail.permissionList(e.app).filter((row) => row.role === "admin" && row.verified && !row.owner) });
 }, $apis.requireAuth("users"));
 
 routerAdd("POST", "/api/directory/owner-mail/permissions", (e) => {
   const mail = require(__hooks + "/owner_mail.js");
   if (!mail.isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can grant email access.");
   const body = e.requestInfo().body;
-  mail.setPermission(e.app, body.id, body.enabled);
-  return e.json(200, { admins: mail.permissionList(e.app) });
+  if (typeof body.enabled !== "boolean") throw new BadRequestError("Select an email permission.");
+  mail.changeAccess(e.app, body.id, { enabled: body.enabled });
+  return e.json(200, { admins: mail.permissionList(e.app).filter((row) => row.role === "admin" && row.verified && !row.owner) });
 }, $apis.requireAuth("users"));
-
-onRecordUpdateRequest((e) => require(__hooks + "/owner_mail.js").protectAccount(e), "users");
-onRecordDeleteRequest((e) => require(__hooks + "/owner_mail.js").protectAccount(e), "users");
 
 cronAdd("owner-mail-queue", "* * * * *", () => {
   try { require(__hooks + "/owner_mail.js").processQueue($app); }
