@@ -150,6 +150,7 @@ sitemap: false
             <p class="rd-muted">People who requested to manage a repeater or observer in the directory. <strong>Approve</strong> makes their account if needed, adds them as a manager of that repeater, fills in the owner if it’s empty and emails them. Check that they really own it first.</p>
           </div>
         </div>
+        <div id="rm-repeater-claims" hidden>
         <h3 class="rm-subhead">Repeater claims</h3>
         <div class="rd-table-wrap">
           <table class="rd-table rm-table">
@@ -159,6 +160,8 @@ sitemap: false
         </div>
         <h3 class="rm-subhead">Recently handled</h3>
         <ul class="rm-handled" id="rm-claims-done"></ul>
+        </div>
+        <div id="rm-observer-claims" hidden>
         <h3 class="rm-subhead">Observer claims</h3>
         <p class="rd-muted">Verify that the person owns or operates the observer before approving.</p>
         <p id="rm-obs-claims-msg" class="rd-muted" role="status"></p>
@@ -167,6 +170,7 @@ sitemap: false
           <tbody id="rm-obs-claims-body"></tbody></table></div>
         <h3 class="rm-subhead">Recently handled observer claims</h3>
         <ul class="rm-handled" id="rm-obs-claims-done"></ul>
+        </div>
       </section>
 
       <!-- People (admins) -->
@@ -187,7 +191,7 @@ sitemap: false
 
           </div>
           <p id="rm-person-email-hint" class="rm-hint" hidden>Changing their sign-in email signs them out and requires them to verify the new address and set a new password.</p>
-          <fieldset class="rm-field rm-checks">
+          <fieldset class="rm-field rm-checks" id="rm-person-rep-field">
             <legend>Repeaters they manage</legend>
             <input type="search" class="rm-filter" id="rm-person-rep-q" placeholder="Filter repeaters" autocomplete="off">
             <div class="rm-checklist" id="rm-person-reps"></div>
@@ -304,14 +308,14 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>Permissions</h2>
-            <p class="rd-muted">Choose a role and Owner Emails access for each account.</p>
+            <p class="rd-muted">Choose a role, then open Staff permissions to grant or block individual actions for that account.</p>
           </div>
           <button class="btn btn-secondary" type="button" id="rm-permissions-refresh">Refresh</button>
         </div>
         <p id="rm-permissions-status" role="status" aria-live="polite"></p>
         <div class="rd-table-wrap">
           <table class="rd-table rm-table">
-            <thead><tr><th>Account</th><th>Role</th><th>Owner Emails</th><th><span class="rd-muted">Save changes</span></th></tr></thead>
+            <thead><tr><th>Account</th><th>Role</th><th>Owner Emails</th><th>Staff permissions</th><th><span class="rd-muted">Save changes</span></th></tr></thead>
             <tbody id="rm-permissions-body"></tbody>
           </table>
         </div>
@@ -341,7 +345,7 @@ sitemap: false
               </tbody>
             </table>
           </div>
-          <p class="rd-muted">Owner Emails requires a verified email address. PocketBase, server, and analyzer administration use separate access.</p>
+          <p class="rd-muted">The table shows role defaults. Individual grants and blocks override the defaults. Owner Emails requires a verified email address. PocketBase, server, and analyzer administration use separate access.</p>
         </section>
       </section>
 

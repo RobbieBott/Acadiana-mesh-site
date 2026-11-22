@@ -71,7 +71,7 @@ module.exports.approve = function (app, claimId, adminId) {
 module.exports.notifyAdmins = function (app, claim) {
   let repName = "";
   try { repName = app.findRecordById("repeaters", claim.getString("repeater")).getString("name"); } catch (_) {}
-  const admins = app.findRecordsByFilter("users", "role = 'admin' && verified = true", "", 50, 0);
+  const admins = app.findRecordsByFilter("users", "staff_permissions ?= 'approve_repeater_claims' && verified = true", "", 50, 0);
   admins.forEach((a) => {
     try {
       send(app, a.email(), "Repeater claim: " + repName,

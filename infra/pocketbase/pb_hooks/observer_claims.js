@@ -34,7 +34,7 @@ module.exports.approve=function(app,claimId,adminId){
   return{approved:true,observer:observerName,user:user.getString("name"),new_account:isNew,emailed:mailed};
 };
 module.exports.notify=function(app,c){
-  const admins=app.findRecordsByFilter("users","role = 'admin' && verified = true","",50,0);
+  const admins=app.findRecordsByFilter("users","staff_permissions ?= 'approve_observer_claims' && verified = true","",50,0);
   admins.forEach(a=>{
     try{send(app,a.email(),"Observer claim awaiting approval","<p>"+esc(c.getString("name"))+" &lt;"+esc(c.getString("email"))+"&gt; asked to manage <strong>"+esc(c.getString("observer_name"))+"</strong>.</p><p>"+esc(c.getString("note"))+"</p><p><a href='https://acadianamesh.com/repeaters/manage/#claims'>Review claim</a></p>");}
     catch(err){console.log("[observer claims] admin notice failed: "+err);}

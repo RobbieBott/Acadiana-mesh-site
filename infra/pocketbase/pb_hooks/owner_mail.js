@@ -12,11 +12,8 @@ function grant(app, id) {
   return one(app, PERMISSIONS, "user = {:id}", { id });
 }
 
-function isOwner(record) {
-  const id = $os.getenv("DIRECTORY_SITE_OWNER_ID");
-  return !!(id && record && record.collection().name === "users" &&
-    record.id === id && record.getString("role") === "admin" && record.verified());
-}
+const staff = require(__hooks + "/staff_access.js");
+const isOwner = staff.isOwner;
 
 function canSend(app, user) {
   return !!(user && user.collection().name === "users" && user.verified() &&
@@ -42,14 +39,22 @@ function changeAccess(app, id, input) {
   if (input.role !== undefined && !["user", "admin"].includes(input.role)) {
     throw new BadRequestError("Choose User or Admin.");
   }
+  if (input.overrides !== undefined && !staff.valid(input.overrides)) {
+    throw new BadRequestError("Choose valid permission overrides.");
+  }
   app.runInTransaction((tx) => {
     const user = tx.findRecordById("users", id);
+    const before = staff.overrides(user);
+    if (input.previousOverrides !== undefined && Object.keys(staff.permissions).some((key) => before[key] !== input.previousOverrides?.[key])) {
+      throw new BadRequestError("These permissions changed. Refresh the grid and try again.");
+    }
     if ((input.previousRole !== undefined && user.getString("role") !== input.previousRole) ||
         (input.previousEnabled !== undefined && !!grant(tx, id) !== input.previousEnabled)) {
       throw new BadRequestError("These permissions changed. Refresh the grid and try again.");
     }
-    if (input.role !== undefined && user.getString("role") !== input.role) {
-      user.set("role", input.role);
+    if (input.role !== undefined || input.overrides !== undefined) {
+      if (input.role !== undefined) user.set("role", input.role);
+      if (input.overrides !== undefined) user.set("staff_overrides", input.overrides);
       tx.save(user);
     }
     if (input.enabled !== undefined) setGrant(tx, user, input.enabled);
@@ -61,7 +66,7 @@ function permissionList(app) {
   return app.findAllRecords("users").map((record) => ({
     id: record.id, name: record.getString("name") || record.email(), email: record.email(),
     role: record.getString("role"), owner: isOwner(record), verified: record.verified(),
-    enabled: isOwner(record) || granted.has(record.id)
+    enabled: isOwner(record) || granted.has(record.id), overrides: staff.overrides(record), staff: staff.effective(record)
   })).sort((a,b) => Number(b.owner) - Number(a.owner) || a.name.localeCompare(b.name));
 }
 

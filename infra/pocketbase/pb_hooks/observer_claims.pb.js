@@ -24,23 +24,37 @@ onRecordUpdateRequest((e)=>{
   for(const key of ["observer_id","observer_name","region"]){
     if(r.getString(key)!==old.getString(key))throw new BadRequestError("Analyzer identity cannot be edited.");
   }
-  if(!e.auth||e.auth.getString("role")!=="admin"){
+  const staff = require(__hooks + "/staff_access.js");
+  const assign = staff.has(e.auth, "assign_observers");
+  if(!assign){
     if(JSON.stringify(r.getStringSlice("managers").sort())!==JSON.stringify(old.getStringSlice("managers").sort()))
-      throw new BadRequestError("Only admins can assign observer managers.");
+      throw new ForbiddenError("Observer manager assignment permission is required.");
+  }
+  if (assign && !staff.has(e.auth, "edit_observers") && !old.getStringSlice("managers").includes(e.auth.id)) {
+    if (r.getStringSlice("managers").includes(e.auth.id)) throw new ForbiddenError("You cannot assign yourself to this observer.");
+    if (Object.keys(e.requestInfo().body).some((field) => !["managers", "managers+", "+managers", "managers-"].includes(field))) {
+      throw new ForbiddenError("You can assign managers but cannot edit this listing.");
+    }
   }
   e.next();
 },"managed_observers");
 routerAdd("POST","/api/directory/observer-claims/{id}/approve",(e)=>{
-  if(!e.auth||e.auth.getString("role")!=="admin")return e.json(403,{message:"Only admins can approve claims."});
+  if(!require(__hooks + "/staff_access.js").has(e.auth, "approve_observer_claims"))return e.json(403,{message:"Observer claim approval permission is required."});
   try{return e.json(200,require(`${__hooks}/observer_claims.js`).approve(e.app,e.request.pathValue("id"),e.auth.id));}
   catch(err){console.log("[observer claims] approval failed: "+err);return e.json(400,{message:"Could not approve observer claim. It may already have been handled."});}
 },$apis.requireAuth("users"));
 
 
 routerAdd("POST", "/api/directory/people/{id}/observers", (e) => {
-  if (!e.auth || e.auth.getString("role") !== "admin") {
-    throw new ForbiddenError("Only admins can assign observers.");
+  if (!require(__hooks + "/staff_access.js").has(e.auth, "assign_observers")) {
+    throw new ForbiddenError("Observer manager assignment permission is required.");
   }
-  require(__hooks + "/observer_directory.js").assign(e.app, e.request.pathValue("id"), e.requestInfo().body);
+  const id = e.request.pathValue("id");
+  const body = e.requestInfo().body;
+  if (id === e.auth.id && Array.isArray(body.add) && body.add.length &&
+      !require(__hooks + "/staff_access.js").has(e.auth, "edit_observers")) {
+    throw new ForbiddenError("You cannot assign yourself to an observer you do not manage.");
+  }
+  require(__hooks + "/observer_directory.js").assign(e.app, id, body);
   return e.json(200, {saved: true});
 }, $apis.requireAuth("users"));

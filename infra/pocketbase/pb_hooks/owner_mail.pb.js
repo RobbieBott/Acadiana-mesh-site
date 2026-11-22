@@ -1,7 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 routerAdd("GET", "/api/directory/owner-mail/access", (e) => {
   const mail = require(__hooks + "/owner_mail.js");
-  return e.json(200, { owner: mail.isOwner(e.auth), sender: mail.canSend(e.app, e.auth) });
+  return e.json(200, { owner: mail.isOwner(e.auth), sender: mail.canSend(e.app, e.auth), staff: require(__hooks + "/staff_access.js").effective(e.auth) });
 }, $apis.requireAuth("users"));
 
 routerAdd("GET", "/api/directory/owner-mail", (e) => {

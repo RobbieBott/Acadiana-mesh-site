@@ -14,8 +14,8 @@ onRecordAfterCreateSuccess((e) => {
 }, "claims");
 
 routerAdd("POST", "/api/directory/claims/{id}/approve", (e) => {
-  if (!e.auth || e.auth.getString("role") !== "admin") {
-    return e.json(403, { message: "Only admins can approve claims." });
+  if (!require(__hooks + "/staff_access.js").has(e.auth, "approve_repeater_claims")) {
+    return e.json(403, { message: "Repeater claim approval permission is required." });
   }
   try {
     return e.json(200, require(`${__hooks}/claims.js`).approve(e.app, e.request.pathValue("id"), e.auth.id));
