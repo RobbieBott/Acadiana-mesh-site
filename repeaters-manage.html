@@ -304,7 +304,7 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>Permissions</h2>
-            <p class="rd-muted">Admins manage the directory. Owner Emails can be granted to any verified account.</p>
+            <p class="rd-muted">Choose a role and Owner Emails access for each account.</p>
           </div>
           <button class="btn btn-secondary" type="button" id="rm-permissions-refresh">Refresh</button>
         </div>
@@ -315,6 +315,34 @@ sitemap: false
             <tbody id="rm-permissions-body"></tbody>
           </table>
         </div>
+
+        <section class="rm-permission-reference" aria-labelledby="rm-permission-reference-title">
+          <h3 id="rm-permission-reference-title">Role permissions</h3>
+          <div class="rd-table-wrap" role="region" aria-labelledby="rm-permission-reference-title" tabindex="0">
+            <table class="rd-table rm-table rm-permission-matrix" aria-labelledby="rm-permission-reference-title">
+              <thead><tr><th scope="col">Permission</th><th scope="col">User</th><th scope="col">Admin</th><th scope="col">Site Owner</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Browse public listings and submit claims</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                <tr><th scope="row">Update own profile and set or reset own password</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                <tr><th scope="row">View private repeater contact details and edit repeater listings</th><td>Assigned repeaters</td><td>All repeaters</td><td>All repeaters</td></tr>
+                <tr><th scope="row">Edit observer listings</th><td>Assigned observers</td><td>All registered observers</td><td>All registered observers</td></tr>
+                <tr><th scope="row">Add a repeater</th><td>Assign yourself</td><td>Assign any manager</td><td>Assign any manager</td></tr>
+                <tr><th scope="row">Link a repeater’s contact details to a profile</th><td>Own profile, on assigned repeaters</td><td>Any profile</td><td>Any profile</td></tr>
+                <tr><th scope="row">Manage maintenance logs and pause device alerts</th><td>Assigned devices</td><td>All devices</td><td>All devices</td></tr>
+                <tr><th scope="row">Assign device managers, register observers, and approve or decline claims</th><td>No</td><td>Yes</td><td>Yes</td></tr>
+                <tr><th scope="row">Run CoreScope sync</th><td>No</td><td>Yes</td><td>Yes</td></tr>
+                <tr><th scope="row">Reserve, rename, or release prefixes</th><td>Own reservations, up to five per email</td><td>All reservations</td><td>All reservations</td></tr>
+                <tr><th scope="row">View People and invite regular users</th><td>No</td><td>Yes</td><td>Yes</td></tr>
+                <tr><th scope="row">Edit other people’s directory profile details</th><td>No</td><td>Except the Site Owner and accounts with Owner Emails</td><td>Yes</td></tr>
+                <tr><th scope="row">Send owner notices and view send history</th><td>With Owner Emails access</td><td>With Owner Emails access</td><td>Included</td></tr>
+                <tr><th scope="row">Change roles and grant or revoke Owner Emails</th><td>No</td><td>No</td><td>Yes</td></tr>
+                <tr><th scope="row">Change another account’s sign-in email</th><td>No</td><td>No</td><td>Yes</td></tr>
+                <tr><th scope="row">Permanently delete other accounts, repeaters, or observer listings</th><td>No</td><td>No</td><td>Yes</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="rd-muted">Owner Emails requires a verified email address. PocketBase, server, and analyzer administration use separate access.</p>
+        </section>
       </section>
 
       <!-- Account -->
