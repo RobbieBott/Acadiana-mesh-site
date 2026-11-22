@@ -77,3 +77,12 @@ routerAdd("PATCH", "/api/directory/permissions/{id}/email", (e) => {
   });
   return e.json(200, { changed: true });
 }, $apis.requireAuth("users"));
+
+onRecordEnrich((e) => {
+  const auth = e.requestInfo.auth;
+  if (auth && auth.collection().name === "users" && auth.getString("role") === "admin") {
+    // People can still display contact addresses without the auth-record manage grant.
+    e.record.ignoreEmailVisibility(true);
+  }
+  e.next();
+}, "users");
