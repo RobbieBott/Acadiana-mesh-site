@@ -11,6 +11,10 @@ window.createOwnerMail = function (pb, $, onAccess) {
   var formButton = form.querySelector('button[type=submit]');
   var historyList = $('rm-mail-history');
   var sendTask = null;
+  var samples = null;
+  var samplePanel = $('rm-mail-template-sample');
+  var sampleFrame = $('rm-mail-sample-frame');
+  var sampleStatus = $('rm-mail-sample-status');
 
   function request(path, body) {
     return pb.send(route + path, body ? { method: 'POST', body: body } : {});
@@ -127,6 +131,27 @@ window.createOwnerMail = function (pb, $, onAccess) {
     }
   }
 
+  function renderSample() {
+    if (!samplePanel.open || !samples) return;
+    sampleFrame.srcdoc = samples[form.elements.template.value];
+    sampleFrame.hidden = false;
+    sampleStatus.textContent = '';
+  }
+
+  samplePanel.addEventListener('toggle', function () {
+    if (!samplePanel.open) return;
+    if (samples) { renderSample(); return; }
+    var current = generation;
+    sampleStatus.textContent = 'Loading template preview…';
+    request('/templates').then(function (result) {
+      if (current !== generation) return;
+      samples = result;
+      renderSample();
+    }).catch(function () {
+      if (current === generation) sampleStatus.textContent = 'Could not load the template. Close this preview and try again.';
+    });
+  });
+  form.elements.template.addEventListener('change', renderSample);
   form.addEventListener('input', clearPreview);
   form.elements.scope.addEventListener('change', showTargets);
   form.addEventListener('submit', function (event) {
@@ -167,6 +192,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       if (current !== generation) return;
       if (version === revision) {
         form.reset();
+        renderSample();
         showTargets();
         clearPreview();
       }
@@ -206,6 +232,11 @@ window.createOwnerMail = function (pb, $, onAccess) {
       formButton.disabled = false;
       status.textContent = '';
       historyList.replaceChildren();
+      samples = null;
+      samplePanel.open = false;
+      sampleFrame.hidden = true;
+      sampleFrame.removeAttribute('srcdoc');
+      sampleStatus.textContent = '';
       $('rm-mail-admins').replaceChildren();
     },
     pauseValue: function (date) {

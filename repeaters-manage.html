@@ -173,7 +173,7 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>People</h2>
-            <p class="rd-muted"><strong>Users</strong> edit only the repeaters assigned to them. <strong>Admins</strong> edit every repeater, manage people and see every prefix reservation.</p>
+            <p class="rd-muted"><strong>Users</strong> edit the repeaters and observers assigned to them. <strong>Admins</strong> edit all repeaters and observers, manage people and see every prefix reservation.</p>
           </div>
           <button type="button" class="btn btn-primary" id="rm-add-person">+ Add person</button>
         </div>
@@ -184,7 +184,7 @@ sitemap: false
             <label class="rm-field"><span>Email <em>*</em></span><input type="email" name="email" required></label>
             <label class="rm-field"><span>Callsign</span><input name="callsign" maxlength="20" class="rm-upper"></label>
             <label class="rm-field"><span>Role</span>
-              <select name="role"><option value="user">User — edits their own repeaters</option><option value="admin">Admin — edits everything</option></select>
+              <select name="role"><option value="user">User — edits assigned devices</option><option value="admin">Admin — edits everything</option></select>
             </label>
           </div>
           <fieldset class="rm-field rm-checks">
@@ -192,6 +192,12 @@ sitemap: false
             <input type="search" class="rm-filter" id="rm-person-rep-q" placeholder="Filter repeaters" autocomplete="off">
             <div class="rm-checklist" id="rm-person-reps"></div>
             <p class="rm-hint">A repeater with no owner yet will list this person as its owner.</p>
+          </fieldset>
+          <fieldset class="rm-field rm-checks" id="rm-person-obs-field">
+            <legend>Observers they manage</legend>
+            <input type="search" class="rm-filter" id="rm-person-obs-q" placeholder="Filter observers" aria-label="Filter observers" autocomplete="off">
+            <div class="rm-checklist" id="rm-person-observers"></div>
+            <p class="rm-hint" id="rm-person-obs-status" role="status"></p>
           </fieldset>
           <label class="rm-check" id="rm-invite-wrap"><input type="checkbox" name="invite" checked> Email them an invite with sign-in instructions</label>
           <div class="rm-actions rm-actions-end">
@@ -260,6 +266,11 @@ sitemap: false
           </fieldset>
           <label class="rm-field"><span>Subject</span><input name="subject" maxlength="150" required></label>
           <label class="rm-field"><span>Message</span><textarea name="message" maxlength="5000" rows="8" required></textarea></label>
+          <details id="rm-mail-template-sample">
+            <summary>See what this template looks like</summary>
+            <p id="rm-mail-sample-status" class="rd-muted" role="status"></p>
+            <iframe id="rm-mail-sample-frame" title="Selected email template example" sandbox referrerpolicy="no-referrer" width="100%" height="380" hidden></iframe>
+          </details>
           <div class="rm-actions rm-actions-end"><button class="btn btn-primary" type="submit">Preview email</button></div>
         </form>
         <section class="rm-card" id="rm-mail-preview" hidden>

@@ -160,6 +160,18 @@ function render(notice) {
   };
 }
 
+function templateSamples() {
+  const samples = [
+    { template: "general", subject: "Acadiana Mesh owner update",
+      message: "Thanks for helping keep the Acadiana Mesh network running. Please review your device listing in the directory and update any details that have changed." },
+    { template: "network", subject: "Example: moving from SF9 to SF7",
+      message: "We plan to move the selected devices from SF9 to SF7 on Saturday at 9 a.m. Central.\n\nAfter the change, update your radio settings and confirm that your device is reporting in the analyzer." },
+    { template: "maintenance", subject: "Example: scheduled repeater maintenance",
+      message: "The repeater may be offline Saturday from 8 to 10 a.m. Central while we replace the antenna cable.\n\nCheck the directory for updates after the maintenance window." }
+  ];
+  return Object.fromEntries(samples.map((notice) => [notice.template, render(notice).html]));
+}
+
 function preview(app, actor, body) {
   const notice = content(body);
   const target = audience(app, body, notice, actor);
@@ -262,4 +274,4 @@ function processQueue(app) {
 }
 
 module.exports = { one, isOwner, canSend, protectAccount, setPermission, permissionList, devices, verifiedOwners,
-  catalog, preview, queue, addBatch, history, processQueue };
+  catalog, templateSamples, preview, queue, addBatch, history, processQueue };
