@@ -146,7 +146,9 @@ function content(body) {
   if (!["directory", "custom", "hidden"].includes(buttonMode) || (buttonMode === "custom" && !buttonUrl)) {
     throw new BadRequestError("Enter a full http or https URL for the email button.");
   }
-  return { subject, message, template: body.template, buttonMode, buttonUrl };
+  const signature = typeof body.signature === "string" ? body.signature.trim() : "";
+  if (signature.length > 500) throw new BadRequestError("Keep the signature to 500 characters.");
+  return { subject, message, signature, template: body.template, buttonMode, buttonUrl };
 }
 
 function escape(value) {
@@ -157,13 +159,16 @@ function render(notice) {
   const tag = TEMPLATES[notice.template];
   const paragraphs = escape(notice.message).split(/\r?\n\s*\r?\n/).map((paragraph) =>
     '<p style="margin:0 0 16px">' + paragraph.replace(/\r?\n/g, "<br>") + "</p>").join("");
+  const signature = notice.signature ?
+    '<p data-owner-mail-signature style="margin:20px 0 16px;color:#cbd5e1">' +
+    escape(notice.signature).replace(/\r?\n/g, "<br>") + '</p>' : '';
   const directoryUrl = notice.template === "offline" ? SITE + "/repeaters/manage/" : SITE + "/repeaters/";
   const url = notice.buttonMode === "hidden" ? "" : notice.buttonMode === "custom" ? buttonLink(notice.buttonUrl) : directoryUrl;
   const button = url ? '<a data-owner-mail-button href="' + escape(url) +
     '" style="display:inline-block;background:#f94d00;color:#0d0d14;border-radius:6px;padding:9px 14px;text-decoration:none">' +
     (notice.buttonMode === "custom" ? "Open link" : "Open Acadiana Mesh") + '</a>' : '';
   return {
-    text: "Acadiana Mesh · " + tag + "\n\n" + notice.subject + "\n\n" + notice.message + (url ? "\n\n" + url : ""),
+    text: "Acadiana Mesh · " + tag + "\n\n" + notice.subject + "\n\n" + notice.message + (notice.signature ? "\n\n" + notice.signature : "") + (url ? "\n\n" + url : ""),
     html: '<!doctype html><html lang="en"><body style="margin:0;background:#0d0d14;color:#e2e8f0;font:16px/1.55 Arial,sans-serif">' +
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px">' +
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#1a1a24;border-radius:12px;overflow:hidden">' +
@@ -171,7 +176,7 @@ function render(notice) {
       '<img src="' + SITE + '/assets/images/logo.png" width="36" alt="" style="vertical-align:middle;margin-right:10px">Acadiana Mesh</td></tr>' +
       '<tr><td style="padding:26px 28px"><p style="margin:0;color:#ff6a1a;font-size:13px;font-weight:bold">' + tag + '</p>' +
       '<h1 style="font-size:25px;line-height:1.25;margin:8px 0 20px">' + escape(notice.subject) + "</h1>" + paragraphs +
-      button + '</td></tr>' +
+      signature + button + '</td></tr>' +
       '</table></td></tr></table></body></html>'
   };
 }
@@ -200,6 +205,7 @@ function addBatch(app, key, kind, notice, target, sender = "") {
   batch.set("kind", kind);
   batch.set("subject", notice.subject);
   batch.set("message", notice.message);
+  batch.set("signature", notice.signature || "");
   batch.set("template", notice.template);
   batch.set("button_mode", notice.buttonMode || "directory");
   batch.set("button_url", notice.buttonUrl || "");
@@ -274,7 +280,7 @@ function processQueue(app) {
     const batch = app.findRecordById(BATCHES, row.getString("batch"));
     const subject = batch.getString("subject");
     const output = render({ subject, message: batch.getString("message"), template: batch.getString("template"),
-      buttonMode: batch.getString("button_mode"), buttonUrl: batch.getString("button_url") });
+      signature: batch.getString("signature"), buttonMode: batch.getString("button_mode"), buttonUrl: batch.getString("button_url") });
     const meta = app.settings().meta;
     let status = "accepted";
     try {

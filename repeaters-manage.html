@@ -243,22 +243,22 @@ sitemap: false
         <p id="rm-mail-status" role="status" aria-live="polite"></p>
         <form class="rm-card rm-form" id="rm-mail-form">
           <div class="rm-grid">
-            <label class="rm-field"><span>Send to</span>
-              <select name="scope">
+            <div class="rm-field"><span id="rm-mail-scope-label">Send to</span>
+              <select name="scope" data-mail-select aria-labelledby="rm-mail-scope-label">
                 <option value="all">All registered owners</option>
                 <option value="repeater">Repeater owners</option>
                 <option value="observer">Observer owners</option>
                 <option value="owners">Selected owners</option>
                 <option value="devices">Owners of selected devices</option>
               </select>
-            </label>
-            <label class="rm-field"><span>Template</span>
-              <select name="template">
+            </div>
+            <div class="rm-field"><span id="rm-mail-template-label">Template</span>
+              <select name="template" data-mail-select aria-labelledby="rm-mail-template-label">
                 <option value="general">Owner notice</option>
                 <option value="network">Network change</option>
                 <option value="maintenance">Maintenance</option>
               </select>
-            </label>
+            </div>
           </div>
           <fieldset id="rm-mail-targets" class="rm-field" hidden>
             <legend id="rm-mail-target-label">Recipients</legend>
@@ -269,13 +269,14 @@ sitemap: false
               <label class="rm-field"><span>Subject</span><input name="subject" maxlength="150" required aria-describedby="rm-mail-subject-hint"></label>
               <p class="rm-hint" id="rm-mail-subject-hint">Appears in the inbox and as the email heading.</p>
               <label class="rm-field"><span>Message</span><textarea name="message" maxlength="5000" rows="10" required></textarea></label>
-              <label class="rm-field"><span>Email button</span>
-                <select name="buttonMode">
+              <label class="rm-field"><span>Signature <small>(optional)</small></span><textarea name="signature" maxlength="500" rows="3"></textarea></label>
+              <div class="rm-field"><span id="rm-mail-buttonMode-label">Email button</span>
+                <select name="buttonMode" data-mail-select aria-labelledby="rm-mail-buttonMode-label">
                   <option value="directory">Link to Acadiana Mesh</option>
                   <option value="custom">Use a custom link</option>
                   <option value="hidden">Hide the button</option>
                 </select>
-              </label>
+              </div>
               <label class="rm-field" id="rm-mail-button-url" hidden><span>Button URL</span>
                 <input type="url" name="buttonUrl" maxlength="2048" placeholder="https://example.com" disabled>
               </label>

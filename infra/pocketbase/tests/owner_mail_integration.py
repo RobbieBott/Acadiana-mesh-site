@@ -271,8 +271,8 @@ def run(folder):
     for invalid in ["javascript:alert(1)", "//example.com", "https://example.com@wrong.example.com", "https://example.com/white space"]:
         api(ROUTE + "/preview", owner, dict(draft, buttonMode="custom", buttonUrl=invalid), expected=400)
     payloads = [
-        dict(draft, subject="Custom test button", buttonMode="custom", buttonUrl=url),
-        dict(draft, subject="Hidden test button", buttonMode="hidden"),
+        dict(draft, subject="Custom test button", buttonMode="custom", buttonUrl=url, signature="Thanks,\n<Mesh Team>"),
+        dict(draft, subject="Hidden test button", buttonMode="hidden", signature="Thanks,\n<Mesh Team>"),
     ]
     for payload in payloads:
         preview = api(ROUTE + "/preview", owner, payload)
@@ -280,7 +280,11 @@ def run(folder):
             assert "data-owner-mail-button" not in preview["html"]
         else:
             assert "data-owner-mail-button" in preview["html"] and "region=LFT&amp;week=2" in preview["html"]
+        assert 'Thanks,<br>&lt;Mesh Team&gt;' in preview["html"]
+        if payload["buttonMode"] == "custom":
+            assert preview["html"].index('data-owner-mail-signature') < preview["html"].index('data-owner-mail-button')
         job = dict(payload, requestId=str(uuid.uuid4()), fingerprint=preview["fingerprint"])
+        api(ROUTE + "/send", owner, dict(job, signature="changed after review"), expected=400)
         if payload["buttonMode"] == "custom":
             api(ROUTE + "/send", owner, dict(job, buttonUrl="https://example.com/changed"), expected=400)
         api(ROUTE + "/send", owner, job, expected=202)
@@ -289,13 +293,16 @@ def run(folder):
         message = next(msg for msg in messages if msg["Subject"] == payload["subject"])
         parts = {part.get_content_type(): part.get_payload(decode=True).decode()
                  for part in message.walk() if part.get_content_type() in {"text/html", "text/plain"}}
+        assert 'Thanks,<br>&lt;Mesh Team&gt;' in parts["text/html"]
+        assert "Thanks,\n<Mesh Team>" in parts["text/plain"].replace("\r\n","\n")
         if payload["buttonMode"] == "hidden":
             assert "data-owner-mail-button" not in parts["text/html"]
             assert "https://" not in parts["text/plain"]
         else:
             assert "region=LFT&amp;week=2" in parts["text/html"]
             assert url in parts["text/plain"]
-    print("Verified default, custom and hidden buttons, URL validation, and final SMTP content", flush=True)
+    api(ROUTE + "/preview", owner, dict(draft, signature="x" * 501), expected=400)
+    print("Verified button variants, signature placement and escaping, and final SMTP content", flush=True)
 
 
 if __name__ == "__main__":
