@@ -127,6 +127,13 @@ function audience(app, body, notice, actor) {
   };
 }
 
+function buttonLink(raw) {
+  if (typeof raw !== "string") return "";
+  const url = raw.trim();
+  const pattern = /^https?:\/\/(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[0-9a-f:.]+\])(?::[0-9]{1,5})?(?:[/?#][^\s\\<>"\u0000-\u001f\u007f]*)?$/i;
+  return url.length <= 2048 && pattern.test(url) ? url : "";
+}
+
 function content(body) {
   const subject = typeof body.subject === "string" ? body.subject.trim() : "";
   const message = typeof body.message === "string" ? body.message.trim() : "";
@@ -134,7 +141,12 @@ function content(body) {
       message.length > 5000 || !["general", "network", "maintenance"].includes(body.template)) {
     throw new BadRequestError("Enter a subject, message, and template.");
   }
-  return { subject, message, template: body.template };
+  const buttonMode = body.buttonMode === undefined ? "directory" : body.buttonMode;
+  const buttonUrl = buttonMode === "custom" ? buttonLink(body.buttonUrl) : "";
+  if (!["directory", "custom", "hidden"].includes(buttonMode) || (buttonMode === "custom" && !buttonUrl)) {
+    throw new BadRequestError("Enter a full http or https URL for the email button.");
+  }
+  return { subject, message, template: body.template, buttonMode, buttonUrl };
 }
 
 function escape(value) {
@@ -145,9 +157,13 @@ function render(notice) {
   const tag = TEMPLATES[notice.template];
   const paragraphs = escape(notice.message).split(/\r?\n\s*\r?\n/).map((paragraph) =>
     '<p style="margin:0 0 16px">' + paragraph.replace(/\r?\n/g, "<br>") + "</p>").join("");
-  const url = notice.template === "offline" ? SITE + "/repeaters/manage/" : SITE + "/repeaters/";
+  const directoryUrl = notice.template === "offline" ? SITE + "/repeaters/manage/" : SITE + "/repeaters/";
+  const url = notice.buttonMode === "hidden" ? "" : notice.buttonMode === "custom" ? buttonLink(notice.buttonUrl) : directoryUrl;
+  const button = url ? '<a data-owner-mail-button href="' + escape(url) +
+    '" style="display:inline-block;background:#f94d00;color:#0d0d14;border-radius:6px;padding:9px 14px;text-decoration:none">' +
+    (notice.buttonMode === "custom" ? "Open link" : "Open Acadiana Mesh") + '</a>' : '';
   return {
-    text: "Acadiana Mesh · " + tag + "\n\n" + notice.subject + "\n\n" + notice.message + "\n\n" + url,
+    text: "Acadiana Mesh · " + tag + "\n\n" + notice.subject + "\n\n" + notice.message + (url ? "\n\n" + url : ""),
     html: '<!doctype html><html lang="en"><body style="margin:0;background:#0d0d14;color:#e2e8f0;font:16px/1.55 Arial,sans-serif">' +
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px">' +
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#1a1a24;border-radius:12px;overflow:hidden">' +
@@ -155,7 +171,7 @@ function render(notice) {
       '<img src="' + SITE + '/assets/images/logo.png" width="36" alt="" style="vertical-align:middle;margin-right:10px">Acadiana Mesh</td></tr>' +
       '<tr><td style="padding:26px 28px"><p style="margin:0;color:#ff6a1a;font-size:13px;font-weight:bold">' + tag + '</p>' +
       '<h1 style="font-size:25px;line-height:1.25;margin:8px 0 20px">' + escape(notice.subject) + "</h1>" + paragraphs +
-      '<a href="' + url + '" style="display:inline-block;background:#f94d00;color:#0d0d14;border-radius:6px;padding:9px 14px;text-decoration:none">Open Acadiana Mesh</a></td></tr>' +
+      button + '</td></tr>' +
       '</table></td></tr></table></body></html>'
   };
 }
@@ -185,6 +201,8 @@ function addBatch(app, key, kind, notice, target, sender = "") {
   batch.set("subject", notice.subject);
   batch.set("message", notice.message);
   batch.set("template", notice.template);
+  batch.set("button_mode", notice.buttonMode || "directory");
+  batch.set("button_url", notice.buttonUrl || "");
   batch.set("sender", sender);
   batch.set("audience", target.scope);
   batch.set("device_labels", target.targets);
@@ -255,7 +273,8 @@ function processQueue(app) {
     const row = app.findRecordById(DELIVERIES, job);
     const batch = app.findRecordById(BATCHES, row.getString("batch"));
     const subject = batch.getString("subject");
-    const output = render({ subject, message: batch.getString("message"), template: batch.getString("template") });
+    const output = render({ subject, message: batch.getString("message"), template: batch.getString("template"),
+      buttonMode: batch.getString("button_mode"), buttonUrl: batch.getString("button_url") });
     const meta = app.settings().meta;
     let status = "accepted";
     try {

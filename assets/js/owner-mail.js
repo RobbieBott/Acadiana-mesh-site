@@ -162,6 +162,17 @@ window.createOwnerMail = function (pb, $, onAccess) {
       firstParagraph.replaceWith(paragraphs);
     }
 
+    var button = rendered.querySelector('[data-owner-mail-button]');
+    if (button && form.elements.buttonMode.value !== 'directory') {
+      var url = form.elements.buttonMode.value === 'custom' ? customButtonUrl() : '';
+      if (url) {
+        button.setAttribute('href', url);
+        button.textContent = 'Open link';
+      } else {
+        button.remove();
+      }
+    }
+
     sampleFrame.srcdoc = '<!doctype html>' + rendered.documentElement.outerHTML;
     sampleFrame.hidden = false;
     var hint = !subject && !message ? 'Showing a sample subject and message.' :
@@ -185,9 +196,26 @@ window.createOwnerMail = function (pb, $, onAccess) {
     });
   }
 
+  function customButtonUrl() {
+    var raw = form.elements.buttonUrl.value.trim();
+    try {
+      var parsed = new URL(raw);
+      if (/^https?:\/\//i.test(raw) && !parsed.username && !parsed.password && !/[\s\\<>"]/u.test(raw)) return raw;
+    } catch (_) {}
+    return '';
+  }
+
+  function syncButtonFields() {
+    var custom = form.elements.buttonMode.value === 'custom';
+    $('rm-mail-button-url').hidden = !custom;
+    form.elements.buttonUrl.disabled = !custom;
+    form.elements.buttonUrl.required = custom;
+  }
+
   form.addEventListener('input', function (event) {
     clearPreview();
-    if (['subject', 'message', 'template'].includes(event.target.name)) renderSample();
+    if (event.target.name === 'buttonMode') syncButtonFields();
+    if (['subject', 'message', 'template', 'buttonMode', 'buttonUrl'].includes(event.target.name)) renderSample();
   });
   form.elements.scope.addEventListener('change', showTargets);
   form.addEventListener('submit', function (event) {
@@ -200,6 +228,8 @@ window.createOwnerMail = function (pb, $, onAccess) {
       template: form.elements.template.value,
       subject: form.elements.subject.value,
       message: form.elements.message.value,
+      buttonMode: form.elements.buttonMode.value,
+      buttonUrl: form.elements.buttonUrl.value,
       ids: Array.from(form.querySelectorAll('input[name=mail-target]:checked'), function (input) { return input.value; })
     };
     formButton.disabled = true;
@@ -230,6 +260,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       if (current !== generation) return;
       if (version === revision) {
         form.reset();
+        syncButtonFields();
         showTargets();
         clearPreview();
         renderSample();
@@ -265,6 +296,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       catalog = { devices: [], owners: [] };
       onAccess(access);
       form.reset();
+      syncButtonFields();
       clearPreview();
       showTargets();
       formButton.disabled = false;

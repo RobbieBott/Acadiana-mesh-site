@@ -269,6 +269,16 @@ sitemap: false
               <label class="rm-field"><span>Subject</span><input name="subject" maxlength="150" required aria-describedby="rm-mail-subject-hint"></label>
               <p class="rm-hint" id="rm-mail-subject-hint">Appears in the inbox and as the email heading.</p>
               <label class="rm-field"><span>Message</span><textarea name="message" maxlength="5000" rows="10" required></textarea></label>
+              <label class="rm-field"><span>Email button</span>
+                <select name="buttonMode">
+                  <option value="directory">Link to Acadiana Mesh</option>
+                  <option value="custom">Use a custom link</option>
+                  <option value="hidden">Hide the button</option>
+                </select>
+              </label>
+              <label class="rm-field" id="rm-mail-button-url" hidden><span>Button URL</span>
+                <input type="url" name="buttonUrl" maxlength="2048" placeholder="https://example.com" disabled>
+              </label>
             </div>
             <section class="rm-mail-live" aria-labelledby="rm-mail-live-title">
               <h3 id="rm-mail-live-title">Live email preview</h3>
