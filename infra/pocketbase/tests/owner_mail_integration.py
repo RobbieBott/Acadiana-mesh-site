@@ -99,7 +99,7 @@ class Analyzer(BaseHTTPRequestHandler):
             self.send_error(503)
             return
         if self.path == "/api/observers":
-            data = {"observers": [{"id": "healthy", "iata": "LFT", "last_seen": last(0)},
+            data = {"observers": [{"id": "healthy", "name": "Unassigned live observer", "iata": "LFT", "last_seen": last(0)},
                                   {"id": "test-observer", "iata": "LFT", "last_seen": last(signals["observer"])}]}
         else:
             data = {"nodes": [{"role": "repeater", "public_key": ACTIVE, "last_heard": last(0)},
@@ -195,6 +195,11 @@ def run(folder):
             {"name": "Unauthorized edit"}, "PATCH", expected=403)
     api("/api/collections/users/records/" + PEOPLE["siteowner"], admin, method="DELETE", expected=403)
     api("/api/collections/owner_mail_deliveries/records", sender, expected=403)
+    api(ROUTE + "/templates", member, expected=403)
+    templates = api(ROUTE + "/templates", sender)
+    assert set(templates) == {"general", "network", "maintenance"}
+    assert all("acadianamesh.com/assets/images/logo.png" in html for html in templates.values())
+    assert "SF9 to SF7" in templates["network"] and "antenna cable" in templates["maintenance"]
     catalog = api(ROUTE, sender)
     assert len(catalog["devices"]) == 2 and len(catalog["owners"]) == 1
     assert "@example.com" not in json.dumps(catalog)
@@ -245,6 +250,22 @@ def run(folder):
     api("/test/run", owner, {"job": "queue"})
     assert len(messages) == 3 and any("Fixture Observer" in msg["Subject"] for msg in messages)
     print("Verified log-only mode, recovery, stale-feed suppression, maintenance pause and one alert per outage", flush=True)
+
+    assign = "/api/directory/people/" + PEOPLE["member"] + "/observers"
+    api(assign, member, {"add": ["healthy"], "remove": []}, expected=403)
+    api(assign, owner, {"add": ["missing"], "remove": []}, expected=400)
+    api(assign, owner, {"add": ["healthy"], "remove": []})
+    api(assign, owner, {"add": ["healthy"], "remove": []})
+    rows = api("/api/collections/managed_observers/records", member)["items"]
+    assert len(rows) == 2
+    new = next(record for record in rows if record["observer_id"] == "healthy")
+    assert new["observer_name"] == "Unassigned live observer" and new["region"] == "LFT"
+    assert new["managers"] == [PEOPLE["member"]]
+    api("/api/directory/people/" + PEOPLE["admin"] + "/observers", owner, {"add": ["healthy"], "remove": []})
+    api(assign, owner, {"add": [], "remove": ["healthy"]})
+    after = api("/api/collections/managed_observers/records/" + new["id"], owner)
+    assert after["managers"] == [PEOPLE["admin"]]
+    print("Verified admin-only observer assignment, canonical registration, and preserving other managers", flush=True)
 
 
 if __name__ == "__main__":

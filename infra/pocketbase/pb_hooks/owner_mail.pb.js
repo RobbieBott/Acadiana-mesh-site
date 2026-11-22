@@ -13,6 +13,12 @@ routerAdd("GET", "/api/directory/owner-mail", (e) => {
   });
 }, $apis.requireAuth("users"));
 
+routerAdd("GET", "/api/directory/owner-mail/templates", (e) => {
+  const mail = require(__hooks + "/owner_mail.js");
+  if (!mail.canSend(e.app, e.auth)) throw new ForbiddenError("Owner email permission is required.");
+  return e.json(200, mail.templateSamples());
+}, $apis.requireAuth("users"));
+
 routerAdd("POST", "/api/directory/owner-mail/preview", (e) => {
   const mail = require(__hooks + "/owner_mail.js");
   if (!mail.canSend(e.app, e.auth)) throw new ForbiddenError("Owner email permission is required.");

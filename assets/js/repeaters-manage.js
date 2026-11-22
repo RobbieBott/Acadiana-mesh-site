@@ -707,12 +707,61 @@
         (!r.owner_name ? ' <span class="rd-muted">(no owner)</span>' : '') + '</label>';
     }).join('') || '<span class="rd-muted">No repeaters yet.</span>';
   }
+  var personObserverVersion = 0;
+  var personObserverSelection = null;
+  var pendingPersonInvite = false;
+
+  function loadPersonObservers(userId) {
+    var version = ++personObserverVersion;
+    var field = $('rm-person-obs-field');
+    var list = $('rm-person-observers');
+    var status = $('rm-person-obs-status');
+    field.disabled = true;
+    list.replaceChildren();
+    status.textContent = 'Loading observers…';
+    personObserverSelection = null;
+    var live = fetch(ANALYZER + '/api/observers').then(function (response) {
+      if (!response.ok) throw new Error('Analyzer unavailable');
+      return response.json();
+    }).then(function (body) {
+      return Array.isArray(body.observers) ? body.observers : null;
+    }).catch(function () { return null; });
+    Promise.all([pb.collection('managed_observers').getFullList({sort:'observer_name'}), live]).then(function (result) {
+      if (version !== personObserverVersion) return;
+      var directory = result[0], feed = result[1];
+      var observers = new Map();
+      (feed || []).forEach(function (o) {
+        if (o && o.id) observers.set(String(o.id), { name: o.name || String(o.id), region: o.iata });
+      });
+      var selected = new Set();
+      directory.forEach(function (o) {
+        observers.set(o.observer_id, { name: o.display_name || o.observer_name, region: o.region });
+        if (userId && (o.managers || []).includes(userId)) selected.add(o.observer_id);
+      });
+      personObserverSelection = selected;
+      list.innerHTML = Array.from(observers).sort(function (a, b) {
+        return String(a[1].name).localeCompare(String(b[1].name));
+      }).map(function (entry) {
+        var id = entry[0], observer = entry[1];
+        return '<label class="rm-check"><input type="checkbox" name="observers" value="' + esc(id) + '"' +
+          (selected.has(id) ? ' checked' : '') + '> ' + esc(observer.name) +
+          (observer.region ? ' <span class="rd-muted">(' + esc(observer.region) + ')</span>' : '') + '</label>';
+      }).join('') || '<span class="rd-muted">No observers yet.</span>';
+      status.textContent = feed ? '' : 'Analyzer unavailable. Showing observers already in the directory.';
+      field.disabled = false;
+    }).catch(function (error) {
+      if (version === personObserverVersion) status.textContent = 'Could not load observer assignments. ' + errText(error);
+    });
+  }
+
   function openPersonForm(u) {
     editingPerson = u || null;
+    pendingPersonInvite = false;
     var f = $('rm-person-form');
     f.hidden = false;
     f.reset();
     $('rm-person-rep-q').value = '';
+    $('rm-person-obs-q').value = '';
     $('rm-person-title').textContent = u ? 'Edit ' + (u.name || u.email) : 'Add a person';
     $('rm-person-submit').textContent = u ? 'Save' : 'Add person';
     $('rm-invite-wrap').hidden = !!u;
@@ -723,14 +772,21 @@
     f.role.value = u && u.role === 'admin' ? 'admin' : 'user';
     f.role.disabled = !!(u && u.id === me.id);
     $('rm-person-reps').innerHTML = personRepsHtml(u ? repsFor(u.id).map(function (r) { return r.id; }) : []);
+    loadPersonObservers(u && u.id);
     f.name.focus();
   }
+  $('rm-person-obs-q').addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    $('rm-person-observers').querySelectorAll('label').forEach(function (label) {
+      label.hidden = !label.textContent.toLowerCase().includes(q);
+    });
+  });
   $('rm-person-rep-q').addEventListener('input', function () {
     var q = this.value.toLowerCase();
     $('rm-person-reps').querySelectorAll('label').forEach(function (l) { l.hidden = q && l.textContent.toLowerCase().indexOf(q) < 0; });
   });
   $('rm-add-person').addEventListener('click', function () { openPersonForm(null); });
-  $('rm-person-cancel').addEventListener('click', function () { $('rm-person-form').hidden = true; editingPerson = null; });
+  $('rm-person-cancel').addEventListener('click', function () { $('rm-person-form').hidden = true; editingPerson = null; personObserverVersion++; });
 
   // add/remove a manager on each repeater whose checkbox changed
   function syncRepeaters(user, wanted) {
@@ -752,6 +808,14 @@
     var f = this;
     var name = f.name.value.trim(), email = f.email.value.trim(), callsign = f.callsign.value.trim().toUpperCase(), role = f.role.value;
     var wanted = Array.prototype.filter.call(f.querySelectorAll('input[name=reps]'), function (c) { return c.checked; }).map(function (c) { return c.value; });
+    var observerChanges;
+    if (personObserverSelection) {
+      var checked = new Set(Array.from(f.querySelectorAll('input[name=observers]:checked'), function (input) { return input.value; }));
+      observerChanges = {
+        add: Array.from(checked).filter(function (id) { return !personObserverSelection.has(id); }),
+        remove: Array.from(personObserverSelection).filter(function (id) { return !checked.has(id); })
+      };
+    }
     if (!name) { toast('Enter their name.', 'bad'); return; }
     if (!editingPerson && !/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email.', 'bad'); return; }
     busy(f, true);
@@ -764,18 +828,35 @@
       var pw = randomPassword();
       job = pb.collection('users').create({ name: name, email: email, callsign: callsign, role: role, emailVisibility: false, password: pw, passwordConfirm: pw });
     }
-    var invite = !editingPerson && f.invite.checked;
+    var isNew = !editingPerson;
+    var invite = pendingPersonInvite || (isNew && f.invite.checked);
     job.then(function (user) {
+      if (isNew) {
+        editingPerson = user;
+        pendingPersonInvite = invite;
+        f.email.disabled = true;
+        $('rm-invite-wrap').hidden = true;
+        $('rm-person-title').textContent = 'Edit ' + user.name;
+        $('rm-person-submit').textContent = 'Save';
+      }
       var i = people.findIndex(function (x) { return x.id === user.id; });
       if (i >= 0) people[i] = user; else people.push(user);
       people.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
       return syncRepeaters(user, wanted).then(function () {
+        if (observerChanges && (observerChanges.add.length || observerChanges.remove.length)) {
+          return pb.send('/api/directory/people/' + encodeURIComponent(user.id) + '/observers', {
+            method: 'POST', body: observerChanges
+          }).then(loadObservers);
+        }
+      }).then(function () {
         if (invite) return pb.collection('users').requestPasswordReset(user.email).then(function () { return 'invited'; }, function () { return 'invite-failed'; });
       }).then(function (inv) {
         f.hidden = true;
-        toast((editingPerson ? 'Saved ' : 'Added ') + user.name + '.' +
+        toast((isNew ? 'Added ' : 'Saved ') + user.name + '.' +
           (inv === 'invited' ? ' An invite is on its way to ' + user.email + '.' : inv === 'invite-failed' ? ' The invite email couldn’t be sent; they can still sign in with a code.' : ''));
         editingPerson = null;
+        pendingPersonInvite = false;
+        personObserverVersion++;
         renderAll();
       });
     }).catch(function (err) { toast(errText(err), 'bad', true); })

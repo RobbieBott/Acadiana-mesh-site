@@ -4,15 +4,10 @@
 onRecordCreateRequest((e)=>{
   const r=e.record,id=r.getString("observer_id");
   if(!id||id.length>250)throw new BadRequestError("Invalid observer ID.");
-  const base=($os.getenv("ANALYZER_URL")||"https://analyzer.acadianamesh.com").replace(/\/$/,"");
-  let found;
-  try{
-    const res=$http.send({url:base+"/api/observers",method:"GET",timeout:10});
-    if(res.statusCode!==200||!res.json||!Array.isArray(res.json.observers))throw new Error("Unavailable");
-    found=res.json.observers.find(o=>o&&String(o.id)===id);
-  }catch(_){throw new BadRequestError("The analyzer is unavailable. Try again later.");}
+  const directory=require(__hooks + "/observer_directory.js");
+  const found=directory.observerFeed().find(o=>o&&String(o.id)===id);
   if(!found)throw new BadRequestError("Observer not found in the analyzer.");
-  r.set("observer_name",String(found.name||id).slice(0,250));r.set("region",String(found.iata||"").slice(0,30));
+  directory.setIdentity(r,id,found);
   if(e.auth&&e.auth.collection().name==="users"){
     r.set("email",e.auth.email());r.set("name",e.auth.getString("name"));r.set("callsign",e.auth.getString("callsign"));
   }
@@ -40,3 +35,12 @@ routerAdd("POST","/api/directory/observer-claims/{id}/approve",(e)=>{
   try{return e.json(200,require(`${__hooks}/observer_claims.js`).approve(e.app,e.request.pathValue("id"),e.auth.id));}
   catch(err){console.log("[observer claims] approval failed: "+err);return e.json(400,{message:"Could not approve observer claim. It may already have been handled."});}
 },$apis.requireAuth("users"));
+
+
+routerAdd("POST", "/api/directory/people/{id}/observers", (e) => {
+  if (!e.auth || e.auth.getString("role") !== "admin") {
+    throw new ForbiddenError("Only admins can assign observers.");
+  }
+  require(__hooks + "/observer_directory.js").assign(e.app, e.request.pathValue("id"), e.requestInfo().body);
+  return e.json(200, {saved: true});
+}, $apis.requireAuth("users"));
