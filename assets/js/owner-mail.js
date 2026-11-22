@@ -12,7 +12,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
   var historyList = $('rm-mail-history');
   var sendTask = null;
   var samples = null;
-  var samplePanel = $('rm-mail-template-sample');
+  var sampleRequest = null;
   var sampleFrame = $('rm-mail-sample-frame');
   var sampleStatus = $('rm-mail-sample-status');
 
@@ -24,7 +24,6 @@ window.createOwnerMail = function (pb, $, onAccess) {
     revision++;
     preview = null;
     $('rm-mail-preview').hidden = true;
-    $('rm-mail-frame').removeAttribute('srcdoc');
   }
 
   function label(text, input) {
@@ -121,6 +120,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
   function open() {
     var current = generation;
     load(true);
+    loadSamples();
     $('rm-mail-permissions').hidden = !access.owner;
     if (access.owner) {
       request('/permissions').then(function (result) {
@@ -132,27 +132,63 @@ window.createOwnerMail = function (pb, $, onAccess) {
   }
 
   function renderSample() {
-    if (!samplePanel.open || !samples) return;
-    sampleFrame.srcdoc = samples[form.elements.template.value];
+    if (!samples || preview) return;
+    var html = samples[form.elements.template.value];
+    if (!html) return;
+    var rendered = new DOMParser().parseFromString(html, 'text/html');
+    var heading = rendered.querySelector('h1');
+    var firstParagraph = heading && heading.nextElementSibling;
+    if (!firstParagraph || firstParagraph.tagName !== 'P') return;
+    var subject = form.elements.subject.value.trim();
+    var message = form.elements.message.value.trim();
+
+    if (subject) heading.textContent = subject;
+    if (message) {
+      var paragraphs = rendered.createDocumentFragment();
+      message.split(/\r?\n\s*\r?\n/).forEach(function (block) {
+        var paragraph = firstParagraph.cloneNode(false);
+        block.split(/\r?\n/).forEach(function (line, index) {
+          if (index) paragraph.append(rendered.createElement('br'));
+          paragraph.append(rendered.createTextNode(line));
+        });
+        paragraphs.append(paragraph);
+      });
+      var next = firstParagraph.nextElementSibling;
+      while (next && next.tagName === 'P') {
+        var after = next.nextElementSibling;
+        next.remove();
+        next = after;
+      }
+      firstParagraph.replaceWith(paragraphs);
+    }
+
+    sampleFrame.srcdoc = '<!doctype html>' + rendered.documentElement.outerHTML;
     sampleFrame.hidden = false;
-    sampleStatus.textContent = '';
+    var hint = !subject && !message ? 'Showing a sample subject and message.' :
+      !subject ? 'Showing a sample subject.' : !message ? 'Showing a sample message.' : '';
+    if (sampleStatus.textContent !== hint) sampleStatus.textContent = hint;
   }
 
-  samplePanel.addEventListener('toggle', function () {
-    if (!samplePanel.open) return;
+  function loadSamples() {
     if (samples) { renderSample(); return; }
+    if (sampleRequest) return;
     var current = generation;
-    sampleStatus.textContent = 'Loading template preview…';
-    request('/templates').then(function (result) {
+    sampleStatus.textContent = 'Loading template…';
+    sampleRequest = request('/templates').then(function (result) {
       if (current !== generation) return;
       samples = result;
       renderSample();
     }).catch(function () {
-      if (current === generation) sampleStatus.textContent = 'Could not load the template. Close this preview and try again.';
+      if (current === generation) sampleStatus.textContent = 'Could not load the live preview. Reopen Owner Emails to try again.';
+    }).finally(function () {
+      if (current === generation) sampleRequest = null;
     });
+  }
+
+  form.addEventListener('input', function (event) {
+    clearPreview();
+    if (['subject', 'message', 'template'].includes(event.target.name)) renderSample();
   });
-  form.elements.template.addEventListener('change', renderSample);
-  form.addEventListener('input', clearPreview);
   form.elements.scope.addEventListener('change', showTargets);
   form.addEventListener('submit', function (event) {
     event.preventDefault();
@@ -167,18 +203,20 @@ window.createOwnerMail = function (pb, $, onAccess) {
       ids: Array.from(form.querySelectorAll('input[name=mail-target]:checked'), function (input) { return input.value; })
     };
     formButton.disabled = true;
-    status.textContent = 'Preparing preview…';
+    status.textContent = 'Checking recipients…';
     request('/preview', data).then(function (result) {
       if (current !== generation || version !== revision) return;
       status.textContent = '';
       preview = { ...data, requestId: crypto.randomUUID(), fingerprint: result.fingerprint };
       $('rm-mail-count').textContent = result.count + (result.count === 1 ? ' recipient' : ' recipients') +
         (result.skipped ? ' · ' + result.skipped + ' selected devices without a verified recipient' : '');
-      $('rm-mail-frame').srcdoc = result.html;
+      sampleFrame.srcdoc = result.html;
+      sampleFrame.hidden = false;
+      sampleStatus.textContent = '';
       $('rm-mail-preview').hidden = false;
       sendButton.disabled = !result.count || !!sendTask;
     }).catch(function (error) {
-      if (current === generation && version === revision) status.textContent = error.message || 'Could not preview the email.';
+      if (current === generation && version === revision) status.textContent = error.message || 'Could not review recipients.';
     }).finally(function () { if (current === generation) formButton.disabled = false; });
   });
 
@@ -192,9 +230,9 @@ window.createOwnerMail = function (pb, $, onAccess) {
       if (current !== generation) return;
       if (version === revision) {
         form.reset();
-        renderSample();
         showTargets();
         clearPreview();
+        renderSample();
       }
       status.textContent = 'Email queued.';
       load(false);
@@ -233,7 +271,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       status.textContent = '';
       historyList.replaceChildren();
       samples = null;
-      samplePanel.open = false;
+      sampleRequest = null;
       sampleFrame.hidden = true;
       sampleFrame.removeAttribute('srcdoc');
       sampleStatus.textContent = '';

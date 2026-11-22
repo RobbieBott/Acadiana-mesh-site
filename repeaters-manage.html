@@ -207,7 +207,7 @@ sitemap: false
         </form>
         <div class="rd-table-wrap">
           <table class="rd-table rm-table">
-            <thead><tr><th>Name</th><th class="rm-hide-sm">Email</th><th>Role</th><th class="rm-hide-sm">Repeaters</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th class="rm-hide-sm">Email</th><th>Role</th><th class="rm-hide-sm">Repeaters</th><th class="rm-hide-sm">Observers</th><th></th></tr></thead>
             <tbody id="rm-people-body"></tbody>
           </table>
         </div>
@@ -264,19 +264,23 @@ sitemap: false
             <legend id="rm-mail-target-label">Recipients</legend>
             <div id="rm-mail-target-list" class="rm-checklist"></div>
           </fieldset>
-          <label class="rm-field"><span>Subject</span><input name="subject" maxlength="150" required></label>
-          <label class="rm-field"><span>Message</span><textarea name="message" maxlength="5000" rows="8" required></textarea></label>
-          <details id="rm-mail-template-sample">
-            <summary>See what this template looks like</summary>
-            <p id="rm-mail-sample-status" class="rd-muted" role="status"></p>
-            <iframe id="rm-mail-sample-frame" title="Selected email template example" sandbox referrerpolicy="no-referrer" width="100%" height="380" hidden></iframe>
-          </details>
-          <div class="rm-actions rm-actions-end"><button class="btn btn-primary" type="submit">Preview email</button></div>
+          <div class="rm-mail-compose">
+            <div class="rm-mail-fields">
+              <label class="rm-field"><span>Subject</span><input name="subject" maxlength="150" required aria-describedby="rm-mail-subject-hint"></label>
+              <p class="rm-hint" id="rm-mail-subject-hint">Appears in the inbox and as the email heading.</p>
+              <label class="rm-field"><span>Message</span><textarea name="message" maxlength="5000" rows="10" required></textarea></label>
+            </div>
+            <section class="rm-mail-live" aria-labelledby="rm-mail-live-title">
+              <h3 id="rm-mail-live-title">Live email preview</h3>
+              <p id="rm-mail-sample-status" class="rd-muted" role="status">Loading template…</p>
+              <iframe id="rm-mail-sample-frame" title="Live Acadiana Mesh email preview" sandbox referrerpolicy="no-referrer" hidden></iframe>
+            </section>
+          </div>
+          <div class="rm-actions rm-actions-end"><button class="btn btn-primary" type="submit">Review recipients</button></div>
         </form>
         <section class="rm-card" id="rm-mail-preview" hidden>
-          <h3>Email preview</h3>
+          <h3>Review recipients</h3>
           <p id="rm-mail-count"></p>
-          <iframe id="rm-mail-frame" title="Acadiana Mesh email preview" sandbox referrerpolicy="no-referrer" width="100%" height="380"></iframe>
           <div class="rm-actions rm-actions-end"><button class="btn btn-primary" type="button" id="rm-mail-send">Send email</button></div>
         </section>
         <section class="rm-card">
