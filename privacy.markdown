@@ -38,6 +38,8 @@ People who manage repeaters have an account with their name, email and (optional
 
 When you reserve a repeater prefix, we keep the prefix, what it's for, your name, your email and (optionally) your callsign. Only the prefix, what it's for and the date are shown publicly. We email you a confirmation through Brevo. Your email lets you sign in to rename or release the reservation, and admins can see who reserved each prefix. Releasing a reservation deletes it.
 
+Registered repeater and observer managers may receive device and network notices at their verified account email. Authorized directory staff can send notices to selected owners and review send history. The server keeps recipient addresses and delivery results private. The directory also uses analyzer activity to determine when to notify assigned managers about a device that has not reported for 24 hours.
+
 Observer claims use the same directory account. We store the observer ID, name, region, claimant name, email, optional callsign and note, and the approval decision. Claims are private to administrators. Account assignments are available to authorized managers and administrators. Managers choose which additional directory information to publish, including an optional public owner name, general area, hardware and notes. Claim emails and account email addresses are not public. Claim approval does not grant access to the observer hardware or analyzer account.
 
 ## Mesh network data
