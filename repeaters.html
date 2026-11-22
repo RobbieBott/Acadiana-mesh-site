@@ -1,16 +1,17 @@
 ---
 layout: default
 title: "Repeater Directory"
-description: "Every Acadiana Mesh repeater in one place: where it is, the hardware it runs, when the mesh last heard it, reserved prefixes, and how to reach its owner."
+description: "Every Acadiana Mesh repeater in one place: where it is, the hardware it runs, when the mesh last heard it, live observers, reserved prefixes, and how to reach its owner."
 permalink: /repeaters/
 ---
 <div class="wiki rd" id="rd" data-api="{{ site.directory_api }}" data-analyzer="{{ site.analyzer_url }}" data-discord="{{ site.discord_url }}" data-manage="{{ '/repeaters/manage/' | relative_url }}">
   <section class="wiki-hero">
     <span class="wiki-kicker">Repeater Directory</span>
     <h1>Acadiana Mesh Repeaters</h1>
-    <p>Every repeater on the network, the hardware it runs and when the mesh last heard it. Pick a repeater to see its details and how to reach its owner.</p>
+    <p>Explore the network’s repeaters, observers and reserved prefixes. Pick a repeater to see its details and how to reach its owner.</p>
     <nav class="wiki-tabs" role="tablist" aria-label="Directory sections">
       <a href="#list" role="tab" data-tab="list">Repeaters <span class="tab-count" data-count-from="rd-count"></span></a>
+      <a href="#observers" role="tab" data-tab="observers">Observers <span class="tab-count" data-count-from="obs-count"></span></a>
       <a href="#prefixes" role="tab" data-tab="prefixes">Prefixes</a>
       <a href="{{ '/repeaters/manage/' | relative_url }}">Manage ↗</a>
     </nav>
@@ -50,6 +51,29 @@ permalink: /repeaters/
 
   <p class="rd-foot"><strong>Online</strong> = heard by the mesh in the last 24 hours · <strong>Stale</strong> = last heard 1–3 days ago · <strong>Offline</strong> = more than 3 days · <strong>Not heard</strong> = our observers haven't picked it up. Owners can mark a repeater Maintenance, Retired or Waiting for install.</p>
   <p class="rd-foot">“Last heard” comes live from the <a href="{{ site.analyzer_url }}/#/nodes" target="_blank" rel="noopener">analyzer</a>. Own a repeater that's missing or out of date? <a href="{{ '/repeaters/manage/' | relative_url }}">Sign in to manage it</a>, or ask on <a href="{{ site.discord_url }}" target="_blank" rel="noopener">Discord</a>.</p>
+</section>
+
+<!-- ================= OBSERVERS ================= -->
+<section class="wiki-panel" id="observers" role="tabpanel">
+  <h2>Mesh Observers</h2>
+  <p>Observers receive mesh traffic and report it to the analyzer. Browse their recent activity and hardware below.</p>
+  <div class="rd-stats" aria-live="polite">
+    <div class="rd-stat"><span class="rd-stat-num" id="obs-count">—</span><span class="rd-stat-label">Observers</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="obs-online">—</span><span class="rd-stat-label">Online</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="obs-stale">—</span><span class="rd-stat-label">Stale</span></div>
+    <div class="rd-stat"><span class="rd-stat-num" id="obs-offline">—</span><span class="rd-stat-label">Offline / unknown</span></div>
+  </div>
+  <div class="rd-toolbar">
+    <label class="rd-search"><span class="sr-only">Search observers</span><input type="search" id="obs-search" placeholder="Search name, hardware or firmware" autocomplete="off"></label>
+    <label class="rd-sort"><span>Region</span><select id="obs-region"><option value="LFT">LFT</option><option value="">All regions</option></select></label>
+    <label class="rd-sort"><span>Status</span><select id="obs-status"><option value="">All</option><option value="online">Online</option><option value="stale">Stale</option><option value="offline">Offline</option><option value="unknown">Unknown</option></select></label>
+    <button class="btn btn-secondary" type="button" id="obs-refresh">Refresh</button>
+  </div>
+  <div class="rd-loading" id="obs-loading" role="status">Loading observers…</div>
+  <p id="obs-error" class="wiki-warn" role="alert" hidden></p>
+  <div class="rd-grid" id="obs-grid"></div>
+  <p class="rd-empty" id="obs-empty" hidden>No observers match your filters.</p>
+  <p class="rd-foot"><strong>Online</strong> = status reported within 1 hour · <strong>Stale</strong> = 1–24 hours · <strong>Offline</strong> = 24 hours or more. These indicators reflect the last reported status, not a direct connectivity test. Data comes from the <a href="{{ site.analyzer_url }}/#/observers" target="_blank" rel="noopener">live analyzer</a>. Want to contribute? <a href="{{ '/connect/' | relative_url }}#observer">Learn how to host an observer</a>.</p>
 </section>
 
 <!-- ================= PREFIXES ================= -->
@@ -92,3 +116,4 @@ permalink: /repeaters/
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="{{ '/assets/js/tabs.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 <script src="{{ '/assets/js/repeaters.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+<script src="{{ '/assets/js/observers.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
