@@ -15,6 +15,101 @@ window.createOwnerMail = function (pb, $, onAccess) {
   var sampleRequest = null;
   var sampleFrame = $('rm-mail-sample-frame');
   var sampleStatus = $('rm-mail-sample-status');
+  var refreshSelects = Array.from(form.querySelectorAll('[data-mail-select]'), styleSelect);
+
+  function styleSelect(select) {
+    var wrap = document.createElement('div');
+    wrap.className = 'rm-mail-select';
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.id = 'rm-mail-' + select.name + '-trigger';
+    trigger.className = 'rm-mail-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    var labelId = select.getAttribute('aria-labelledby');
+    trigger.setAttribute('aria-labelledby', labelId + ' ' + trigger.id);
+
+    var list = document.createElement('div');
+    list.className = 'rm-mail-select-list';
+    list.id = 'rm-mail-' + select.name + '-options';
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-labelledby', labelId);
+    list.hidden = true;
+    trigger.setAttribute('aria-controls', list.id);
+    var choices = Array.from(select.options, function (option, index) {
+      var choice = document.createElement('button');
+      choice.type = 'button';
+      choice.tabIndex = -1;
+      choice.className = 'rm-mail-select-option';
+      choice.setAttribute('role', 'option');
+      choice.textContent = option.text;
+      choice.addEventListener('click', function () {
+        var changed = select.selectedIndex !== index;
+        select.selectedIndex = index;
+        close(true);
+        refresh();
+        if (changed) {
+          select.dispatchEvent(new Event('input', { bubbles: true }));
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+      list.append(choice);
+      return choice;
+    });
+
+    function refresh() {
+      trigger.textContent = select.options[select.selectedIndex].text;
+      choices.forEach(function (choice, index) {
+        choice.setAttribute('aria-selected', String(index === select.selectedIndex));
+      });
+    }
+
+    function open(index) {
+      list.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      choices[index].focus();
+    }
+
+    function close(restoreFocus) {
+      if (restoreFocus) trigger.focus();
+      list.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    trigger.addEventListener('click', function () {
+      if (list.hidden) open(select.selectedIndex);
+      else close(false);
+    });
+    trigger.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        open(select.selectedIndex);
+      }
+    });
+    list.addEventListener('keydown', function (event) {
+      var index = choices.indexOf(event.target);
+      var last = choices.length - 1;
+      var destination = { ArrowDown: Math.min(last, index + 1), ArrowUp: Math.max(0, index - 1), Home: 0, End: last }[event.key];
+      if (destination !== undefined) {
+        event.preventDefault();
+        choices[destination].focus();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        close(true);
+      }
+    });
+    wrap.addEventListener('focusout', function (event) {
+      if (!wrap.contains(event.relatedTarget)) close(false);
+    });
+    document.addEventListener('pointerdown', function (event) {
+      if (!list.hidden && !wrap.contains(event.target)) close(false);
+    });
+    select.hidden = true;
+    select.after(wrap);
+    wrap.append(trigger, list);
+    refresh();
+    return refresh;
+  }
 
   function request(path, body) {
     return pb.send(route + path, body ? { method: 'POST', body: body } : {});
@@ -163,6 +258,17 @@ window.createOwnerMail = function (pb, $, onAccess) {
     }
 
     var button = rendered.querySelector('[data-owner-mail-button]');
+    var signature = form.elements.signature.value.trim();
+    if (signature) {
+      var signoff = rendered.createElement('p');
+      signoff.setAttribute('data-owner-mail-signature', '');
+      signoff.setAttribute('style', 'margin:20px 0 16px;color:#cbd5e1');
+      signature.split(/\r?\n/).forEach(function (line, index) {
+        if (index) signoff.append(rendered.createElement('br'));
+        signoff.append(rendered.createTextNode(line));
+      });
+      heading.parentElement.insertBefore(signoff, button);
+    }
     if (button && form.elements.buttonMode.value !== 'directory') {
       var url = form.elements.buttonMode.value === 'custom' ? customButtonUrl() : '';
       if (url) {
@@ -215,7 +321,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
   form.addEventListener('input', function (event) {
     clearPreview();
     if (event.target.name === 'buttonMode') syncButtonFields();
-    if (['subject', 'message', 'template', 'buttonMode', 'buttonUrl'].includes(event.target.name)) renderSample();
+    if (['subject', 'message', 'signature', 'template', 'buttonMode', 'buttonUrl'].includes(event.target.name)) renderSample();
   });
   form.elements.scope.addEventListener('change', showTargets);
   form.addEventListener('submit', function (event) {
@@ -228,6 +334,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       template: form.elements.template.value,
       subject: form.elements.subject.value,
       message: form.elements.message.value,
+      signature: form.elements.signature.value,
       buttonMode: form.elements.buttonMode.value,
       buttonUrl: form.elements.buttonUrl.value,
       ids: Array.from(form.querySelectorAll('input[name=mail-target]:checked'), function (input) { return input.value; })
@@ -260,6 +367,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       if (current !== generation) return;
       if (version === revision) {
         form.reset();
+        refreshSelects.forEach(function (refresh) { refresh(); });
         syncButtonFields();
         showTargets();
         clearPreview();
@@ -296,6 +404,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       catalog = { devices: [], owners: [] };
       onAccess(access);
       form.reset();
+      refreshSelects.forEach(function (refresh) { refresh(); });
       syncButtonFields();
       clearPreview();
       showTargets();

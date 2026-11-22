@@ -1120,6 +1120,32 @@ ul { list-style: none; }
 .rm-mail-fields { display: grid; gap: 0.75rem; min-width: 0; }
 .rm-mail-fields .rm-hint { margin: -0.35rem 0 0; }
 .rm-mail-live { min-width: 0; }
+.rm-mail-select { position: relative; min-width: 0; }
+.rm-mail-select-trigger, .rm-mail-select-option {
+  width: 100%; padding: 0.65rem 0.75rem; background: var(--bg-surface); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.rm-mail-select-trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.7rem;
+  border: 1px solid var(--border-hover); border-radius: var(--radius);
+}
+.rm-mail-select-trigger::after {
+  content: ""; width: 0.46rem; height: 0.46rem; flex: none; margin: -0.25rem 0.1rem 0 0;
+  border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.rm-mail-select-trigger[aria-expanded="true"] { border-color: var(--accent); }
+.rm-mail-select-list {
+  position: absolute; z-index: 5; inset: calc(100% + 0.35rem) 0 auto;
+  display: grid; gap: 0.2rem; padding: 0.25rem; border: 1px solid var(--border-hover);
+  border-radius: var(--radius); background: var(--bg-surface); box-shadow: 0 0.5rem 1.5rem #0007;
+}
+.rm-mail-select-option { border: 0; border-radius: calc(var(--radius) - 2px); }
+.rm-mail-select-option[aria-selected="true"] { background: var(--accent-dim); }
+.rm-mail-select-option:hover, .rm-mail-select-option:focus-visible { background: var(--bg-hover); }
+.rm-mail-select-trigger:focus-visible, .rm-mail-select-option:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+}
+
 .rm-mail-live iframe {
   display: block; width: 100%; height: 26rem; border: 1px solid var(--border);
   border-radius: var(--radius); background: var(--bg);
