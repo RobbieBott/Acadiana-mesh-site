@@ -14,46 +14,55 @@ function grant(app, id) {
 
 function isOwner(record) {
   const id = $os.getenv("DIRECTORY_SITE_OWNER_ID");
-  return !!(id && record && record.id === id && record.getString("role") === "admin");
+  return !!(id && record && record.collection().name === "users" &&
+    record.id === id && record.getString("role") === "admin" && record.verified());
 }
 
 function canSend(app, user) {
-  return !!(user && user.verified() && user.getString("role") === "admin" &&
+  return !!(user && user.collection().name === "users" && user.verified() &&
     (isOwner(user) || grant(app, user.id)));
 }
 
-function protectAccount(e) {
-  if (e.auth && (e.auth.collection().name === "_superusers" || e.auth.id === e.record.id || isOwner(e.auth))) {
-    return e.next();
+function setGrant(app, user, enabled) {
+  if (typeof enabled !== "boolean") throw new BadRequestError("Select an email permission.");
+  if (enabled && !user.verified()) throw new BadRequestError("The account must verify its email before sending.");
+  const existing = grant(app, user.id);
+  if (existing && !enabled) app.delete(existing);
+  if (!existing && enabled) {
+    const row = new Record(app.findCollectionByNameOrId(PERMISSIONS));
+    row.set("user", user.id);
+    app.save(row);
   }
-  if (e.record.id === $os.getenv("DIRECTORY_SITE_OWNER_ID") || grant(e.app, e.record.id)) {
-    throw new ForbiddenError("Only the Site Owner can manage this privileged account.");
-  }
-  e.next();
 }
 
-function setPermission(app, id, enabled) {
-  if (typeof enabled !== "boolean" || !/^[a-z0-9]{15}$/.test(id)) throw new BadRequestError("Select an admin.");
+function changeAccess(app, id, input) {
+  if (typeof id !== "string" || !/^[a-z0-9]{15}$/.test(id) || id === $os.getenv("DIRECTORY_SITE_OWNER_ID")) {
+    throw new BadRequestError("Choose a different directory account.");
+  }
+  if (input.role !== undefined && !["user", "admin"].includes(input.role)) {
+    throw new BadRequestError("Choose User or Admin.");
+  }
   app.runInTransaction((tx) => {
-    const user = one(tx, "users", "id = {:id}", { id });
-    if (!user || isOwner(user) || (enabled && (!user.verified() || user.getString("role") !== "admin"))) {
-      throw new BadRequestError("Choose a verified directory admin.");
+    const user = tx.findRecordById("users", id);
+    if ((input.previousRole !== undefined && user.getString("role") !== input.previousRole) ||
+        (input.previousEnabled !== undefined && !!grant(tx, id) !== input.previousEnabled)) {
+      throw new BadRequestError("These permissions changed. Refresh the grid and try again.");
     }
-    const existing = grant(tx, id);
-    if (existing && !enabled) tx.delete(existing);
-    if (!existing && enabled) {
-      const row = new Record(tx.findCollectionByNameOrId(PERMISSIONS));
-      row.set("user", id);
-      tx.save(row);
+    if (input.role !== undefined && user.getString("role") !== input.role) {
+      user.set("role", input.role);
+      tx.save(user);
     }
+    if (input.enabled !== undefined) setGrant(tx, user, input.enabled);
   });
 }
 
 function permissionList(app) {
   const granted = new Set(app.findAllRecords(PERMISSIONS).map((row) => row.getString("user")));
-  return app.findRecordsByFilter("users", "role = 'admin' && verified = true", "name", 0, 0)
-    .filter((record) => !isOwner(record))
-    .map((record) => ({ id: record.id, name: record.getString("name") || record.id, enabled: granted.has(record.id) }));
+  return app.findAllRecords("users").map((record) => ({
+    id: record.id, name: record.getString("name") || record.email(), email: record.email(),
+    role: record.getString("role"), owner: isOwner(record), verified: record.verified(),
+    enabled: isOwner(record) || granted.has(record.id)
+  })).sort((a,b) => Number(b.owner) - Number(a.owner) || a.name.localeCompare(b.name));
 }
 
 function devices(app) {
@@ -298,5 +307,5 @@ function processQueue(app) {
   }
 }
 
-module.exports = { one, isOwner, canSend, protectAccount, setPermission, permissionList, devices, verifiedOwners,
+module.exports = { one, isOwner, canSend, changeAccess, permissionList, devices, verifiedOwners,
   catalog, templateSamples, preview, queue, addBatch, history, processQueue };

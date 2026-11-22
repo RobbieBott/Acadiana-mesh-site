@@ -143,17 +143,28 @@
     location.reload();
   });
 
+  var isSiteOwner = false;
+  var permissionRevision = 0;
   var ownerMail = window.createOwnerMail(pb, $, function (access) {
+    isSiteOwner = !!access.owner;
     $('rm-mail-tab').hidden = !access.sender;
+    $('rm-permissions-tab').hidden = !isSiteOwner;
+    if (isSiteOwner && isAdmin) {
+      renderPeople();
+      renderObservers();
+      if (editing) $('rm-delete').hidden = false;
+    }
+    if (isSiteOwner && location.hash === '#permissions') showPanel('permissions', false);
+    if (!isSiteOwner && !$('rm-p-permissions').hidden) showPanel('repeaters', false);
     if (access.owner) $('rm-me-role').textContent = 'Site Owner';
     if (access.sender && location.hash === '#owner-mail') showPanel('owner-mail', false);
     if (!access.sender && !$('rm-p-owner-mail').hidden) showPanel('repeaters', false);
   });
 
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'account'];
+  var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || (name === 'owner-mail' && !ownerMail.canSend()) || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
+    if (PANELS.indexOf(name) < 0 || (name === 'permissions' && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -162,6 +173,7 @@
       a.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     if (name === 'owner-mail') ownerMail.open();
+    if (name === 'permissions') loadPermissions();
     if (push) history.replaceState(null, '', '#' + name);
   }
   $('rm-tabs').addEventListener('click', function (e) {
@@ -203,6 +215,8 @@
 
   function signedOut() {
     ownerMail.signOut();
+    permissionRevision++;
+    $('rm-permissions-body').replaceChildren();
     $('rm-loading').hidden = true;
     $('rm-signin').hidden = false;
     $('rm-app').hidden = true;
@@ -480,7 +494,7 @@
     var view = $('rm-editor-view');
     view.hidden = !r;
     if (r) view.href = '/repeaters/#r-' + r.id;
-    $('rm-delete').hidden = !(r && isAdmin);
+    $('rm-delete').hidden = !(r && isSiteOwner);
     var defaults = r || { status: 'Online', owner_name: me.name || '', owner_callsign: me.callsign || '', contact_email: me.email || '', show_email: !!me.email };
     $('rm-editor-fields').innerHTML = GROUPS.map(function (g) {
       return '<fieldset class="rm-group"' + (g.id ? ' id="rm-g-' + g.id + '"' : '') + '><legend>' + esc(g.title) + '</legend>' +
@@ -704,7 +718,7 @@
         '<td class="rm-hide-sm">' + (observerNames ? esc(observerNames) : '<span class="rd-muted">' + esc(peopleObserverStatus || '—') + '</span>') + '</td>' +
         '<td class="rm-right rm-nowrap"><button type="button" class="btn btn-secondary rm-sm" data-person="' + esc(u.id) + '">Edit</button>' +
         (!u.verified ? ' <button type="button" class="rm-link" data-invite="' + esc(u.id) + '">Resend invite</button>' : '') +
-        (!self ? ' <button type="button" class="rm-link rm-x" data-remove="' + esc(u.id) + '">Remove</button>' : '') + '</td></tr>';
+        (isSiteOwner && !self ? ' <button type="button" class="rm-link rm-x" data-remove="' + esc(u.id) + '">Remove</button>' : '') + '</td></tr>';
     }).join('') || '<tr><td colspan="6" class="rd-muted">No people yet.</td></tr>';
   }
 
@@ -777,10 +791,10 @@
     $('rm-invite-wrap').hidden = !!u;
     f.name.value = u ? u.name || '' : '';
     f.email.value = u ? u.email || '' : '';
-    f.email.disabled = !!u;
+    f.email.disabled = !!(u && (!isSiteOwner || u.id === me.id));
+    $('rm-person-email-hint').hidden = !u || f.email.disabled;
+    delete $('rm-person-submit').dataset.confirmEmail;
     f.callsign.value = u ? u.callsign || '' : '';
-    f.role.value = u && u.role === 'admin' ? 'admin' : 'user';
-    f.role.disabled = !!(u && u.id === me.id);
     $('rm-person-reps').innerHTML = personRepsHtml(u ? repsFor(u.id).map(function (r) { return r.id; }) : []);
     loadPersonObservers(u && u.id);
     f.name.focus();
@@ -816,7 +830,7 @@
   $('rm-person-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var f = this;
-    var name = f.name.value.trim(), email = f.email.value.trim(), callsign = f.callsign.value.trim().toUpperCase(), role = f.role.value;
+    var name = f.name.value.trim(), email = f.email.value.trim(), callsign = f.callsign.value.trim().toUpperCase();
     var wanted = Array.prototype.filter.call(f.querySelectorAll('input[name=reps]'), function (c) { return c.checked; }).map(function (c) { return c.value; });
     var observerChanges;
     if (personObserverSelection) {
@@ -827,16 +841,30 @@
       };
     }
     if (!name) { toast('Enter their name.', 'bad'); return; }
-    if (!editingPerson && !/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email.', 'bad'); return; }
+    var changeEmail = editingPerson && !f.email.disabled && email.toLowerCase() !== editingPerson.email.toLowerCase();
+    if ((!editingPerson || changeEmail) && !/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email.', 'bad'); return; }
+    var button = $('rm-person-submit');
+    if (changeEmail && button.dataset.confirmEmail !== email) {
+      button.dataset.confirmEmail = email;
+      toast('Click Save again to confirm the sign-in email change.', 'warn', true);
+      return;
+    }
+    delete button.dataset.confirmEmail;
     busy(f, true);
     var job;
     if (editingPerson) {
       var body = { name: name, callsign: callsign };
-      if (editingPerson.id !== me.id) body.role = role;
-      job = pb.collection('users').update(editingPerson.id, body);
+      var person = editingPerson;
+      job = (person.name || '') !== name || (person.callsign || '') !== callsign
+        ? pb.collection('users').update(person.id, body) : Promise.resolve(person);
+      if (changeEmail) job = job.then(function () {
+        return pb.send('/api/directory/permissions/' + encodeURIComponent(person.id) + '/email', {
+          method: 'PATCH', body: { email: email, previousEmail: person.email }
+        }).then(function () { return pb.collection('users').getOne(person.id); });
+      });
     } else {
       var pw = randomPassword();
-      job = pb.collection('users').create({ name: name, email: email, callsign: callsign, role: role, emailVisibility: false, password: pw, passwordConfirm: pw });
+      job = pb.collection('users').create({ name: name, email: email, callsign: callsign, role: 'user', emailVisibility: false, password: pw, passwordConfirm: pw });
     }
     var isNew = !editingPerson;
     var invite = pendingPersonInvite || (isNew && f.invite.checked);
@@ -892,6 +920,65 @@
         }).catch(function (err) { toast(errText(err), 'bad'); });
       });
     }
+  });
+
+  function permissionRow(account) {
+    var caption = esc(account.name);
+    var role = account.owner ? '<span class="rd-pill ok">Site Owner</span>' :
+      '<select name="role" aria-label="Role for ' + caption + '"><option value="user">User</option><option value="admin"' +
+      (account.role === 'admin' ? ' selected' : '') + '>Admin</option></select>';
+    var checkbox = '<input type="checkbox" name="enabled" aria-label="Owner Emails for ' + caption + '"' +
+      (account.enabled ? ' checked' : '') + ((account.owner || (!account.verified && !account.enabled)) ? ' disabled' : '') + '>';
+    return '<tr data-permission-account="' + esc(account.id) + '" data-role="' + esc(account.role) + '" data-enabled="' + account.enabled + '">' +
+      '<td><strong>' + caption + '</strong><div class="rm-sub">' + esc(account.email) + '</div>' +
+      (account.verified ? '' : '<div class="rm-sub rd-muted">Email verification pending</div>') + '</td>' +
+      '<td>' + role + '</td><td>' + checkbox + '</td><td>' +
+      (account.owner ? '' : '<button type="button" class="btn btn-secondary rm-sm" data-permission-save disabled>Save</button>') + '</td></tr>';
+  }
+  function loadPermissions() {
+    var version = ++permissionRevision;
+    $('rm-permissions-status').textContent = 'Loading permissions…';
+    pb.send('/api/directory/permissions').then(function (result) {
+      if (version !== permissionRevision) return;
+      $('rm-permissions-body').innerHTML = result.accounts.map(permissionRow).join('');
+      $('rm-permissions-status').textContent = '';
+    }).catch(function (error) {
+      if (version === permissionRevision) $('rm-permissions-status').textContent = errText(error);
+    });
+  }
+  $('rm-permissions-refresh').addEventListener('click', loadPermissions);
+  $('rm-permissions-body').addEventListener('change', function (event) {
+    var row = event.target.closest('[data-permission-account]');
+    var button = row && row.querySelector('[data-permission-save]');
+    if (button) button.disabled = row.querySelector('[name=role]').value === row.dataset.role &&
+      row.querySelector('[name=enabled]').checked === (row.dataset.enabled === 'true');
+  });
+  $('rm-permissions-body').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-permission-save]');
+    if (!button || button.disabled || !isSiteOwner) return;
+    var row = button.closest('[data-permission-account]');
+    var role = row.querySelector('[name=role]');
+    var emailAccess = row.querySelector('[name=enabled]');
+    var id = row.dataset.permissionAccount;
+    var version = permissionRevision;
+    var input = { id: id, previousRole: row.dataset.role, previousEnabled: row.dataset.enabled === 'true' };
+    if (role.value !== input.previousRole) input.role = role.value;
+    if (emailAccess.checked !== input.previousEnabled) input.enabled = emailAccess.checked;
+    var disabled = emailAccess.disabled;
+    button.disabled = role.disabled = emailAccess.disabled = true;
+    pb.send('/api/directory/permissions', { method: 'PATCH', body: input }).then(function (result) {
+      if (version !== permissionRevision) return;
+      var account = result.accounts.find(function (item) { return item.id === id; });
+      if (!account) { loadPermissions(); return; }
+      row.outerHTML = permissionRow(account);
+      $('rm-permissions-status').textContent = 'Saved permissions for ' + account.name + '.';
+      return loadAll();
+    }).catch(function (error) {
+      if (version !== permissionRevision) return;
+      button.disabled = role.disabled = false;
+      emailAccess.disabled = disabled;
+      $('rm-permissions-status').textContent = errText(error);
+    });
   });
 
   // ── prefixes (users: their own reservations; admins: all) ─────
@@ -1088,9 +1175,21 @@
         '<p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
         '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+options+
         '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small>Alerts resume at the start of this date in Central time.</small></label>'+
-        '<div class="rm-actions rm-actions-end"><button type="submit" class="btn btn-primary">Save observer</button></div></form>';
+        '<div class="rm-actions rm-actions-end">' +
+        (isSiteOwner ? '<button type="button" class="rm-danger" data-delete-observer="' + esc(o.id) + '">Delete observer</button>' : '') +
+        '<button type="submit" class="btn btn-primary">Save observer</button></div></form>';
     }).join('')||'<p class="rd-muted">No observers assigned yet. <a href="/repeaters/#observers">Claim an observer</a>.</p>';
   }
+  $('rm-obs-list').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-delete-observer]');
+    if (!button || !isSiteOwner) return;
+    confirmClick(button, 'Delete observer', function () {
+      pb.collection('managed_observers').delete(button.dataset.deleteObserver).then(function () {
+        toast('Observer listing deleted.');
+        return loadObservers();
+      }).catch(function (error) { toast(errText(error), 'bad'); });
+    });
+  });
   $('rm-obs-list').addEventListener('submit',function(e){
     var form=e.target.closest('[data-observer-edit]');if(!form)return;e.preventDefault();
     var body={};['display_name','area','hardware','public_owner','notes'].forEach(function(k){body[k]=form.elements[k].value.trim();});
