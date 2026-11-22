@@ -287,7 +287,8 @@ def run(folder):
     api("/test/run", owner, {"job": "queue"})
     for payload in payloads:
         message = next(msg for msg in messages if msg["Subject"] == payload["subject"])
-        parts = {part.get_content_type(): part.get_payload(decode=True).decode() for part in message.get_payload()}
+        parts = {part.get_content_type(): part.get_payload(decode=True).decode()
+                 for part in message.walk() if part.get_content_type() in {"text/html", "text/plain"}}
         if payload["buttonMode"] == "hidden":
             assert "data-owner-mail-button" not in parts["text/html"]
             assert "https://" not in parts["text/plain"]
