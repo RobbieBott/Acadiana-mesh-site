@@ -8,7 +8,7 @@ permalink: /repeaters/
   <section class="wiki-hero">
     <span class="wiki-kicker">Repeater Directory</span>
     <h1>Acadiana Mesh Repeaters</h1>
-    <p>Explore the network’s repeaters, observers and reserved prefixes. Pick a repeater to see its details and how to reach its owner.</p>
+    <p>Explore the network’s repeaters, observers and reserved prefixes. Pick a repeater or observer to see its details and management options.</p>
     <nav class="wiki-tabs" role="tablist" aria-label="Directory sections">
       <a href="#list" role="tab" data-tab="list">Repeaters <span class="tab-count" data-count-from="rd-count"></span></a>
       <a href="#observers" role="tab" data-tab="observers">Observers <span class="tab-count" data-count-from="obs-count"></span></a>
@@ -110,6 +110,12 @@ permalink: /repeaters/
     <button type="button" class="rd-close" id="rd-close" aria-label="Close">✕</button>
   </div>
   <div class="rd-d-body" id="rd-d-body"></div>
+</dialog>
+
+<dialog class="rd-dialog" id="obs-dialog" aria-labelledby="obs-d-name">
+  <div class="rd-d-head"><div><h2 id="obs-d-name"></h2><div class="rd-d-sub" id="obs-d-sub"></div></div>
+    <button type="button" class="rd-close" id="obs-close" aria-label="Close">✕</button></div>
+  <div class="rd-d-body" id="obs-d-body"></div>
 </dialog>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">

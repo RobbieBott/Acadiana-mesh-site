@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Manage Repeaters"
+title: "Manage Repeaters & Observers"
 description: "Sign in to update your Acadiana Mesh repeaters in the public directory. Admins can manage every repeater and the people who maintain them."
 permalink: /repeaters/manage/
 sitemap: false
@@ -8,10 +8,11 @@ sitemap: false
 <div class="wiki rd rm" id="rm" data-api="{{ site.directory_api }}" data-analyzer="{{ site.analyzer_url }}">
   <section class="wiki-hero">
     <span class="wiki-kicker">Repeater Directory</span>
-    <h1>Manage Repeaters</h1>
-    <p>Sign in to keep your repeaters up to date. You choose which contact details show on the <a href="{{ '/repeaters/' | relative_url }}">public directory</a>.</p>
+    <h1>Manage Repeaters &amp; Observers</h1>
+    <p>Sign in to keep your repeaters and observers up to date. You choose which contact details show on the <a href="{{ '/repeaters/' | relative_url }}">public directory</a>.</p>
     <nav class="wiki-tabs" id="rm-tabs" role="tablist" aria-label="Manage sections" hidden>
       <a href="#repeaters" role="tab" data-panel="repeaters">Repeaters</a>
+      <a href="#observers" role="tab" data-panel="observers">Observers</a>
       <a href="#claims" role="tab" data-panel="claims" data-admin>Claims <span class="tab-count" id="rm-claims-count"></span></a>
       <a href="#people" role="tab" data-panel="people" data-admin>People</a>
       <a href="#prefixes" role="tab" data-panel="prefixes">Prefixes</a>
@@ -131,14 +132,23 @@ sitemap: false
         </section>
       </section>
 
+      <!-- Observers (same directory account) -->
+      <section class="rm-panel" id="rm-p-observers" data-panel="observers" hidden>
+        <div class="rm-head"><div><h2 id="rm-obs-title">My Observers</h2><p class="rd-muted">Manage your observer's public directory details. Live data and device configuration remain in the analyzer.</p></div>
+          <a class="btn btn-secondary" href="{{ '/repeaters/' | relative_url }}#observers">Find or claim an observer</a></div>
+        <p class="rd-muted" id="rm-obs-msg" role="status"></p>
+        <div id="rm-obs-list"></div>
+      </section>
+
       <!-- Claims (admins) -->
       <section class="rm-panel" id="rm-p-claims" data-panel="claims" hidden>
         <div class="rm-head">
           <div>
             <h2>Claims</h2>
-            <p class="rd-muted">People who tapped “Claim this repeater” on the directory. <strong>Approve</strong> makes their account if needed, adds them as a manager of that repeater, fills in the owner if it’s empty and emails them. Check that they really own it first.</p>
+            <p class="rd-muted">People who requested to manage a repeater or observer in the directory. <strong>Approve</strong> makes their account if needed, adds them as a manager of that repeater, fills in the owner if it’s empty and emails them. Check that they really own it first.</p>
           </div>
         </div>
+        <h3 class="rm-subhead">Repeater claims</h3>
         <div class="rd-table-wrap">
           <table class="rd-table rm-table">
             <thead><tr><th>Repeater</th><th>Person</th><th class="rm-hide-sm">Note</th><th class="rm-hide-sm">Sent</th><th></th></tr></thead>
@@ -147,6 +157,14 @@ sitemap: false
         </div>
         <h3 class="rm-subhead">Recently handled</h3>
         <ul class="rm-handled" id="rm-claims-done"></ul>
+        <h3 class="rm-subhead">Observer claims</h3>
+        <p class="rd-muted">Verify that the person owns or operates the observer before approving.</p>
+        <p id="rm-obs-claims-msg" class="rd-muted" role="status"></p>
+        <div class="rd-table-wrap"><table class="rd-table rm-table">
+          <thead><tr><th>Observer</th><th>Person</th><th class="rm-hide-sm">Note</th><th></th></tr></thead>
+          <tbody id="rm-obs-claims-body"></tbody></table></div>
+        <h3 class="rm-subhead">Recently handled observer claims</h3>
+        <ul class="rm-handled" id="rm-obs-claims-done"></ul>
       </section>
 
       <!-- People (admins) -->
