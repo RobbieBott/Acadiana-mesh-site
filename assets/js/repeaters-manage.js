@@ -144,7 +144,7 @@
   });
 
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['repeaters', 'claims', 'people', 'prefixes', 'account'];
+  var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'account'];
   function showPanel(name, push) {
     if (PANELS.indexOf(name) < 0 || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
@@ -186,6 +186,8 @@
       if (m) { var r = repeaters.find(function (x) { return x.id === m[1]; }); if (r) openEditor(r); }
     });
     loadLive();
+    loadObservers();
+    if (isAdmin) loadObserverClaims();
   }
 
   function signedOut() {
@@ -220,7 +222,7 @@
   function renderClaims() {
     if (!isAdmin) return;
     var pending = claims.filter(function (c) { return c.status === 'pending'; });
-    $('rm-claims-count').textContent = pending.length ? pending.length : '';
+    updateClaimCount();
     $('rm-claims-body').innerHTML = pending.map(function (c) {
       var rep = (c.expand && c.expand.repeater) || {};
       return '<tr><td><strong>' + esc(rep.name || '—') + '</strong>' + (rep.owner_name ? '<div class="rm-sub">Owner: ' + esc(rep.owner_name) + '</div>' : '<div class="rm-sub">No owner yet</div>') + '</td>' +
@@ -944,6 +946,81 @@
     }).catch(function (err) {
       toast(err.status === 400 ? 'That link has expired or was already used. Ask for a new one from “Forgot your password”.' : errText(err), 'bad', true);
     }).then(function () { busy(f, false); });
+  });
+
+
+  // Observer ownership lives in PocketBase, independent of the live analyzer.
+  var managedObservers=[], observerClaims=[];
+  function updateClaimCount(){
+    var n=claims.filter(function(c){return c.status==='pending';}).length+observerClaims.filter(function(c){return c.status==='pending';}).length;
+    $('rm-claims-count').textContent=n||'';
+  }
+  function loadObservers(){
+    $('rm-obs-title').textContent=isAdmin?'All Managed Observers':'My Observers';
+    $('rm-obs-msg').textContent='Loading observers…';
+    return pb.collection('managed_observers').getFullList({sort:'observer_name'}).then(function(records){
+      managedObservers=records;
+      if(isAdmin)return pb.collection('users').getFullList({sort:'name'}).then(function(p){people=p;});
+    }).then(function(){
+      $('rm-obs-msg').textContent='';
+      renderObservers();
+    }).catch(function(err){
+      $('rm-obs-msg').textContent='Observer management is not available: '+errText(err);
+      $('rm-obs-list').innerHTML='';
+    });
+  }
+  function renderObservers(){
+    $('rm-obs-list').innerHTML=managedObservers.map(function(o){
+      function field(key,label,max){return '<label class="rm-field"><span>'+label+'</span><input name="'+key+'" maxlength="'+max+'" value="'+esc(o[key]||'')+'"></label>';}
+      var link=ANALYZER+'/#/observers/'+encodeURIComponent(o.observer_id);
+      var assigned=o.managers||[];
+      var options=isAdmin?'<fieldset class="rm-field"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
+        return '<label class="rm-check"><input type="checkbox" name="managers" value="'+esc(p.id)+'" '+(assigned.indexOf(p.id)>=0?'checked':'')+'> '+esc(p.name||p.email)+'</label>';
+      }).join('')+'</div><p class="rm-hint">Only admins can add or remove managers.</p></fieldset>':'';
+      return '<form class="rm-card rm-form" data-observer-edit="'+esc(o.id)+'"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
+        '<p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
+        '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+options+
+        '<div class="rm-actions rm-actions-end"><button type="submit" class="btn btn-primary">Save observer</button></div></form>';
+    }).join('')||'<p class="rd-muted">No observers assigned yet. <a href="/repeaters/#observers">Claim an observer</a>.</p>';
+  }
+  $('rm-obs-list').addEventListener('submit',function(e){
+    var form=e.target.closest('[data-observer-edit]');if(!form)return;e.preventDefault();
+    var body={};['display_name','area','hardware','public_owner','notes'].forEach(function(k){body[k]=form.elements[k].value.trim();});
+    if(isAdmin)body.managers=Array.from(form.querySelectorAll('input[name=managers]:checked')).map(function(x){return x.value;});
+    busy(form,true);
+    pb.collection('managed_observers').update(form.getAttribute('data-observer-edit'),body).then(function(o){
+      var i=managedObservers.findIndex(function(x){return x.id===o.id;});if(i>=0)managedObservers[i]=o;
+      toast('Observer saved.');
+    }).catch(function(err){toast(errText(err),'bad');}).then(function(){busy(form,false);});
+  });
+  function loadObserverClaims(){
+    if(!isAdmin)return Promise.resolve();
+    return pb.collection('observer_claims').getList(1,200,{sort:'-created'}).then(function(r){
+      observerClaims=r.items;$('rm-obs-claims-msg').textContent='';renderObserverClaims();updateClaimCount();
+    }).catch(function(err){$('rm-obs-claims-msg').textContent='Observer claims unavailable: '+errText(err);});
+  }
+  function renderObserverClaims(){
+    $('rm-obs-claims-body').innerHTML=observerClaims.filter(function(c){return c.status==='pending';}).map(function(c){
+      return '<tr><td><strong><a href="'+esc(ANALYZER+'/#/observers/'+encodeURIComponent(c.observer_id))+'" target="_blank" rel="noopener">'+esc(c.observer_name||c.observer_id)+'</a></strong><div class="rm-sub">'+esc(c.region)+'</div></td>'+
+        '<td>'+esc(c.name)+' '+esc(c.callsign)+'<div class="rm-sub">'+esc(c.email)+'</div><div class="rm-sub rm-show-sm">'+esc(c.note)+'</div></td>'+
+        '<td class="rm-hide-sm">'+esc(c.note||'—')+'</td><td class="rm-right rm-nowrap"><button type="button" class="btn btn-primary rm-sm" data-obs-approve="'+esc(c.id)+'">Approve</button> <button type="button" class="rm-link rm-x" data-obs-decline="'+esc(c.id)+'">Decline</button></td></tr>';
+    }).join('')||'<tr><td colspan="4" class="rd-muted">No observer claims waiting.</td></tr>';
+    $('rm-obs-claims-done').innerHTML=observerClaims.filter(function(c){return c.status!=='pending';}).slice(0,15).map(function(c){
+      return '<li><span class="rd-pill '+(c.status==='approved'?'ok':'off')+'">'+(c.status==='approved'?'Approved':'Declined')+'</span> '+esc(c.name)+' → '+esc(c.observer_name||c.observer_id)+'</li>';
+    }).join('')||'<li class="rd-muted">Nothing yet.</li>';
+  }
+  $('rm-obs-claims-body').addEventListener('click',function(e){
+    var yes=e.target.closest('[data-obs-approve]'), no=e.target.closest('[data-obs-decline]'), btn=yes||no;
+    if(!btn||!isAdmin)return;
+    var id=btn.getAttribute(yes?'data-obs-approve':'data-obs-decline');
+    confirmClick(btn,yes?'Approve':'Decline',function(){
+      btn.disabled=true;
+      var job=yes?pb.send('/api/directory/observer-claims/'+encodeURIComponent(id)+'/approve',{method:'POST'}):pb.collection('observer_claims').update(id,{status:'declined',handled_by:me.id});
+      job.then(function(r){
+        toast(yes?'Observer claim approved'+(r.emailed?'; email sent.':'; email could not be sent. Contact the claimant.'):'Observer claim declined.',yes&&!r.emailed?'warn':'ok',yes&&!r.emailed);
+        return Promise.all([loadObserverClaims(),loadObservers()]);
+      }).catch(function(err){btn.disabled=false;toast(errText(err),'bad');});
+    });
   });
 
   // ── start ────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ description: How Acadiana Mesh handles information from this website, the newsle
 permalink: /privacy/
 ---
 
-_Last updated: November 19, 2026_
+_Last updated: November 22, 2026_
 
 Acadiana Mesh is a volunteer community project. We don't sell ads, we don't sell or rent your information, and we only collect what we need to run the network tools and keep you informed. This page explains what we collect and what we do with it.
 
@@ -37,6 +37,8 @@ The [repeater directory](/repeaters/) lists the community's repeaters and is sto
 People who manage repeaters have an account with their name, email and (optionally) callsign, phone and Discord name. A repeater set to "Use my profile" copies these into its contact details; what shows publicly is still chosen per repeater. Their email is used only to sign in (with an emailed code or a password reset link) and is never shown publicly. Sign-in emails are delivered through Brevo. To remove your account or your contact details, edit your repeater or email us.
 
 When you reserve a repeater prefix, we keep the prefix, what it's for, your name, your email and (optionally) your callsign. Only the prefix, what it's for and the date are shown publicly. We email you a confirmation through Brevo. Your email lets you sign in to rename or release the reservation, and admins can see who reserved each prefix. Releasing a reservation deletes it.
+
+Observer claims use the same directory account. We store the observer ID, name, region, claimant name, email, optional callsign and note, and the approval decision. Claims are private to administrators. Account assignments are available to authorized managers and administrators. Managers choose which additional directory information to publish, including an optional public owner name, general area, hardware and notes. Claim emails and account email addresses are not public. Claim approval does not grant access to the observer hardware or analyzer account.
 
 ## Mesh network data
 
