@@ -1,6 +1,9 @@
 onRecordValidate((e) => {
   const field = e.record.collection().fields.getByName("staff_permissions");
-  if (field) e.record.set("staff_permissions", require(__hooks + "/staff_access.js").effective(e.record));
+  if (field) {
+    const staff = require(__hooks + "/staff_access.js");
+    e.record.set("staff_permissions", staff.encode(staff.effective(e.record)));
+  }
   e.next();
 }, "users");
 

@@ -40,7 +40,8 @@ onRecordUpdateRequest((e)=>{
 },"managed_observers");
 routerAdd("POST","/api/directory/observer-claims/{id}/approve",(e)=>{
   if(!require(__hooks + "/staff_access.js").has(e.auth, "approve_observer_claims"))return e.json(403,{message:"Observer claim approval permission is required."});
-  try{return e.json(200,require(`${__hooks}/observer_claims.js`).approve(e.app,e.request.pathValue("id"),e.auth.id));}
+  try{return e.json(200,require(`${__hooks}/observer_claims.js`).approve(e.app,e.request.pathValue("id"),e.auth.id,
+      require(__hooks + "/staff_access.js").has(e.auth, "edit_observers") ? "" : e.auth.email().toLowerCase()));}
   catch(err){console.log("[observer claims] approval failed: "+err);return e.json(400,{message:"Could not approve observer claim. It may already have been handled."});}
 },$apis.requireAuth("users"));
 

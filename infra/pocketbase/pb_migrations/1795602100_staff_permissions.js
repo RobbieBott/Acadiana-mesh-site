@@ -8,7 +8,7 @@ const permissionNames = [
 ];
 const legacyAdmin = '@request.auth.role = "admin"';
 function access(...names) {
-  return "(" + names.map((name) => '@request.auth.staff_permissions ?= "' + name + '"').join(" || ") + ")";
+  return "(" + names.map((name) => '@request.auth.staff_permissions ~ "|' + name.replace(/_/g, "-") + '|"').join(" || ") + ")";
 }
 function replaceRule(collection, field, capabilities) {
   collection[field] = collection[field].split(legacyAdmin).join(access(...capabilities));
@@ -20,13 +20,13 @@ function listView(collection, capabilities) {
 migrate((app) => {
   const users = app.findCollectionByNameOrId("users");
   users.fields.add(new JSONField({ name: "staff_overrides", hidden: true, maxSize: 4096 }));
-  users.fields.add(new SelectField({ name: "staff_permissions", hidden: true, maxSelect: permissionNames.length, values: permissionNames }));
+  users.fields.add(new TextField({ name: "staff_permissions", hidden: true, max: 1024 }));
   listView(users, ["read_people", "edit_people"]);
   replaceRule(users, "createRule", ["invite_users"]);
   replaceRule(users, "updateRule", ["edit_people"]);
   app.save(users);
   app.db().newQuery("UPDATE users SET staff_permissions = {:permissions} WHERE role = 'admin'")
-    .bind({ permissions: JSON.stringify(permissionNames) }).execute();
+    .bind({ permissions: "|" + permissionNames.map((name) => name.replace(/_/g, "-")).join("|") + "|" }).execute();
 
   const repeaters = app.findCollectionByNameOrId("repeaters");
   listView(repeaters, ["read_repeaters", "edit_repeaters", "assign_repeaters"]);
@@ -71,7 +71,7 @@ migrate((app) => {
   let collections = collectionNames.map((name) => app.findCollectionByNameOrId(name));
   for (const collection of collections) {
     for (const field of ["listRule", "viewRule", "createRule", "updateRule", "deleteRule"]) {
-      if (collection[field]) collection[field] = collection[field].replace(/\(@request\.auth\.staff_permissions \?= "[a-z_]+"(?: \|\| @request\.auth\.staff_permissions \?= "[a-z_]+")*\)/g, legacyAdmin);
+      if (collection[field]) collection[field] = collection[field].replace(/\(@request\.auth\.staff_permissions ~ "\|[a-z-]+\|"(?: \|\| @request\.auth\.staff_permissions ~ "\|[a-z-]+\|")*\)/g, legacyAdmin);
     }
     if (collection.name === "repeaters") {
       const owner = '((@request.body.owner_name:isset = true && @request.body.owner_name != "") || (@request.body.owner_name:isset = false && owner_name != ""))';

@@ -37,6 +37,11 @@ function effective(record) {
     (custom[key] !== false && record.getString("role") === "admin"));
 }
 
+// Keep exact tokens in a scalar field for API rules on @request.auth.
+function encode(names) {
+  return "|" + names.map((name) => name.replace(/_/g, "-")).join("|") + "|";
+}
+
 function has(record, key) {
   return !!(record && (record.collection().name === "_superusers" || effective(record).includes(key)));
 }
@@ -60,4 +65,4 @@ function decline(e, capability) {
   e.next();
 }
 
-module.exports = { permissions, isOwner, effective, overrides, has, valid, decline };
+module.exports = { permissions, isOwner, effective, overrides, encode, has, valid, decline };
