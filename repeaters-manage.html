@@ -91,7 +91,7 @@ sitemap: false
         <p class="rd-muted" id="rm-my-devices-status" role="status">Loading your devices…</p>
         <div class="rd-table-wrap" id="rm-my-devices-table" hidden>
           <table class="rd-table rm-table">
-            <thead><tr><th scope="col">Device</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+            <thead><tr><th scope="col">Device</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
             <tbody id="rm-my-devices-list"></tbody>
           </table>
         </div>
@@ -337,20 +337,62 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>Permissions</h2>
-            <p class="rd-muted">Choose a role, then open Staff permissions to grant or block individual actions for that account.</p>
+            <p class="rd-muted">Manage account roles and individual access.</p>
           </div>
           <button class="btn btn-secondary" type="button" id="rm-permissions-refresh">Refresh</button>
         </div>
         <p id="rm-permissions-status" role="status" aria-live="polite"></p>
         <div class="rd-table-wrap">
           <table class="rd-table rm-table">
-            <thead><tr><th>Account</th><th>Role</th><th>Owner Emails</th><th>Staff permissions</th><th><span class="rd-muted">Save changes</span></th></tr></thead>
+            <thead><tr><th scope="col">Account</th><th scope="col">Role</th><th scope="col" class="rm-hide-sm">Owner Emails</th><th scope="col">Overrides</th><th scope="col">Action</th></tr></thead>
             <tbody id="rm-permissions-body"></tbody>
           </table>
         </div>
 
+        <dialog class="rm-permission-dialog" id="rm-permission-dialog" aria-labelledby="rm-permission-title" aria-describedby="rm-permission-account">
+          <form class="rm-permission-editor" id="rm-permission-editor">
+            <header class="rm-permission-header">
+              <div>
+                <h3 id="rm-permission-title">Edit permissions</h3>
+                <p class="rd-muted" id="rm-permission-account"></p>
+              </div>
+              <button class="btn btn-secondary rm-sm" type="button" data-permission-close>Close</button>
+            </header>
+            <div class="rm-permission-content">
+              <fieldset class="rm-permission-fields" id="rm-permission-fields">
+                <legend class="sr-only">Account permissions</legend>
+                <div class="rm-permission-settings">
+                  <label class="rm-field"><span>Account role</span>
+                    <select name="role"><option value="user">User</option><option value="admin">Admin</option></select>
+                  </label>
+                  <div>
+                    <label class="rm-check"><input type="checkbox" name="enabled"> Allow sending owner emails</label>
+                    <p class="rm-sub" id="rm-permission-email-note" hidden>Requires a verified email address.</p>
+                  </div>
+                </div>
+                <div class="rm-permission-toolbar">
+                  <h4>Staff permissions</h4>
+                  <label class="rm-check"><input type="checkbox" name="overridesOnly"> Show overrides only</label>
+                </div>
+                <div id="rm-permission-groups"></div>
+                <p class="rd-muted" id="rm-permission-empty" hidden>No individual overrides.</p>
+              </fieldset>
+            </div>
+            <footer class="rm-permission-footer">
+              <div>
+                <p class="rd-muted" id="rm-permission-count" role="status"></p>
+                <p class="rm-permission-error" id="rm-permission-error" role="alert"></p>
+              </div>
+              <div class="rm-actions">
+                <button class="btn btn-secondary" type="button" data-permission-close>Cancel</button>
+                <button class="btn btn-primary" type="submit" id="rm-permission-save" disabled>Save changes</button>
+              </div>
+            </footer>
+          </form>
+        </dialog>
+
         <section class="rm-permission-reference" aria-labelledby="rm-permission-reference-title">
-          <h3 id="rm-permission-reference-title">Role permissions</h3>
+          <h3 id="rm-permission-reference-title">Role defaults</h3>
           <div class="rd-table-wrap" role="region" aria-labelledby="rm-permission-reference-title" tabindex="0">
             <table class="rd-table rm-table rm-permission-matrix" aria-labelledby="rm-permission-reference-title">
               <thead><tr><th scope="col">Permission</th><th scope="col">User</th><th scope="col">Admin</th><th scope="col">Site Owner</th></tr></thead>
