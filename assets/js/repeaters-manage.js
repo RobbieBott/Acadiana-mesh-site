@@ -27,6 +27,9 @@
   var repeaters = [], people = [], prefixes = [], liveNodes = [], claims = [];
   var editing = null;        // repeater record being edited (null = new)
   var editingPerson = null;  // user record being edited (null = new)
+  var repeaterBackPanel = 'repeaters';
+  var observerBackPanel = 'observers';
+  var myDeviceLoads = { repeaters: 'loading', observers: 'loading' };
 
   // ── small helpers ────────────────────────────────────────────
   var toastTimer;
@@ -174,7 +177,7 @@
     root.classList.toggle('rm-is-admin', allRepeaters());
     if (!pb.authStore.isValid) return;
     var destination = location.hash.slice(1);
-    showPanel(destination || 'repeaters', false);
+    showPanel(destination || 'my-devices', false);
     loadAll().then(function () {
       var match = location.hash.match(/^#edit-([a-z0-9]+)$/);
       if (match) {
@@ -187,7 +190,7 @@
   });
 
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'account'];
+  var PANELS = ['my-devices', 'repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'account'];
   function showPanel(name, push) {
     if (PANELS.indexOf(name) < 0 || (name === 'permissions' && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
@@ -197,6 +200,7 @@
       a.classList.toggle('active', on);
       a.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    if (name === 'my-devices') renderMyDevices();
     if (name === 'observers') closeObserverEditor();
     if (name === 'owner-mail') ownerMail.open();
     if (name === 'permissions') loadPermissions();
@@ -212,8 +216,11 @@
   function signedIn() {
     me = pb.authStore.record;
     isAdmin = me && me.role === 'admin';
+    repeaters = [];
     managedObservers = [];
     liveObservers = [];
+    myDeviceLoads = { repeaters: 'loading', observers: 'loading' };
+    renderMyDevices();
     $('rm-obs-q').value = '';
     $('rm-obs-list').replaceChildren();
     closeObserverEditor();
@@ -244,20 +251,29 @@
   // ── data ─────────────────────────────────────────────────────
   function loadAll() {
     var privateRecords = pb.collection('repeaters').getFullList({ sort: 'name', expand: 'managers,contact_from' });
+    var peopleReady = loadPeople();
+    var editableRecords = Promise.all([privateRecords, peopleReady]).then(function (results) {
+      repeaters = results[0];
+      myDeviceLoads.repeaters = 'ready';
+      renderMyDevices();
+    }, function (error) {
+      myDeviceLoads.repeaters = 'error';
+      renderMyDevices();
+      throw error;
+    });
     var readPublic = repeaterClaims() || can('manage_maintenance');
     var publicRecords = readPublic ? pb.collection('repeaters_public').getFullList({ sort: 'name', fields: 'id,name,owner_name,status,area' }) : Promise.resolve([]);
     var jobs = [
-      Promise.all([privateRecords, publicRecords]).then(function (lists) {
+      Promise.all([editableRecords, publicRecords]).then(function (lists) {
         var publicList = lists[1];
         claimRepeaterNames = new Map(publicList.map(function (r) { return [r.id, r]; }));
-        repeaters = lists[0];
         if (can('manage_maintenance')) {
           var privateIds = new Set(repeaters.map(function (r) { return r.id; }));
           repeaters = repeaters.concat(publicList.filter(function (r) { return !privateIds.has(r.id); }));
         }
       }),
       pb.collection('prefixes').getFullList({ sort: 'code' }).then(function (l) { prefixes = l; }),
-      loadPeople()
+      peopleReady
     ];
     if (repeaterClaims()) jobs.push(loadClaims());
     return Promise.all(jobs).then(renderAll).catch(function (err) { toast(errText(err), 'bad', true); });
@@ -389,12 +405,53 @@
     return 'Heard ' + ago;
   }
 
+  function renderMyDevices() {
+    var myRepeaters = myDeviceLoads.repeaters === 'ready' ? repeaters.filter(manages) : [];
+    var myObservers = myDeviceLoads.observers === 'ready' ? managedObservers.filter(manages) : [];
+    var devices = myRepeaters.map(function (record) {
+      return { id: record.id, name: record.name, type: 'Repeater' };
+    }).concat(myObservers.map(function (record) {
+      return { id: record.id, name: record.display_name || record.observer_name || record.observer_id, type: 'Observer' };
+    }));
+    devices.sort(function (a, b) { return a.name.localeCompare(b.name) || a.type.localeCompare(b.type); });
+
+    var status = $('rm-my-devices-status');
+    var failed = Object.keys(myDeviceLoads).filter(function (type) { return myDeviceLoads[type] === 'error'; });
+    if (failed.length) status.textContent = 'Could not load your ' + failed.join(' or ') + '. Reload the page to try again.';
+    else if (Object.values(myDeviceLoads).includes('loading')) status.textContent = 'Loading your devices…';
+    else status.textContent = devices.length ? '' : 'No repeaters or observers are assigned to your account yet.';
+    status.hidden = !status.textContent;
+
+    $('rm-my-devices-table').hidden = !devices.length;
+    $('rm-my-devices-list').innerHTML = devices.map(function (device) {
+      return '<tr><td>' + esc(device.name) + '</td><td>' + device.type + '</td>' +
+        '<td class="rm-right"><button type="button" class="btn btn-secondary rm-sm" data-device-id="' + esc(device.id) +
+        '" data-device-type="' + device.type + '" aria-label="Edit ' + esc(device.name) + '">Edit</button></td></tr>';
+    }).join('');
+  }
+
+  $('rm-my-devices-list').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-device-id]');
+    if (!button) return;
+    var isRepeater = button.dataset.deviceType === 'Repeater';
+    var records = isRepeater ? repeaters : managedObservers;
+    var record = records.find(function (item) { return item.id === button.dataset.deviceId; });
+    if (!record || !manages(record)) return;
+    if (isRepeater) {
+      openEditor(record, 'my-devices');
+    } else {
+      showPanel('observers', false);
+      openObserverEditor(record, 'my-devices');
+    }
+  });
+
   // ── repeaters list ───────────────────────────────────────────
   function managerNames(r) {
     var list = (r.expand && r.expand.managers) || [];
     return list.map(function (u) { return u.name || u.email; });
   }
   function renderRepeaters() {
+    renderMyDevices();
     var q = ($('rm-rep-q').value || '').toLowerCase();
     var rows = repeaters.filter(function (r) {
       return !q || [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.prefix_3byte].join(' ').toLowerCase().indexOf(q) >= 0;
@@ -526,8 +583,10 @@
       }).join('') || '<span class="rd-muted">No people yet. Add them on the People tab.</span>') + '</div></fieldset>';
   }
 
-  function openEditor(r) {
+  function openEditor(r, backPanel) {
     editing = r || null;
+    repeaterBackPanel = backPanel || 'repeaters';
+    $('rm-editor-back').textContent = repeaterBackPanel === 'my-devices' ? '← Back to My Devices' : '← Back to repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = true; });
     $('rm-p-editor').hidden = false;
     $('rm-editor-title').textContent = r ? r.name : 'Add a repeater';
@@ -680,7 +739,7 @@
       repeaters.sort(function (a, b) { return a.name.localeCompare(b.name); });
       toast(editing ? 'Saved “' + rec.name + '”.' : 'Added “' + rec.name + '”.');
       renderRepeaters();
-      openEditor(rec);
+      openEditor(rec, repeaterBackPanel);
     }).catch(function (err) {
       if (editing && err.status === 404) return goneFromList(editing);
       toast(errText(err), 'bad', true);
@@ -693,11 +752,12 @@
     toast('“' + r.name + '” isn’t in your list anymore. It was already deleted' +
       (isAdmin ? '' : ', or you’re no longer one of its managers') + '. The list has been refreshed.', 'warn', true);
     editing = null;
-    showPanel('repeaters', true);
+    if (repeaterBackPanel === 'my-devices') repeaters = repeaters.filter(function (item) { return item.id !== r.id; });
+    showPanel(repeaterBackPanel, true);
     return loadAll();
   }
 
-  $('rm-editor-back').addEventListener('click', function () { showPanel('repeaters', true); renderRepeaters(); });
+  $('rm-editor-back').addEventListener('click', function () { showPanel(repeaterBackPanel, true); renderRepeaters(); });
   $('rm-delete').addEventListener('click', function () {
     var btn = this, r = editing;
     if (!r) return;
@@ -705,7 +765,7 @@
       pb.collection('repeaters').delete(r.id).then(function () {
         repeaters = repeaters.filter(function (x) { return x.id !== r.id; });
         toast('Deleted “' + r.name + '”.');
-        showPanel('repeaters', true); renderRepeaters();
+        showPanel(repeaterBackPanel, true); renderRepeaters();
       }).catch(function (err) {
         if (err.status === 404) return goneFromList(r);
         toast(errText(err), 'bad');
@@ -1258,6 +1318,7 @@
       peopleObserverStatus = '';
       return (can('assign_observers') ? loadPeople() : Promise.resolve()).then(function () {
         if (version !== observerLoadVersion) return;
+        myDeviceLoads.observers = 'ready';
         $('rm-obs-msg').textContent = result[1] ? '' : 'Analyzer unavailable. Showing observers already in the directory.';
         renderObservers();
         renderPeople();
@@ -1265,12 +1326,15 @@
     }).catch(function (error) {
       if (version !== observerLoadVersion) return;
       peopleObserverStatus = 'Unavailable';
+      myDeviceLoads.observers = 'error';
+      renderMyDevices();
       renderPeople();
       $('rm-obs-msg').textContent = 'Could not load observers. ' + errText(error);
     });
   }
 
   function renderObservers() {
+    renderMyDevices();
     var catalog = new Map();
     liveObservers.forEach(function (item) {
       if (item && item.id != null && String(item.id)) {
@@ -1323,6 +1387,10 @@
     var form = $('rm-obs-editor-form').querySelector('[data-observer-edit]');
     var id = form && form.dataset.observerEdit;
     closeObserverEditor();
+    if (observerBackPanel === 'my-devices') {
+      showPanel('my-devices', true);
+      return;
+    }
     var button = Array.from($('rm-obs-list').querySelectorAll('[data-open-observer]')).find(function (entry) {
       return entry.dataset.openObserver === id;
     });
@@ -1365,7 +1433,9 @@
     });
   }
 
-  function openObserverEditor(o) {
+  function openObserverEditor(o, backPanel) {
+    observerBackPanel = backPanel || 'observers';
+    $('rm-obs-back').textContent = observerBackPanel === 'my-devices' ? '← Back to My Devices' : '← Back to observers';
     $('rm-obs-directory').hidden = true;
     $('rm-obs-editor').hidden = false;
     function field(key,label,max){return '<label class="rm-field"><span>'+label+'</span><input name="'+key+'" maxlength="'+max+'" value="'+esc(o[key]||'')+'"></label>';}
@@ -1407,7 +1477,9 @@
     if (!button || !isSiteOwner) return;
     confirmClick(button, 'Delete observer', function () {
       pb.collection('managed_observers').delete(button.dataset.deleteObserver).then(function () {
+        managedObservers = managedObservers.filter(function (item) { return item.id !== button.dataset.deleteObserver; });
         closeObserverEditor();
+        if (observerBackPanel === 'my-devices') showPanel('my-devices', true);
         toast('Observer listing deleted.');
         return loadObservers();
       }).catch(function (error) { toast(errText(error), 'bad'); });
