@@ -338,7 +338,7 @@ sitemap: false
         <div class="rm-head">
           <div>
             <h2>Permissions</h2>
-            <p class="rd-muted">Manage account roles and individual access.</p>
+            <p class="rd-muted">Choose an account to change its role or make an exception for a specific permission.</p>
           </div>
           <button class="btn btn-secondary" type="button" id="rm-permissions-refresh">Refresh</button>
         </div>
@@ -368,13 +368,17 @@ sitemap: false
                   </label>
                   <div>
                     <label class="rm-check"><input type="checkbox" name="enabled"> Allow sending owner emails</label>
-                    <p class="rm-sub" id="rm-permission-email-note" hidden>Requires a verified email address.</p>
+                    <p class="rm-sub">Sending owner emails requires a verified email address.</p>
                   </div>
                 </div>
                 <div class="rm-permission-toolbar">
                   <h4>Staff permissions</h4>
                   <label class="rm-check"><input type="checkbox" name="overridesOnly"> Show overrides only</label>
                 </div>
+                <p class="rm-permission-help" id="rm-permission-help">
+                  <strong>Use role default</strong> follows the account role. <strong>Always allow</strong> and
+                  <strong>Always deny</strong> stay in effect if the role changes.
+                </p>
                 <div id="rm-permission-groups"></div>
                 <p class="rd-muted" id="rm-permission-empty" hidden>No individual overrides.</p>
               </fieldset>
@@ -394,30 +398,63 @@ sitemap: false
 
         <section class="rm-permission-reference" aria-labelledby="rm-permission-reference-title">
           <h3 id="rm-permission-reference-title">Role defaults</h3>
+          <p class="rd-muted" id="rm-permission-reference-help">These are the starting permissions for each role. Individual overrides change staff access for one account.</p>
           <div class="rd-table-wrap" role="region" aria-labelledby="rm-permission-reference-title" tabindex="0">
-            <table class="rd-table rm-table rm-permission-matrix" aria-labelledby="rm-permission-reference-title">
-              <thead><tr><th scope="col">Permission</th><th scope="col">User</th><th scope="col">Admin</th><th scope="col">Site Owner</th></tr></thead>
+            <table class="rd-table rm-table rm-permission-matrix" aria-labelledby="rm-permission-reference-title" aria-describedby="rm-permission-reference-help">
+              <thead><tr><th scope="col">Permission</th><th scope="col"><span class="rd-pill off">User</span></th><th scope="col"><span class="rd-pill info">Admin</span></th><th scope="col"><span class="rd-pill ok">Site Owner</span></th></tr></thead>
               <tbody>
-                <tr><th scope="row">Browse public listings and submit claims</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
-                <tr><th scope="row">Update own profile and set or reset own password</th><td>Yes</td><td>Yes</td><td>Yes</td></tr>
-                <tr><th scope="row">View private repeater contact details and edit repeater listings</th><td>Assigned repeaters</td><td>All repeaters</td><td>All repeaters</td></tr>
-                <tr><th scope="row">Edit observer listings</th><td>Assigned observers</td><td>All registered observers</td><td>All registered observers</td></tr>
-                <tr><th scope="row">Add a repeater</th><td>Assign yourself</td><td>Assign any manager</td><td>Assign any manager</td></tr>
-                <tr><th scope="row">Link a repeater’s contact details to a profile</th><td>Own profile, on assigned repeaters</td><td>Any profile</td><td>Any profile</td></tr>
-                <tr><th scope="row">Manage maintenance logs and pause device alerts</th><td>Assigned devices</td><td>All devices</td><td>All devices</td></tr>
-                <tr><th scope="row">Assign device managers, register observers, and approve or decline claims</th><td>No</td><td>Yes</td><td>Yes</td></tr>
-                <tr><th scope="row">Run CoreScope sync</th><td>No</td><td>Yes</td><td>Yes</td></tr>
-                <tr><th scope="row">Reserve, rename, or release prefixes</th><td>Own reservations, up to five per email</td><td>All reservations</td><td>All reservations</td></tr>
-                <tr><th scope="row">View People and invite regular users</th><td>No</td><td>Yes</td><td>Yes</td></tr>
-                <tr><th scope="row">Edit other people’s directory profile details</th><td>No</td><td>Except the Site Owner and accounts with Owner Emails</td><td>Yes</td></tr>
-                <tr><th scope="row">Send owner notices and view send history</th><td>With Owner Emails access</td><td>With Owner Emails access</td><td>Included</td></tr>
-                <tr><th scope="row">Change roles and grant or revoke Owner Emails</th><td>No</td><td>No</td><td>Yes</td></tr>
-                <tr><th scope="row">Change another account’s sign-in email</th><td>No</td><td>No</td><td>Yes</td></tr>
-                <tr><th scope="row">Permanently delete other accounts, repeaters, or observer listings</th><td>No</td><td>No</td><td>Yes</td></tr>
+                <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">Account basics</th></tr>
+                <tr><th scope="row">Browse listings and submit claims</th>
+                  <td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Update your profile and manage your password</th>
+                  <td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+              </tbody>
+              <tbody>
+                <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">Devices and maintenance</th></tr>
+                <tr><th scope="row">View private repeater contacts and edit listings</th>
+                  <td><span class="rd-pill info">Assigned repeaters</span></td><td><span class="rd-pill ok">All repeaters</span></td><td><span class="rd-pill ok">All repeaters</span></td></tr>
+                <tr><th scope="row">Edit observer listings</th>
+                  <td><span class="rd-pill info">Assigned observers</span></td><td><span class="rd-pill ok">All registered</span></td><td><span class="rd-pill ok">All registered</span></td></tr>
+                <tr><th scope="row">Add a repeater</th>
+                  <td><span class="rd-pill info">Assign yourself</span></td><td><span class="rd-pill ok">Assign any manager</span></td><td><span class="rd-pill ok">Assign any manager</span></td></tr>
+                <tr><th scope="row">Link a repeater to a contact profile</th>
+                  <td><span class="rd-pill info">Your own profile</span><span class="rm-permission-detail">On assigned repeaters</span></td><td><span class="rd-pill ok">Any profile</span></td><td><span class="rd-pill ok">Any profile</span></td></tr>
+                <tr><th scope="row">Manage maintenance logs and pause device alerts</th>
+                  <td><span class="rd-pill info">Assigned devices</span></td><td><span class="rd-pill ok">All devices</span></td><td><span class="rd-pill ok">All devices</span></td></tr>
+              </tbody>
+              <tbody>
+                <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">Directory operations</th></tr>
+                <tr><th scope="row">Assign device managers, register observers, and decide claims</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Run CoreScope sync</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Reserve, rename, or release prefixes</th>
+                  <td><span class="rd-pill info">Own reservations</span><span class="rm-permission-detail">Up to five per email</span></td><td><span class="rd-pill ok">All reservations</span></td><td><span class="rd-pill ok">All reservations</span></td></tr>
+              </tbody>
+              <tbody>
+                <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">People and owner emails</th></tr>
+                <tr><th scope="row">View People and invite regular users</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Edit other people’s directory profiles</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill warn">Limited access</span><span class="rm-permission-detail">Excludes Site Owner and accounts with Owner Emails</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Send owner notices and view send history</th>
+                  <td><span class="rd-pill warn">With Owner Emails</span></td><td><span class="rd-pill warn">With Owner Emails</span></td><td><span class="rd-pill ok">Included</span></td></tr>
+              </tbody>
+              <tbody>
+                <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">Site Owner controls</th></tr>
+                <tr><th scope="row">Change roles and grant or revoke Owner Emails</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Change another account’s sign-in email</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Permanently delete other accounts, repeaters, or observer listings</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
               </tbody>
             </table>
           </div>
-          <p class="rd-muted">The table shows role defaults. Individual grants and blocks override the defaults. Owner Emails requires a verified email address. PocketBase, server, and analyzer administration use separate access.</p>
+          <ul class="rm-permission-notes rd-muted">
+            <li>Owner Emails requires a verified email address.</li>
+            <li>PocketBase, server, and CoreScope administrator access are managed separately.</li>
+          </ul>
         </section>
       </section>
 
