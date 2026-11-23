@@ -197,6 +197,7 @@
       a.classList.toggle('active', on);
       a.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    if (name === 'observers') closeObserverEditor();
     if (name === 'owner-mail') ownerMail.open();
     if (name === 'permissions') loadPermissions();
     if (push) history.replaceState(null, '', '#' + name);
@@ -212,6 +213,10 @@
     me = pb.authStore.record;
     isAdmin = me && me.role === 'admin';
     managedObservers = [];
+    liveObservers = [];
+    $('rm-obs-q').value = '';
+    $('rm-obs-list').replaceChildren();
+    closeObserverEditor();
     peopleObserverStatus = 'Loading…';
     $('rm-signin').hidden = true;
     $('rm-app').hidden = false;
@@ -226,6 +231,7 @@
   }
 
   function signedOut() {
+    observerLoadVersion++;
     ownerMail.signOut();
     permissionRevision++;
     $('rm-permissions-body').replaceChildren();
@@ -258,10 +264,10 @@
   }
   function loadPeople() {
     if (can('read_people','edit_people')) {
-      return pb.collection('users').getFullList({ sort: 'name' }).then(function (l) { people = l; });
+      return pb.collection('users').getFullList({ sort: 'name', requestKey: null }).then(function (l) { people = l; });
     }
     if (can('assign_repeaters','assign_observers')) {
-      return pb.send('/api/directory/assignment-people').then(function (r) { people = r.people; });
+      return pb.send('/api/directory/assignment-people', { requestKey: null }).then(function (r) { people = r.people; });
     }
     people = [];
     return Promise.resolve();
@@ -790,12 +796,7 @@
     list.replaceChildren();
     status.textContent = 'Loading observers…';
     personObserverSelection = null;
-    var live = fetch(ANALYZER + '/api/observers').then(function (response) {
-      if (!response.ok) throw new Error('Analyzer unavailable');
-      return response.json();
-    }).then(function (body) {
-      return Array.isArray(body.observers) ? body.observers : null;
-    }).catch(function () { return null; });
+    var live = fetchLiveObservers();
     Promise.all([pb.collection('managed_observers').getFullList({sort:'observer_name'}), live]).then(function (result) {
       if (version !== personObserverVersion) return;
       var directory = result[0], feed = result[1];
@@ -1228,58 +1229,141 @@
 
 
   // Observer ownership lives in PocketBase, independent of the live analyzer.
-  var managedObservers=[], observerClaims=[], peopleObserverStatus='Loading…';
+  var managedObservers = [], liveObservers = [], observerClaims = [], peopleObserverStatus = 'Loading…';
+  var observerLoadVersion = 0;
+  function fetchLiveObservers() {
+    return fetch(ANALYZER + '/api/observers').then(function (response) {
+      if (!response.ok) throw new Error('Analyzer unavailable');
+      return response.json();
+    }).then(function (body) {
+      return Array.isArray(body.observers) ? body.observers : null;
+    }).catch(function () { return null; });
+  }
   function updateClaimCount(){
     var n=claims.filter(function(c){return c.status==='pending';}).length+observerClaims.filter(function(c){return c.status==='pending';}).length;
     $('rm-claims-count').textContent=n||'';
   }
-  function loadObservers(){
-    $('rm-obs-title').textContent=allObservers()?'All Managed Observers':'My Observers';
-    $('rm-obs-msg').textContent='Loading observers…';
-    return pb.collection('managed_observers').getFullList({sort:'observer_name'}).then(function(records){
-      managedObservers=records;
-      peopleObserverStatus='';
-      if (can('assign_observers')) return loadPeople();
-    }).then(function(){
-      $('rm-obs-msg').textContent='';
-      renderObservers();
+  function loadObservers() {
+    var version = ++observerLoadVersion;
+    var all = allObservers();
+    $('rm-obs-title').textContent = all ? 'All Observers' : 'My Observers';
+    $('rm-obs-msg').textContent = 'Loading observers…';
+    return Promise.all([
+      pb.collection('managed_observers').getFullList({ sort: 'observer_name' }),
+      all ? fetchLiveObservers() : Promise.resolve([])
+    ]).then(function (result) {
+      if (version !== observerLoadVersion) return;
+      managedObservers = result[0];
+      liveObservers = result[1] || [];
+      peopleObserverStatus = '';
+      return (can('assign_observers') ? loadPeople() : Promise.resolve()).then(function () {
+        if (version !== observerLoadVersion) return;
+        $('rm-obs-msg').textContent = result[1] ? '' : 'Analyzer unavailable. Showing observers already in the directory.';
+        renderObservers();
+        renderPeople();
+      });
+    }).catch(function (error) {
+      if (version !== observerLoadVersion) return;
+      peopleObserverStatus = 'Unavailable';
       renderPeople();
-    }).catch(function(err){
-      peopleObserverStatus='Unavailable';
-      renderPeople();
-      $('rm-obs-msg').textContent='Observer management is not available: '+errText(err);
-      $('rm-obs-list').innerHTML='';
+      $('rm-obs-msg').textContent = 'Could not load observers. ' + errText(error);
     });
   }
-  function renderObservers(){
-    $('rm-obs-list').innerHTML=managedObservers.map(function(o){
-      function field(key,label,max){return '<label class="rm-field"><span>'+label+'</span><input name="'+key+'" maxlength="'+max+'" value="'+esc(o[key]||'')+'"></label>';}
-      var link=ANALYZER+'/#/observers/'+encodeURIComponent(o.observer_id);
-      var assigned=o.managers||[];
-      var options=can('assign_observers')?'<fieldset class="rm-group rm-form"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
-        return '<label class="rm-check"><input type="checkbox" name="managers" value="'+esc(p.id)+'" '+(assigned.indexOf(p.id)>=0?'checked':'')+'> '+esc(p.name||p.email)+'</label>';
-      }).join('')+'</div><p class="rm-hint">Manager assignments update when you save.</p></fieldset>':'';
-      var editable = canEditObserver(o);
-      return '<form class="rm-card rm-form" data-observer-edit="'+esc(o.id)+'"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
-        '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-group rm-form"><legend>Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
-        '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+
-        '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small class="rm-hint">Alerts resume at the start of this date in Central time.</small></label></fieldset>'+options+
-        '<div class="rm-actions rm-actions-end">' +
-        (isSiteOwner ? '<button type="button" class="rm-danger" data-delete-observer="' + esc(o.id) + '">Delete observer</button>' : '') +
-        (editable || can('assign_observers') ? '<button type="submit" class="btn btn-primary">Save observer</button>' : '') + '</div></form>';
-    }).join('')||'<p class="rd-muted">No observers assigned yet. <a href="/repeaters/#observers">Claim an observer</a>.</p>';
+
+  function renderObservers() {
+    var catalog = new Map();
+    liveObservers.forEach(function (item) {
+      if (item && item.id != null && String(item.id)) {
+        var id = String(item.id);
+        catalog.set(id, { id: id, name: String(item.name || id), region: item.iata || '' });
+      }
+    });
+    managedObservers.forEach(function (record) {
+      var live = catalog.get(record.observer_id) || {};
+      catalog.set(record.observer_id, {
+        id: record.observer_id,
+        name: record.display_name || record.observer_name || live.name || record.observer_id,
+        region: live.region || record.region,
+        record: record
+      });
+    });
+    var query = $('rm-obs-q').value.trim().toLowerCase();
+    var rows = Array.from(catalog.values()).filter(function (item) {
+      return [item.name, item.region, item.id, item.record && item.record.public_owner].join(' ').toLowerCase().includes(query);
+    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    $('rm-obs-summary').textContent = allObservers()
+      ? catalog.size + ' observers · ' + managedObservers.length + ' registered in the directory'
+      : 'These are the observers assigned to you.';
+    $('rm-obs-list').innerHTML = rows.map(function (item) {
+      var record = item.record;
+      var open = record ? ' data-open-observer="' + esc(record.id) + '"' : '';
+      var analyzer = ANALYZER + '/#/observers/' + encodeURIComponent(item.id);
+      var name = record ? '<button type="button" class="rm-rowlink"' + open + '>' + esc(item.name) + '</button>' : esc(item.name);
+      var status = !record ? ['Unregistered', 'off'] : (record.managers || []).length ? ['Managed', 'ok'] : ['Needs manager', 'warn'];
+      var action = record
+        ? '<button type="button" class="btn btn-secondary rm-sm"' + open + '>' + (canEditObserver(record) || can('assign_observers') ? 'Edit' : 'View') + '</button>'
+        : '<a class="rm-link" href="' + esc(analyzer) + '" target="_blank" rel="noopener">Open in analyzer ↗</a>';
+      return '<tr><td>' + name + (item.region ? '<div class="rm-sub">' + esc(item.region) + '</div>' : '') + '</td>' +
+        '<td><span class="rd-pill ' + status[1] + '">' + status[0] + '</span></td>' +
+        '<td class="rm-hide-sm">' + esc(record && record.public_owner || '—') + '</td><td class="rm-right">' + action + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="rd-muted">' +
+      (query ? 'No observers match.' : allObservers() ? 'No observers available.' : 'No observers are assigned to you yet.') + '</td></tr>';
   }
+
+  function closeObserverEditor() {
+    $('rm-obs-directory').hidden = false;
+    $('rm-obs-editor').hidden = true;
+    $('rm-obs-editor-form').replaceChildren();
+  }
+
+  $('rm-obs-q').addEventListener('input', renderObservers);
+  $('rm-obs-back').addEventListener('click', function () {
+    var form = $('rm-obs-editor-form').querySelector('[data-observer-edit]');
+    var id = form && form.dataset.observerEdit;
+    closeObserverEditor();
+    var button = Array.from($('rm-obs-list').querySelectorAll('[data-open-observer]')).find(function (entry) {
+      return entry.dataset.openObserver === id;
+    });
+    if (button) button.focus();
+  });
   $('rm-obs-list').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-open-observer]');
+    if (!button) return;
+    var record = managedObservers.find(function (item) { return item.id === button.dataset.openObserver; });
+    if (record) openObserverEditor(record);
+  });
+
+  function openObserverEditor(o) {
+    $('rm-obs-directory').hidden = true;
+    $('rm-obs-editor').hidden = false;
+    function field(key,label,max){return '<label class="rm-field"><span>'+label+'</span><input name="'+key+'" maxlength="'+max+'" value="'+esc(o[key]||'')+'"></label>';}
+    var link=ANALYZER+'/#/observers/'+encodeURIComponent(o.observer_id);
+    var assigned=o.managers||[];
+    var options=can('assign_observers')?'<fieldset class="rm-group rm-form"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
+      return '<label class="rm-check"><input type="checkbox" name="managers" value="'+esc(p.id)+'" '+(assigned.indexOf(p.id)>=0?'checked':'')+'> '+esc(p.name||p.email)+'</label>';
+    }).join('')+'</div><p class="rm-hint">Manager assignments update when you save.</p></fieldset>':'';
+    var editable = canEditObserver(o);
+    $('rm-obs-editor-form').innerHTML = '<form class="rm-card rm-form" data-observer-edit="'+esc(o.id)+'"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
+      '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-group rm-form"><legend>Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
+      '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+
+      '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small class="rm-hint">Alerts resume at the start of this date in Central time.</small></label></fieldset>'+options+
+      '<div class="rm-actions rm-actions-end">' +
+      (isSiteOwner ? '<button type="button" class="rm-danger" data-delete-observer="' + esc(o.id) + '">Delete observer</button>' : '') +
+      (editable || can('assign_observers') ? '<button type="submit" class="btn btn-primary">Save observer</button>' : '') + '</div></form>';
+    $('rm-obs-back').focus();
+  }
+  $('rm-obs-editor-form').addEventListener('click', function (event) {
     var button = event.target.closest('[data-delete-observer]');
     if (!button || !isSiteOwner) return;
     confirmClick(button, 'Delete observer', function () {
       pb.collection('managed_observers').delete(button.dataset.deleteObserver).then(function () {
+        closeObserverEditor();
         toast('Observer listing deleted.');
         return loadObservers();
       }).catch(function (error) { toast(errText(error), 'bad'); });
     });
   });
-  $('rm-obs-list').addEventListener('submit',function(e){
+  $('rm-obs-editor-form').addEventListener('submit',function(e){
     var form=e.target.closest('[data-observer-edit]');if(!form)return;e.preventDefault();
     var record = managedObservers.find(function (item) { return item.id === form.dataset.observerEdit; });
     if (!record) return;
@@ -1292,6 +1376,7 @@
     busy(form,true);
     pb.collection('managed_observers').update(form.getAttribute('data-observer-edit'),body).then(function(o){
       var i=managedObservers.findIndex(function(x){return x.id===o.id;});if(i>=0)managedObservers[i]=o;
+      renderObservers();
       renderPeople();
       toast('Observer saved.');
     }).catch(function(err){toast(errText(err),'bad');}).then(function(){busy(form,false);});

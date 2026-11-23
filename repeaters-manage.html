@@ -134,12 +134,28 @@ sitemap: false
         </section>
       </section>
 
-      <!-- Observers (same directory account) -->
       <section class="rm-panel" id="rm-p-observers" data-panel="observers" hidden>
-        <div class="rm-head"><div><h2 id="rm-obs-title">My Observers</h2><p class="rd-muted">Manage your observer's public directory details. Live data and device configuration remain in the analyzer.</p></div>
-          <a class="btn btn-secondary" href="{{ '/repeaters/' | relative_url }}#observers">Find or claim an observer</a></div>
-        <p class="rd-muted" id="rm-obs-msg" role="status"></p>
-        <div id="rm-obs-list"></div>
+        <div id="rm-obs-directory">
+          <div class="rm-head">
+            <div>
+              <h2 id="rm-obs-title">My Observers</h2>
+              <p class="rd-muted" id="rm-obs-summary"></p>
+            </div>
+            <a class="btn btn-secondary" href="{{ '/repeaters/' | relative_url }}#observers">Find or claim an observer</a>
+          </div>
+          <input type="search" id="rm-obs-q" class="rm-filter" aria-label="Filter observers" placeholder="Filter observers" autocomplete="off">
+          <p class="rd-muted" id="rm-obs-msg" role="status"></p>
+          <div class="rd-table-wrap">
+            <table class="rd-table rm-table">
+              <thead><tr><th>Observer</th><th>Directory status</th><th class="rm-hide-sm">Owner</th><th></th></tr></thead>
+              <tbody id="rm-obs-list"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="rm-obs-editor" hidden>
+          <button type="button" class="rm-link rm-back" id="rm-obs-back">← Back to observers</button>
+          <div id="rm-obs-editor-form"></div>
+        </div>
       </section>
 
       <!-- Claims (admins) -->
