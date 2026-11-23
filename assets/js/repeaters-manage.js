@@ -149,7 +149,8 @@
   var isSiteOwner = false;
   var permissionRevision = 0;
   var staff = new Set();
-  var permissionDefinitions = {};
+  var permissionDefinitions = {}, permissionAccounts = [];
+  var editingPermissionAccount = null, savingPermissions = false;
   var claimRepeaterNames = new Map();
   function can() { return Array.from(arguments).some(function (key) { return staff.has(key); }); }
   function peoplePanel() { return can('read_people','edit_people','invite_users','assign_repeaters','assign_observers') || isSiteOwner; }
@@ -242,6 +243,8 @@
     observerLoadVersion++;
     ownerMail.signOut();
     permissionRevision++;
+    permissionAccounts = [];
+    closePermissionEditor(false);
     $('rm-permissions-body').replaceChildren();
     $('rm-loading').hidden = true;
     $('rm-signin').hidden = false;
@@ -416,20 +419,65 @@
     return age < 3600000 ? 'online' : age < 86400000 ? 'stale' : 'offline';
   }
 
+  function devicePublicKey(value) {
+    var key = String(value || '').trim().toLowerCase();
+    return /^[a-f0-9]{64}$/.test(key) ? key : '';
+  }
+
+  function groupDeviceRoles(roles) {
+    var byKey = new Map(), devices = [];
+    roles.forEach(function (role) {
+      if (!role.key) {
+        devices.push([role]);
+        return;
+      }
+      if (!byKey.has(role.key)) byKey.set(role.key, []);
+      byKey.get(role.key).push(role);
+    });
+    byKey.forEach(function (matches) {
+      if (matches.length === 2 && matches[0].type !== matches[1].type) devices.push(matches);
+      else matches.forEach(function (role) { devices.push([role]); });
+    });
+    return devices.sort(function (a, b) { return a[0].name.localeCompare(b[0].name) || a[0].type.localeCompare(b[0].type); });
+  }
+
+  function deviceStatusPill(status) {
+    return '<span class="rd-pill ' + status[1] + '">' + status[0] + '</span>';
+  }
+
+  function myDeviceRow(roles) {
+    var combined = roles.length > 1;
+    var name = roles[0].name;
+    var types = roles.map(function (role) {
+      return '<span class="rd-pill ' + (role.type === 'Repeater' ? 'warn' : 'info') + '">' + role.type + '</span>';
+    }).join('');
+    var status = !combined || roles[0].status[0] === roles[1].status[0] ? deviceStatusPill(roles[0].status) :
+      roles.map(function (role) {
+        return '<span class="rm-device-status-line"><span>' + role.type + '</span>' + deviceStatusPill(role.status) + '</span>';
+      }).join('');
+    var actions = roles.map(function (role) {
+      return '<button type="button" class="btn btn-secondary rm-sm" data-device-id="' + esc(role.id) +
+        '" data-device-type="' + role.type + '" aria-label="Edit ' + esc(name) + ' (' + role.type + ')">Edit' +
+        (combined ? ' ' + role.type.toLowerCase() : '') + '</button>';
+    }).join('');
+    return '<tr><td><strong>' + esc(name) + '</strong></td><td><div class="rm-device-types">' + types +
+      '</div></td><td>' + status + '</td><td><div class="rm-device-actions">' + actions + '</div></td></tr>';
+  }
+
   function renderMyDevices() {
     var myRepeaters = myDeviceLoads.repeaters === 'ready' ? repeaters.filter(manages) : [];
     var myObservers = myDeviceLoads.observers === 'ready' ? managedObservers.filter(manages) : [];
     var observerById = new Map(liveObservers.map(function (item) { return [String(item.id), item]; }));
     var now = Date.now();
-    var devices = myRepeaters.map(function (record) {
-      return { id: record.id, name: record.name, type: 'Repeater', status: LIVE[liveStatus(record)] };
+    var roles = myRepeaters.map(function (record) {
+      return { id: record.id, name: record.name, key: devicePublicKey(record.public_key), type: 'Repeater', status: LIVE[liveStatus(record)] };
     }).concat(myObservers.map(function (record) {
       return {
-        id: record.id, name: record.display_name || record.observer_name || record.observer_id, type: 'Observer',
-        status: LIVE[liveObserverStatus(observerById.get(String(record.observer_id)), now)]
+        id: record.id, name: record.display_name || record.observer_name || record.observer_id, key: devicePublicKey(record.observer_id),
+        type: 'Observer', status: LIVE[liveObserverStatus(observerById.get(String(record.observer_id)), now)]
       };
     }));
-    devices.sort(function (a, b) { return a.name.localeCompare(b.name) || a.type.localeCompare(b.type); });
+    var devices = groupDeviceRoles(roles);
 
     var status = $('rm-my-devices-status');
     var failed = Object.keys(myDeviceLoads).filter(function (type) { return myDeviceLoads[type] === 'error'; });
@@ -439,13 +487,7 @@
     status.hidden = !status.textContent;
 
     $('rm-my-devices-table').hidden = !devices.length;
-    $('rm-my-devices-list').innerHTML = devices.map(function (device) {
-      var typeColor = device.type === 'Repeater' ? 'warn' : 'info';
-      return '<tr><td>' + esc(device.name) + '</td><td><span class="rd-pill ' + typeColor + '">' + device.type + '</span></td>' +
-        '<td><span class="rd-pill ' + device.status[1] + '">' + device.status[0] + '</span></td>' +
-        '<td class="rm-right"><button type="button" class="btn btn-secondary rm-sm" data-device-id="' + esc(device.id) +
-        '" data-device-type="' + device.type + '" aria-label="Edit ' + esc(device.name) + ' (' + device.type + ')">Edit</button></td></tr>';
-    }).join('');
+    $('rm-my-devices-list').innerHTML = devices.map(myDeviceRow).join('');
   }
 
   $('rm-my-devices-list').addEventListener('click', function (event) {
@@ -1052,96 +1094,194 @@
     }
   });
 
-  function permissionSelect(key, label, overrides, owner) {
-    var value = Object.prototype.hasOwnProperty.call(overrides, key) ? String(overrides[key]) : 'inherit';
-    return '<label class="rm-field"><span>' + esc(label) + '</span><select data-capability="' + esc(key) + '"' +
-      (owner ? ' disabled' : '') + '>' +
-      [['inherit','Role default'],['true','Grant'],['false','Block']].map(function (option) {
+  var PERMISSION_GROUPS = [
+    ['Repeaters', ['read_repeaters', 'edit_repeaters', 'assign_repeaters', 'manage_maintenance']],
+    ['Observers', ['read_observers', 'edit_observers', 'assign_observers']],
+    ['Claims', ['read_repeater_claims', 'approve_repeater_claims', 'read_observer_claims', 'approve_observer_claims']],
+    ['People', ['read_people', 'edit_people', 'invite_users']],
+    ['Prefixes', ['read_prefixes', 'manage_prefixes']],
+    ['CoreScope', ['sync_corescope', 'sync_exclusions']]
+  ];
+
+  function overrideLabel(count) {
+    return count ? count + (count === 1 ? ' override' : ' overrides') : 'Role defaults';
+  }
+
+  function permissionRow(account) {
+    var caption = esc(account.name || account.email);
+    var role = account.owner ? 'Site Owner' : account.role === 'admin' ? 'Admin' : 'User';
+    var overrides = Object.keys(account.overrides || {}).length;
+    return '<tr><td><strong>' + caption + '</strong><div class="rm-sub">' + esc(account.email) + '</div>' +
+      (account.verified ? '' : '<div class="rm-sub rd-muted">Email verification pending</div>') + '</td>' +
+      '<td><span class="rd-pill ' + (account.owner ? 'ok' : account.role === 'admin' ? 'info' : 'off') + '">' + role + '</span></td>' +
+      '<td class="rm-hide-sm">' + (account.owner ? 'Included' : account.enabled ? 'On' : 'Off') + '</td><td>' +
+      (account.owner ? 'All staff permissions' : overrideLabel(overrides)) + '</td><td>' +
+      (account.owner ? '' : '<button type="button" class="btn btn-secondary rm-sm" aria-haspopup="dialog" ' +
+        'aria-controls="rm-permission-dialog" data-permission-edit="' + esc(account.id) +
+        '" aria-label="Edit permissions for ' + caption + '">Edit</button>') + '</td></tr>';
+  }
+
+  function renderPermissionAccounts() {
+    $('rm-permissions-body').innerHTML = permissionAccounts.map(permissionRow).join('');
+  }
+
+  function permissionControl(key, value) {
+    return '<label class="rm-permission-option"><span>' + esc(permissionDefinitions[key]) + '</span>' +
+      '<span class="rd-pill" data-permission-effective></span><select data-capability="' + esc(key) + '">' +
+      [['inherit', 'Role default'], ['true', 'Allow override'], ['false', 'Deny override']].map(function (option) {
         return '<option value="' + option[0] + '"' + (value === option[0] ? ' selected' : '') + '>' + option[1] + '</option>';
       }).join('') + '</select></label>';
   }
-  function permissionRow(account) {
-    var caption = esc(account.name);
-    var role = account.owner ? '<span class="rd-pill ok">Site Owner</span>' :
-      '<select name="role" aria-label="Role for ' + caption + '"><option value="user">User</option><option value="admin"' +
-      (account.role === 'admin' ? ' selected' : '') + '>Admin</option></select>';
-    var checkbox = '<input type="checkbox" name="enabled" aria-label="Owner Emails for ' + caption + '"' +
-      (account.enabled ? ' checked' : '') + ((account.owner || (!account.verified && !account.enabled)) ? ' disabled' : '') + '>';
-    var overrides = account.overrides || {};
-    var choices = Object.keys(permissionDefinitions).map(function (key) {
-      return permissionSelect(key, permissionDefinitions[key], overrides, account.owner);
+
+  function permissionGroups(overrides) {
+    var keys = Object.keys(permissionDefinitions);
+    var grouped = PERMISSION_GROUPS.map(function (group) {
+      return [group[0], group[1].filter(function (key) { return keys.includes(key); })];
+    }).filter(function (group) { return group[1].length; });
+    var used = new Set(grouped.flatMap(function (group) { return group[1]; }));
+    var remaining = keys.filter(function (key) { return !used.has(key); });
+    if (remaining.length) grouped.push(['Other', remaining]);
+    var firstOverride = grouped.findIndex(function (group) {
+      return group[1].some(function (key) { return Object.hasOwn(overrides, key); });
+    });
+    return grouped.map(function (group, index) {
+      return '<details class="rm-permission-group"' + (index === Math.max(0, firstOverride) ? ' open' : '') +
+        '><summary>' + group[0] + '</summary>' + group[1].map(function (key) {
+          return permissionControl(key, Object.hasOwn(overrides, key) ? String(overrides[key]) : 'inherit');
+        }).join('') + '</details>';
     }).join('');
-    return '<tr data-permission-account="' + esc(account.id) + '" data-role="' + esc(account.role) + '" data-enabled="' + account.enabled +
-      '" data-overrides="' + esc(JSON.stringify(overrides)) + '">' +
-      '<td><strong>' + caption + '</strong><div class="rm-sub">' + esc(account.email) + '</div>' +
-      (account.verified ? '' : '<div class="rm-sub rd-muted">Email verification pending</div>') + '</td>' +
-      '<td>' + role + '</td><td>' + checkbox + '</td><td>' +
-      (account.owner ? 'All staff permissions' : '<details><summary>Staff permissions <span class="rd-muted" data-effective-staff>' +
-        account.staff.length + ' allowed</span></summary><div class="rm-permission-options">' + choices + '</div></details>') + '</td><td>' +
-      (account.owner ? '' : '<button type="button" class="btn btn-secondary rm-sm" data-permission-save disabled>Save</button>') + '</td></tr>';
   }
-  function permissionInput(row) {
+
+  function permissionInput(form) {
     var overrides = {};
-    var controls = Array.from(row.querySelectorAll('[data-capability]'));
-    controls.forEach(function (field) {
+    form.querySelectorAll('[data-capability]').forEach(function (field) {
       if (field.value !== 'inherit') overrides[field.dataset.capability] = field.value === 'true';
     });
-    return { role: row.querySelector('[name=role]').value, enabled: row.querySelector('[name=enabled]').checked, overrides: overrides };
+    return { role: form.elements.role.value, enabled: form.elements.enabled.checked, overrides: overrides };
   }
+
   function sameOverrides(a, b) {
     return Object.keys(permissionDefinitions).every(function (key) { return a[key] === b[key]; });
   }
+
+  function updatePermissionEditor(revealOverrides) {
+    var form = $('rm-permission-editor');
+    var previous = editingPermissionAccount;
+    var input = permissionInput(form);
+    var only = form.elements.overridesOnly.checked;
+    var count = Object.keys(input.overrides).length;
+    form.querySelectorAll('.rm-permission-option').forEach(function (option) {
+      var value = option.querySelector('select').value;
+      var allowed = value === 'true' || (value === 'inherit' && input.role === 'admin');
+      var effective = option.querySelector('[data-permission-effective]');
+      effective.textContent = allowed ? 'Allowed' : 'Denied';
+      effective.className = 'rd-pill ' + (allowed ? 'ok' : 'off');
+      var hidden = only && value === 'inherit';
+      if (hidden && option.contains(document.activeElement)) form.elements.overridesOnly.focus();
+      option.hidden = hidden;
+    });
+    form.querySelectorAll('.rm-permission-group').forEach(function (group) {
+      group.hidden = only && !group.querySelector('.rm-permission-option:not([hidden])');
+      if (only && revealOverrides && !group.hidden) group.open = true;
+    });
+    $('rm-permission-empty').hidden = !only || count > 0;
+    $('rm-permission-count').textContent = count ? overrideLabel(count) : 'No individual overrides';
+    $('rm-permission-fields').disabled = savingPermissions;
+    form.querySelectorAll('[data-permission-close]').forEach(function (button) { button.disabled = savingPermissions; });
+    $('rm-permission-save').disabled = savingPermissions ||
+      (input.role === previous.role && input.enabled === previous.enabled && sameOverrides(input.overrides, previous.overrides || {}));
+  }
+
+  function openPermissionEditor(account) {
+    if (!isSiteOwner || account.owner || $('rm-permission-dialog').open) return;
+    editingPermissionAccount = account;
+    var form = $('rm-permission-editor');
+    $('rm-permission-account').textContent = account.name || account.email;
+    $('rm-permission-error').textContent = '';
+    form.elements.role.value = account.role;
+    form.elements.enabled.checked = account.enabled;
+    form.elements.enabled.disabled = !account.verified && !account.enabled;
+    form.elements.overridesOnly.checked = false;
+    $('rm-permission-email-note').hidden = !form.elements.enabled.disabled;
+    $('rm-permission-groups').innerHTML = permissionGroups(account.overrides || {});
+    updatePermissionEditor(false);
+    $('rm-permission-dialog').showModal();
+    form.elements.role.focus();
+  }
+
+  function closePermissionEditor(restoreFocus) {
+    var dialog = $('rm-permission-dialog');
+    var account = editingPermissionAccount;
+    editingPermissionAccount = null;
+    savingPermissions = false;
+    if (dialog.open) dialog.close();
+    if (restoreFocus && account) {
+      var opener = Array.from($('rm-permissions-body').querySelectorAll('[data-permission-edit]')).find(function (button) {
+        return button.dataset.permissionEdit === account.id;
+      });
+      (opener || $('rm-permissions-refresh')).focus();
+    }
+  }
+
   function loadPermissions() {
+    if ($('rm-permission-dialog').open) return;
     var version = ++permissionRevision;
     $('rm-permissions-status').textContent = 'Loading permissions…';
-    pb.send('/api/directory/permissions').then(function (result) {
+    return pb.send('/api/directory/permissions').then(function (result) {
       if (version !== permissionRevision) return;
       permissionDefinitions = result.capabilities;
-      $('rm-permissions-body').innerHTML = result.accounts.map(permissionRow).join('');
+      permissionAccounts = result.accounts;
+      renderPermissionAccounts();
       $('rm-permissions-status').textContent = '';
     }).catch(function (error) {
       if (version === permissionRevision) $('rm-permissions-status').textContent = errText(error);
     });
   }
+
   $('rm-permissions-refresh').addEventListener('click', loadPermissions);
-  $('rm-permissions-body').addEventListener('change', function (event) {
-    var row = event.target.closest('[data-permission-account]');
-    var button = row && row.querySelector('[data-permission-save]');
-    if (!button) return;
-    var input = permissionInput(row);
-    button.disabled = input.role === row.dataset.role && input.enabled === (row.dataset.enabled === 'true') &&
-      sameOverrides(input.overrides, JSON.parse(row.dataset.overrides));
-    row.querySelector('[data-effective-staff]').textContent = Object.keys(permissionDefinitions).filter(function (key) {
-      return input.overrides[key] === true || (input.overrides[key] === undefined && input.role === 'admin');
-    }).length + ' allowed';
-  });
   $('rm-permissions-body').addEventListener('click', function (event) {
-    var button = event.target.closest('[data-permission-save]');
-    if (!button || button.disabled || !isSiteOwner) return;
-    var row = button.closest('[data-permission-account]');
-    var id = row.dataset.permissionAccount;
+    var button = event.target.closest('[data-permission-edit]');
+    if (!button) return;
+    var account = permissionAccounts.find(function (item) { return item.id === button.dataset.permissionEdit; });
+    if (account) openPermissionEditor(account);
+  });
+  $('rm-permission-dialog').addEventListener('cancel', function (event) {
+    event.preventDefault();
+    if (!savingPermissions) closePermissionEditor(true);
+  });
+  $('rm-permission-editor').addEventListener('click', function (event) {
+    if (!savingPermissions && event.target.closest('[data-permission-close]')) closePermissionEditor(true);
+  });
+  $('rm-permission-editor').addEventListener('change', function (event) {
+    if (!editingPermissionAccount) return;
+    updatePermissionEditor(event.target.name === 'overridesOnly');
+  });
+  $('rm-permission-editor').addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (!editingPermissionAccount || !isSiteOwner || $('rm-permission-save').disabled) return;
+    var previous = editingPermissionAccount;
     var version = permissionRevision;
-    var previous = { role: row.dataset.role, enabled: row.dataset.enabled === 'true', overrides: JSON.parse(row.dataset.overrides) };
-    var next = permissionInput(row);
-    var input = { id: id, previousRole: previous.role, previousEnabled: previous.enabled, previousOverrides: previous.overrides };
+    var next = permissionInput(this);
+    var overrides = previous.overrides || {};
+    var input = { id: previous.id, previousRole: previous.role, previousEnabled: previous.enabled, previousOverrides: overrides };
     if (next.role !== previous.role) input.role = next.role;
     if (next.enabled !== previous.enabled) input.enabled = next.enabled;
-    if (!sameOverrides(next.overrides, previous.overrides)) input.overrides = next.overrides;
-    var controls = Array.from(row.querySelectorAll('select,input,button')).filter(function (field) { return !field.disabled; });
-    controls.forEach(function (field) { field.disabled = true; });
+    if (!sameOverrides(next.overrides, overrides)) input.overrides = next.overrides;
+    savingPermissions = true;
+    $('rm-permission-error').textContent = '';
+    updatePermissionEditor(false);
     pb.send('/api/directory/permissions', { method: 'PATCH', body: input }).then(function (result) {
       if (version !== permissionRevision) return;
-      var account = result.accounts.find(function (item) { return item.id === id; });
-      if (!account) { loadPermissions(); return; }
-      var wasOpen = row.querySelector("details").open;
-      row.outerHTML = permissionRow(account);
-      if (wasOpen) $("rm-permissions-body").querySelector('[data-permission-account="' + id + '"] details').open = true;
-      $('rm-permissions-status').textContent = 'Saved permissions for ' + account.name + '.';
+      permissionAccounts = result.accounts;
+      renderPermissionAccounts();
+      closePermissionEditor(true);
+      $('rm-permissions-status').textContent = 'Saved permissions for ' + (previous.name || previous.email) + '.';
       return loadAll();
     }).catch(function (error) {
-      if (version !== permissionRevision) return;
-      controls.forEach(function (field) { field.disabled = false; });
-      $('rm-permissions-status').textContent = errText(error);
+      if (version !== permissionRevision || !editingPermissionAccount) return;
+      savingPermissions = false;
+      updatePermissionEditor(false);
+      $('rm-permission-error').textContent = errText(error);
     });
   });
 
