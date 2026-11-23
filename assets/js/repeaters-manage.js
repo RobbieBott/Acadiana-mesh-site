@@ -174,7 +174,7 @@
     document.querySelectorAll('[data-admin-only]').forEach(function (element) { element.hidden = !can('read_prefixes','manage_prefixes'); });
     $('rm-me-role').textContent = isSiteOwner ? 'Site Owner' : isAdmin ? 'Admin' : 'User';
     $('rm-rep-title').textContent = allRepeaters() ? 'All Repeaters' : 'My Repeaters';
-    $('rm-sync').hidden = !can('sync_corescope');
+    $('rm-sync-control').hidden = !can('sync_corescope');
     $('rm-add-person').hidden = !can('invite_users');
     $('rm-repeater-claims').hidden = !repeaterClaims();
     $('rm-observer-claims').hidden = !observerClaimAccess();
@@ -206,6 +206,7 @@
       a.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     if (name === 'my-devices') renderMyDevices();
+    if (name === 'repeaters' && can('sync_corescope')) loadSyncTime();
     if (name === 'observers') closeObserverEditor();
     if (name === 'owner-mail') ownerMail.open();
     if (name === 'permissions') loadPermissions();
@@ -549,10 +550,29 @@
     openEditor(repeaters.find(function (r) { return r.id === b.getAttribute('data-edit'); }));
   });
   $('rm-add-repeater').addEventListener('click', function () { openEditor(null); });
+  var syncCompletedAt = 0;
+  var syncDate = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+  });
+  function showSyncTime(value, fallback) {
+    var timestamp = Date.parse(String(value || '').replace(' ', 'T'));
+    if (timestamp >= syncCompletedAt) syncCompletedAt = timestamp;
+    $('rm-sync-last').textContent = syncCompletedAt ? 'Last successful sync ' + syncDate.format(syncCompletedAt) : fallback;
+  }
+  function loadSyncTime() {
+    return pb.send('/api/directory/sync').then(function (r) {
+      showSyncTime(r.completedAt, 'No successful sync recorded');
+    }).catch(function () {
+      showSyncTime(null, 'Last sync time unavailable');
+    });
+  }
   $('rm-sync').addEventListener('click', function () {
     var btn = this;
+    var label = btn.textContent;
     btn.disabled = true; btn.textContent = 'Syncing…';
     pb.send('/api/directory/sync', { method: 'POST' }).then(function (r) {
+      showSyncTime(r.completedAt, 'Last sync time unavailable');
       var parts = [];
       if (r.added.length) parts.push('added ' + r.added.length + (r.added.length === 1 ? ' repeater' : ' repeaters'));
       if (r.rekeyed.length) parts.push('updated the public key on ' + r.rekeyed.join(', '));
@@ -560,7 +580,7 @@
       toast(parts.length ? 'CoreScope sync: ' + parts.join('; ') + '.' : 'CoreScope sync: already up to date (' + r.heard_in_region + ' repeaters in the Lafayette area).');
       return loadAll();
     }).catch(function (err) { toast(errText(err), 'bad', true); })
-      .then(function () { btn.disabled = false; btn.textContent = 'Sync from CoreScope'; });
+      .then(function () { btn.disabled = false; btn.textContent = label; });
   });
 
   // ── repeater editor ──────────────────────────────────────────

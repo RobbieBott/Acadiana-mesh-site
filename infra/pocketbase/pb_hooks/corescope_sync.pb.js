@@ -22,15 +22,22 @@ onBootstrap((e) => {
   }
 });
 
+routerAdd("GET", "/api/directory/sync", (e) => {
+  if (!require(__hooks + "/staff_access.js").has(e.auth, "sync_corescope")) {
+    return e.json(403, { message: "CoreScope sync permission is required." });
+  }
+  const rows = e.app.findRecordsByFilter("directory_activity",
+    "category = 'changes' && action = 'Ran CoreScope sync'", "-created,-id", 1, 0);
+  e.response.header().set("Cache-Control", "no-store");
+  return e.json(200, { completedAt: rows.length ? rows[0].getString("created") : null });
+}, $apis.requireAuth("users"));
+
 routerAdd("POST", "/api/directory/sync", (e) => {
   if (!require(__hooks + "/staff_access.js").has(e.auth, "sync_corescope")) {
     return e.json(403, { message: "CoreScope sync permission is required." });
   }
   try {
-    const result = require(__hooks + "/corescope_sync.js")(e.app);
-    const activity = require(__hooks + "/activity.js");
-    activity.log(e.app, { category: "changes", action: "Ran CoreScope sync", ...activity.who(e.auth),
-      detail: result.added.length + " added, " + result.rekeyed.length + " re-keyed, " + result.removed.length + " removed." });
+    const result = require(__hooks + "/corescope_sync.js")(e.app, e.auth);
     return e.json(200, result);
   } catch (err) {
     return e.json(502, { message: "Couldn't reach the analyzer: " + err });
