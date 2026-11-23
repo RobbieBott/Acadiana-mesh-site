@@ -961,6 +961,7 @@ ul { list-style: none; }
   text-align: center;
 }
 .wiki-tabs a.active .tab-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+#rm-claims-count:empty { display: none; }
 .report-tabs { margin: 0 auto 1.5rem; }
 .wiki-js .report-section.wiki-panel { border-top: none; padding-top: 0; margin-top: 0; }
 

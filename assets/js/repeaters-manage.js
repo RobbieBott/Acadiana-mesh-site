@@ -412,9 +412,12 @@
     if (!liveReady) return '';
     var t = heardAt(matchLive(r));
     if (!t) return '';
-    var s = (Date.now() - t) / 1000;
-    var ago = s < 90 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
-    return 'Heard ' + ago;
+    return 'Heard ' + heardAge(t, Date.now());
+  }
+
+  function heardAge(timestamp, now) {
+    var s = (now - timestamp) / 1000;
+    return s < 90 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
   }
 
   function liveObserverStatus(observer, now) {
@@ -1477,7 +1480,8 @@
       if (version === observerLoadVersion) {
         liveObservers = result || [];
         observerLiveReady = true;
-        renderMyDevices();
+        if (all) renderMyDevices();
+        else renderObservers();
       }
       return result;
     });
@@ -1508,6 +1512,7 @@
   function renderObservers() {
     renderMyDevices();
     var catalog = new Map();
+    var telemetryById = new Map(liveObservers.map(function (item) { return [String(item.id), item]; }));
     if (allObservers()) liveObservers.forEach(function (item) {
       if (String(item.id)) {
         var id = String(item.id);
@@ -1530,6 +1535,7 @@
     $('rm-obs-summary').textContent = allObservers()
       ? catalog.size + ' observers · ' + managedObservers.length + ' registered in the directory'
       : 'These are the observers assigned to you.';
+    var now = Date.now();
     $('rm-obs-list').innerHTML = rows.map(function (item) {
       var record = item.record;
       var canOpen = record || can('edit_observers');
@@ -1537,14 +1543,19 @@
       var analyzer = ANALYZER + '/#/observers/' + encodeURIComponent(item.id);
       var name = canOpen ? '<button type="button" class="rm-rowlink"' + open + '>' + esc(item.name) + '</button>' : esc(item.name);
       var status = !record ? ['Unregistered', 'off'] : (record.managers || []).length ? ['Managed', 'ok'] : ['Needs manager', 'warn'];
+      var telemetry = telemetryById.get(String(item.id));
+      var live = LIVE[liveObserverStatus(telemetry, now)];
+      var seen = telemetry ? Date.parse(telemetry.last_seen) : NaN;
+      var report = Number.isFinite(seen) ? '<div class="rm-sub">Heard ' + heardAge(seen, now) + '</div>' : '';
       var action = canOpen
         ? '<button type="button" class="btn btn-secondary rm-sm"' + open + '>' +
           (!record || canEditObserver(record) || can('assign_observers') ? 'Edit' : 'View') + '</button>'
         : '<a class="rm-link" href="' + esc(analyzer) + '" target="_blank" rel="noopener">Open in analyzer ↗</a>';
       return '<tr><td>' + name + (item.region ? '<div class="rm-sub">' + esc(item.region) + '</div>' : '') + '</td>' +
+        '<td><span class="rd-pill ' + live[1] + '">' + live[0] + '</span>' + report + '</td>' +
         '<td><span class="rd-pill ' + status[1] + '">' + status[0] + '</span></td>' +
         '<td class="rm-hide-sm">' + esc(record && record.public_owner || '—') + '</td><td class="rm-right">' + action + '</td></tr>';
-    }).join('') || '<tr><td colspan="4" class="rd-muted">' +
+    }).join('') || '<tr><td colspan="5" class="rd-muted">' +
       (query ? 'No observers match.' : allObservers() ? 'No observers available.' : 'No observers are assigned to you yet.') + '</td></tr>';
   }
 
