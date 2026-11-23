@@ -27,7 +27,7 @@
     });
   }
   function render(){
-    if(loading || !$('obs-error').hidden)return;
+    if((loading && !$('obs-loading').hidden) || !$('obs-error').hidden)return;
     var now=Date.now(), chosen=$('obs-region').value, q=$('obs-search').value.trim().toLowerCase();
     var scoped=list.filter(function(o){return !chosen||region(o)===chosen;});
     var count={all:scoped.length,online:0,stale:0,offline:0,unknown:0};
@@ -47,23 +47,28 @@
     }).join('');
     $('obs-empty').hidden=shown.length!==0;
   }
-  function load(){
+  function load(background){
     if(loading)return;
     loading=true;
-    $('obs-loading').hidden=false;$('obs-error').hidden=true;$('obs-empty').hidden=true;$('obs-refresh').disabled=true;$('obs-grid').innerHTML='';
-    renderStatusFilters(null);
-    ['obs-count','obs-online','obs-stale','obs-offline'].forEach(function(id){$(id).textContent='—';});
-    doc.querySelectorAll('.tab-count[data-count-from="obs-count"]').forEach(function(el){el.textContent='';});
+    if(!background){
+      $('obs-loading').hidden=false;$('obs-error').hidden=true;$('obs-empty').hidden=true;$('obs-refresh').disabled=true;$('obs-grid').innerHTML='';
+      renderStatusFilters(null);
+      ['obs-count','obs-online','obs-stale','obs-offline'].forEach(function(id){$(id).textContent='—';});
+      doc.querySelectorAll('.tab-count[data-count-from="obs-count"]').forEach(function(el){el.textContent='';});
+    }
     return Promise.resolve().then(function(){if(!base)throw new Error('Analyzer URL missing');return request(base+'/api/observers');})
       .then(function(res){if(!res.ok)throw new Error('HTTP '+res.status);return res.json();})
       .then(function(data){
         if(!data||!Array.isArray(data.observers))throw new Error('Unexpected observer response');
         list=data.observers.filter(function(o){return o&&typeof o==='object';});
         var select=$('obs-region'), prior=select.value, regions=Array.from(new Set(list.map(region).filter(Boolean))).sort();
-        select.innerHTML='<option value="LFT">LFT</option><option value="">All regions</option>'+regions.filter(function(r){return r!=='LFT';}).map(function(r){return '<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+        var regionOptions='<option value="LFT">LFT</option><option value="">All regions</option>'+regions.filter(function(r){return r!=='LFT';}).map(function(r){return '<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+        if(select.innerHTML!==regionOptions)select.innerHTML=regionOptions;
         select.value=prior===''||prior==='LFT'||regions.indexOf(prior)>=0?prior:'LFT';
+        $('obs-error').hidden=true;
         loading=false;render();
       }).catch(function(){
+        if(background && $('obs-error').hidden)return;
         list=[];$('obs-error').textContent='The observer list could not be loaded. Please try Refresh or open the live analyzer.';$('obs-error').hidden=false;
       }).finally(function(){loading=false;$('obs-loading').hidden=true;$('obs-refresh').disabled=false;});
   }
@@ -180,6 +185,14 @@
     selectedStatus=button.dataset.status;
     render();
   });
-  $('obs-refresh').addEventListener('click',load);
+  $('obs-refresh').addEventListener('click',function(){return load(false);});
+  function refreshVisible(){
+    if(!doc.hidden && !$('observers').hidden && !dialog.open && !$('obs-grid').contains(doc.activeElement)){
+      return load(true);
+    }
+  }
+  doc.addEventListener('visibilitychange',refreshVisible);
+  window.addEventListener('hashchange',refreshVisible);
+  window.setInterval(refreshVisible,30000);
   return load();
 })(document, window.fetch.bind(window));
