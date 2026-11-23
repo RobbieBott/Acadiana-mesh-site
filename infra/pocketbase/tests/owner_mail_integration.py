@@ -1,6 +1,7 @@
 """Exercise the owner email feature with a fresh PocketBase container and local fixtures."""
 
 import email
+from email.utils import parseaddr
 import json
 import os
 import pathlib
@@ -380,6 +381,31 @@ def run(folder):
     edit_only = api(register, member, dict(listing, observer_id="edit-only"), expected=201)
     assert not edit_only["managers"] and edit_only["observer_name"] == "Editor fixture"
     print("Verified isolated observer approval, Admin blocks, narrow assignment roster, and registration access", flush=True)
+
+    observer_record = "/api/collections/managed_observers/records/" + OBSERVER
+    public_observer = "/api/collections/managed_observers_public/records/" + OBSERVER
+    api(target, member, {"name": "Profile owner", "callsign": "KJ5XYZ", "phone": "555-0100", "discord": "private-name"}, "PATCH")
+    api(observer_record, member, {"contact_from": PEOPLE["admin"]}, "PATCH", expected=400)
+    api(observer_record, member, {"contact_from": PEOPLE["member"], "show_phone": True, "show_email": True}, "PATCH")
+    public = api(public_observer)
+    assert public["public_owner"] == "Profile owner" and public["owner_callsign"] == "KJ5XYZ"
+    assert public["phone"] == "555-0100" and not public["discord"] and public["can_message"]
+    assert "member@example.com" not in json.dumps(public) and "contact_from" not in public
+    api(target, member, {"name": "Updated observer owner", "phone": "555-0123"}, "PATCH")
+    public = api(public_observer)
+    assert public["public_owner"] == "Updated observer owner" and public["phone"] == "555-0123"
+    visitor = {"observer": OBSERVER, "name": "Fixture visitor", "email": "visitor@example.com",
+               "message": "Hello, I have a question about this observer."}
+    api("/api/directory/message", body=visitor)
+    assert parseaddr(messages[-1]["To"])[1] == "member@example.com" and messages[-1]["Reply-To"] == "visitor@example.com"
+    api(observer_record, member, {"show_phone": False, "show_email": False, "show_discord": True}, "PATCH")
+    public = api(public_observer)
+    assert not public["phone"] and not public["can_message"] and public["discord"] == "private-name"
+    api("/api/directory/message", body=visitor, expected=400)
+    api(assign, owner, {"add": [], "remove": ["test-observer"]})
+    assert not api(observer_record, owner)["contact_from"]
+    assert not api(public_observer)["discord"]
+    print("Verified observer profile updates, visibility, private relay, and removing the linked manager", flush=True)
 
     api(permissions + "/" + PEOPLE["member"] + "/email", admin,
         {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH", expected=403)

@@ -1342,6 +1342,29 @@
     if (live) openObserverEditor({ observer_id: id, observer_name: live.name || id, region: live.iata });
   });
 
+  var observerVisibility = { show_phone: 'Show phone publicly', show_discord: 'Show Discord publicly', show_email: 'Let people message the owner' };
+  function observerProfile(form, resetVisibility) {
+    var select = form.elements.contact_from;
+    var assign = can('assign_observers');
+    var linked = form.dataset.observerProfile || '';
+    var selected = select.options.length ? select.value : linked;
+    var assigned = assign
+      ? Array.from(form.querySelectorAll('input[name=managers]:checked'), function (box) { return box.value; })
+      : JSON.parse(form.dataset.observerManagers);
+    var eligible = assigned.filter(function (id) { return assign || id === me.id || id === linked; });
+    select.innerHTML = '<option value="">Enter owner name manually</option>' + eligible.map(function (id) {
+      var person = id === me.id ? me : people.find(function (p) { return p.id === id; });
+      return '<option value="' + esc(id) + '">' + esc(person ? person.name || person.email : 'Current owner profile') + '</option>';
+    }).join('');
+    select.value = eligible.includes(selected) ? selected : '';
+    form.querySelector('[data-observer-manual-owner]').hidden = !!select.value;
+    Object.keys(observerVisibility).forEach(function (key) {
+      var box = form.elements[key];
+      if (resetVisibility) box.checked = false;
+      box.disabled = !select.value || (!assign && select.value !== me.id);
+    });
+  }
+
   function openObserverEditor(o) {
     $('rm-obs-directory').hidden = true;
     $('rm-obs-editor').hidden = false;
@@ -1353,16 +1376,32 @@
     }).join('')+'</div><p class="rm-hint">Manager assignments update when you save.</p></fieldset>':'';
     var editable = canEditObserver(o);
     $('rm-obs-editor-form').innerHTML = '<form class="rm-card rm-form" data-observer-edit="' + esc(o.observer_id) + '"' +
-      (o.id ? ' data-observer-record="' + esc(o.id) + '"' : '') + '><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
+      (o.id ? ' data-observer-record="' + esc(o.id) + '"' : '') +
+      ' data-observer-profile="' + esc(o.contact_from || '') + '" data-observer-managers="' + esc(JSON.stringify(assigned)) + '"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
       (o.id ? '' : '<p class="rd-muted">Saving creates a directory listing for this observer.</p>') +
-      '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-group rm-form"><legend>Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
+      '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-group rm-form"><legend>Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+'</div>'+
       '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+
       '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small class="rm-hint">Alerts resume at the start of this date in Central time.</small></label></fieldset>'+options+
+      '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-group rm-form"><legend>Owner &amp; contact</legend>' +
+      '<label class="rm-field"><span>Follow owner profile</span><select name="contact_from"></select></label>' +
+      '<div data-observer-manual-owner>' + field('public_owner','Public owner name / callsign (optional)',100) + '</div>' +
+      '<p class="rm-hint">Linked names and callsigns update from My Account. Phone and Discord appear when enabled. Email messages are relayed privately.</p>' +
+      Object.keys(observerVisibility).map(function (key) {
+        return '<label class="rm-check"><input type="checkbox" name="' + key + '"' + (o[key] ? ' checked' : '') + '> ' + observerVisibility[key] + '</label>';
+      }).join('') + '</fieldset>' +
       '<div class="rm-actions rm-actions-end">' +
       (isSiteOwner && o.id ? '<button type="button" class="rm-danger" data-delete-observer="' + esc(o.id) + '">Delete observer</button>' : '') +
       (editable || can('assign_observers') ? '<button type="submit" class="btn btn-primary">Save observer</button>' : '') + '</div></form>';
+    observerProfile($('rm-obs-editor-form').querySelector('form'), false);
     $('rm-obs-back').focus();
   }
+  $('rm-obs-editor-form').addEventListener('change', function (event) {
+    if (event.target.name !== 'contact_from' && event.target.name !== 'managers') return;
+    var form = event.target.form;
+    var changeProfile = event.target.name === 'contact_from' ||
+      (!event.target.checked && event.target.value === form.elements.contact_from.value);
+    observerProfile(form, changeProfile);
+  });
   $('rm-obs-editor-form').addEventListener('click', function (event) {
     var button = event.target.closest('[data-delete-observer]');
     if (!button || !isSiteOwner) return;
@@ -1383,6 +1422,10 @@
     if (!id || canEditObserver(record)) {
       ['display_name','area','hardware','public_owner','notes'].forEach(function (key) { body[key] = form.elements[key].value.trim(); });
       body.offline_pause_until = ownerMail.pauseValue(form.elements.offline_pause_until.value);
+      body.contact_from = form.elements.contact_from.value;
+      Object.keys(observerVisibility).forEach(function (key) {
+        if (!form.elements[key].disabled) body[key] = form.elements[key].checked;
+      });
     }
     if (can('assign_observers')) body.managers = Array.from(form.querySelectorAll('input[name=managers]:checked'),function (input) { return input.value; });
     busy(form,true);
