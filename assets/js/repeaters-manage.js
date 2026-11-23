@@ -1141,11 +1141,13 @@
     var caption = esc(account.name || account.email);
     var role = account.owner ? 'Site Owner' : account.role === 'admin' ? 'Admin' : 'User';
     var overrides = Object.keys(account.overrides || {}).length;
+    var emailAccess = account.owner ? 'Included' : account.enabled ? (account.verified ? 'On' : 'Pending verification') : 'Off';
+    var emailTone = account.owner || (account.enabled && account.verified) ? 'ok' : account.enabled ? 'warn' : 'off';
     return '<tr><td><strong>' + caption + '</strong><div class="rm-sub">' + esc(account.email) + '</div>' +
       (account.verified ? '' : '<div class="rm-sub rd-muted">Email verification pending</div>') + '</td>' +
       '<td><span class="rd-pill ' + (account.owner ? 'ok' : account.role === 'admin' ? 'info' : 'off') + '">' + role + '</span></td>' +
-      '<td class="rm-hide-sm">' + (account.owner ? 'Included' : account.enabled ? 'On' : 'Off') + '</td><td>' +
-      (account.owner ? 'All staff permissions' : overrideLabel(overrides)) + '</td><td>' +
+      '<td class="rm-hide-sm"><span class="rd-pill ' + emailTone + '">' + emailAccess + '</span></td><td>' +
+      (account.owner ? 'All staff permissions' : overrides ? '<span class="rd-pill info">' + overrideLabel(overrides) + '</span>' : 'Role defaults') + '</td><td>' +
       (account.owner ? '' : '<button type="button" class="btn btn-secondary rm-sm" aria-haspopup="dialog" ' +
         'aria-controls="rm-permission-dialog" data-permission-edit="' + esc(account.id) +
         '" aria-label="Edit permissions for ' + caption + '">Edit</button>') + '</td></tr>';
@@ -1156,9 +1158,11 @@
   }
 
   function permissionControl(key, value) {
-    return '<label class="rm-permission-option"><span>' + esc(permissionDefinitions[key]) + '</span>' +
-      '<span class="rd-pill" data-permission-effective></span><select data-capability="' + esc(key) + '">' +
-      [['inherit', 'Role default'], ['true', 'Allow override'], ['false', 'Deny override']].map(function (option) {
+    var id = 'rm-capability-' + esc(key);
+    return '<label class="rm-permission-option"><span id="' + id + '-name">' + esc(permissionDefinitions[key]) + '</span>' +
+      '<span class="rd-pill" id="' + id + '-access" data-permission-effective></span><select data-capability="' + esc(key) +
+      '" aria-labelledby="' + id + '-name" aria-describedby="' + id + '-access">' +
+      [['inherit', 'Use role default'], ['true', 'Always allow'], ['false', 'Always deny']].map(function (option) {
         return '<option value="' + option[0] + '"' + (value === option[0] ? ' selected' : '') + '>' + option[1] + '</option>';
       }).join('') + '</select></label>';
   }
@@ -1204,8 +1208,10 @@
       var value = option.querySelector('select').value;
       var allowed = value === 'true' || (value === 'inherit' && input.role === 'admin');
       var effective = option.querySelector('[data-permission-effective]');
-      effective.textContent = allowed ? 'Allowed' : 'Denied';
-      effective.className = 'rd-pill ' + (allowed ? 'ok' : 'off');
+      effective.textContent = value === 'inherit' ? (allowed ? 'Allowed by role' : 'No access by role') :
+        (allowed ? 'Allowed by override' : 'Denied by override');
+      effective.className = 'rd-pill ' + (allowed ? 'ok' : value === 'false' ? 'bad' : 'off');
+      option.dataset.override = value;
       var hidden = only && value === 'inherit';
       if (hidden && option.contains(document.activeElement)) form.elements.overridesOnly.focus();
       option.hidden = hidden;
@@ -1232,7 +1238,6 @@
     form.elements.enabled.checked = account.enabled;
     form.elements.enabled.disabled = !account.verified && !account.enabled;
     form.elements.overridesOnly.checked = false;
-    $('rm-permission-email-note').hidden = !form.elements.enabled.disabled;
     $('rm-permission-groups').innerHTML = permissionGroups(account.overrides || {});
     updatePermissionEditor(false);
     $('rm-permission-dialog').showModal();
