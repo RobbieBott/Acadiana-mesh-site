@@ -188,6 +188,7 @@
       : r._heard ? '<span class="rd-live ' + f + '"><i></i>Heard ' + esc(ago(r._heard)) + '</span>'
       : '<span class="rd-live none"><i></i>Not heard by observers</span>';
     var hw = [r.manufacturer, r.model].filter(Boolean).join(' · ');
+    var firmware = String(r.firmware || '').trim();
     var p3 = prefix3(r), pre = p3 && p3.code;
     return '<button type="button" class="rd-card" data-id="' + esc(r.id) + '">' +
       '<span class="rd-card-top"><span class="rd-card-name">' + esc(r.name) + '</span></span>' +
@@ -195,6 +196,7 @@
       (pre ? '<span class="rd-mono">' + esc(pre) + '</span>' : '') +
       (r.path_hash_bytes ? '<span>' + r.path_hash_bytes + '-byte path</span>' : '') + '</span>' +
       (hw ? '<span class="rd-card-hw">' + esc(hw) + '</span>' : '') +
+      (firmware ? '<span class="rd-card-hw">Firmware: ' + esc(firmware) + '</span>' : '') +
       '<span class="rd-card-foot">' + live +
       (r.owner_name ? '<span class="rd-owner">' + esc(r.owner_callsign || r.owner_name) + '</span>' : '') + '</span>' +
       '</button>';
