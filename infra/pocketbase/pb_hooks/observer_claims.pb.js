@@ -59,3 +59,12 @@ routerAdd("POST", "/api/directory/people/{id}/observers", (e) => {
   require(__hooks + "/observer_directory.js").assign(e.app, id, body);
   return e.json(200, {saved: true});
 }, $apis.requireAuth("users"));
+
+routerAdd("POST", "/api/directory/observers", (e) => {
+  const staff = require(__hooks + "/staff_access.js");
+  if (!staff.has(e.auth, "edit_observers")) {
+    throw new ForbiddenError("Observer listing edit permission is required.");
+  }
+  const directory = require(__hooks + "/observer_directory.js");
+  return e.json(201, directory.register(e.app, e.requestInfo().body, staff.has(e.auth, "assign_observers")));
+}, $apis.requireAuth("users"));
