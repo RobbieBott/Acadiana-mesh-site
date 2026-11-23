@@ -1,0 +1,980 @@
+diff --git a/cmd/ingestor/device_archive.go b/cmd/ingestor/device_archive.go
+new file mode 100644
+index 0000000000000000000000000000000000000000..84db90c54199432f26ac446438eeea8ac9c1705b
+--- /dev/null
++++ b/cmd/ingestor/device_archive.go
+@@ -0,0 +1,57 @@
++package main
++
++import (
++	"fmt"
++
++	"github.com/meshcore-analyzer/prunequeue"
++)
++
++func (s *Store) RunPendingDeviceArchiveRequests() {
++	runPendingPruneRequests(prunequeue.DeviceArchiveQueuePath(s.path), s.archiveDevice)
++}
++
++func (s *Store) archiveDevice(req *prunequeue.Request) (int64, error) {
++	if len(req.Pubkeys) != 1 || req.Pubkeys[0] == "" || req.LastSeen == nil {
++		return 0, fmt.Errorf("invalid device archive request")
++	}
++	id, lastSeen := req.Pubkeys[0], *req.LastSeen
++	switch req.Reason {
++	case "observer":
++		// Live status or packet input reactivates the existing observer row.
++		result, err := s.instrumentedExec("archive_observer", `
++			UPDATE observers SET inactive = 1
++			WHERE id = ? AND COALESCE(last_seen, '') = ? AND COALESCE(inactive, 0) = 0`, id, lastSeen)
++		if err != nil {
++			return 0, err
++		}
++		return result.RowsAffected()
++	case "repeater":
++		return s.archiveRepeater(id, lastSeen)
++	default:
++		return 0, fmt.Errorf("unknown device kind")
++	}
++}
++
++func (s *Store) archiveRepeater(id, lastSeen string) (int64, error) {
++	// Same move as automatic node retention, limited to the exact reviewed row.
++	// A report arriving after the operator loaded the list changes last_seen
++	// and makes the entire operation a no-op.
++	const match = " WHERE public_key = ? AND role = 'repeater' AND COALESCE(last_seen, '') = ?"
++	tx, err := s.db.Begin()
++	if err != nil {
++		return 0, err
++	}
++	defer tx.Rollback()
++	if _, err := tx.Exec("INSERT OR REPLACE INTO inactive_nodes SELECT * FROM nodes"+match, id, lastSeen); err != nil {
++		return 0, err
++	}
++	result, err := tx.Exec("DELETE FROM nodes"+match, id, lastSeen)
++	if err != nil {
++		return 0, err
++	}
++	changed, err := result.RowsAffected()
++	if err != nil {
++		return 0, err
++	}
++	return changed, tx.Commit()
++}
+diff --git a/cmd/ingestor/device_archive_test.go b/cmd/ingestor/device_archive_test.go
+new file mode 100644
+index 0000000000000000000000000000000000000000..46b34d2471d13471b3aa2ae9f29b889825898b68
+--- /dev/null
++++ b/cmd/ingestor/device_archive_test.go
+@@ -0,0 +1,101 @@
++package main
++
++import (
++	"testing"
++	"time"
++
++	"github.com/meshcore-analyzer/prunequeue"
++)
++
++func TestDeviceArchiveQueueAndReactivation(t *testing.T) {
++	store := newTestStore(t)
++	seen := "2026-01-01T00:00:00Z"
++	fresh := "2026-01-01T01:00:00Z"
++	const sqlSeed = `
++		INSERT INTO nodes (public_key, name, role, last_seen, advert_count) VALUES
++			('target', 'Same radio', 'repeater', '2026-01-01T00:00:00Z', 17),
++			('other', 'Same radio', 'repeater', '2026-01-01T01:00:00Z', 8),
++			('companion', 'Companion', 'companion', '2026-01-01T00:00:00Z', 2);
++		INSERT INTO observers (id, name, last_seen) VALUES
++			('target', 'Same radio', '2026-01-01T00:00:00Z');
++		INSERT INTO observer_metrics (observer_id, timestamp) VALUES
++			('target', '2026-01-01T00:00:00Z');`
++	if _, err := store.db.Exec(sqlSeed); err != nil {
++		t.Fatal(err)
++	}
++	count := func(stmt string) int {
++		t.Helper()
++		var result int
++		if err := store.db.QueryRow(stmt).Scan(&result); err != nil {
++			t.Fatal(err)
++		}
++		return result
++	}
++	queue := prunequeue.DeviceArchiveQueuePath(store.path)
++
++	repeaterRequest := prunequeue.Request{
++		ID: prunequeue.NewID(), Reason: "repeater", RequestedAt: time.Now(),
++		Pubkeys: []string{"target"}, LastSeen: &seen,
++	}
++	if err := prunequeue.WriteRequest(queue, repeaterRequest); err != nil {
++		t.Fatal(err)
++	}
++	store.RunPendingPruneRequests()
++	if n := count("SELECT COUNT(*) FROM nodes WHERE public_key = 'target'"); n != 1 {
++		t.Fatal("geo-prune worker must not process device archive requests")
++	}
++	store.RunPendingDeviceArchiveRequests()
++	result, err := prunequeue.ReadResult(queue, repeaterRequest.ID)
++	if err != nil || result == nil || result.Deleted != 1 || result.Error != "" {
++		t.Fatalf("archive result = %+v, err = %v", result, err)
++	}
++	if n := count("SELECT COUNT(*) FROM nodes WHERE public_key = 'target'"); n != 0 {
++		t.Fatal("archived repeater must leave the active nodes table")
++	}
++	if n := count("SELECT advert_count FROM inactive_nodes WHERE public_key = 'target'"); n != 17 {
++		t.Fatal("repeater metadata must be preserved in inactive_nodes")
++	}
++	if n := count("SELECT inactive FROM observers WHERE id = 'target'"); n != 0 {
++		t.Fatal("archiving a repeater must not affect the same radio's observer entry")
++	}
++
++	for _, id := range []string{"other", "companion"} {
++		req := prunequeue.Request{Reason: "repeater", Pubkeys: []string{id}, LastSeen: &seen}
++		if changed, err := store.archiveDevice(&req); err != nil || changed != 0 {
++			t.Fatalf("wrong snapshot or role should not archive %s: changed=%d err=%v", id, changed, err)
++		}
++	}
++
++	if err := store.UpsertNode("target", "Same radio", "repeater", nil, nil, fresh); err != nil {
++		t.Fatal(err)
++	}
++	if changed, err := store.archiveDevice(&repeaterRequest); err != nil || changed != 0 {
++		t.Fatalf("retry must not archive a refreshed repeater: changed=%d err=%v", changed, err)
++	}
++	if n := count("SELECT COUNT(*) FROM nodes WHERE public_key = 'target'"); n != 1 {
++		t.Fatal("a fresh advert must recreate the active repeater entry")
++	}
++
++	observerRequest := prunequeue.Request{Reason: "observer", Pubkeys: []string{"target"}, LastSeen: &seen}
++	if changed, err := store.archiveDevice(&observerRequest); err != nil || changed != 1 {
++		t.Fatalf("archive observer: changed=%d err=%v", changed, err)
++	}
++	if n := count("SELECT COUNT(*) FROM observer_metrics WHERE observer_id = 'target'"); n != 1 {
++		t.Fatal("observer metrics must survive archiving")
++	}
++	if err := store.UpsertObserverRetained("target", "Same radio", "LFT", nil); err != nil {
++		t.Fatal(err)
++	}
++	if n := count("SELECT inactive FROM observers WHERE id = 'target'"); n != 1 {
++		t.Fatal("retained MQTT status must not reactivate an archived observer")
++	}
++	if err := store.UpsertObserverAt("target", "Same radio", "LFT", nil, fresh); err != nil {
++		t.Fatal(err)
++	}
++	if changed, err := store.archiveDevice(&observerRequest); err != nil || changed != 0 {
++		t.Fatalf("retry must not archive a refreshed observer: changed=%d err=%v", changed, err)
++	}
++	if n := count("SELECT inactive FROM observers WHERE id = 'target'"); n != 0 {
++		t.Fatal("live observer status must reactivate the observer")
++	}
++}
+diff --git a/cmd/ingestor/main.go b/cmd/ingestor/main.go
+index be0250a8cbbddb9923104c6915f61d8d4b753a4a..39cd984883e31052193236694a7bd1c05a8433f2 100644
+--- a/cmd/ingestor/main.go
++++ b/cmd/ingestor/main.go
+@@ -675,10 +675,12 @@ func main() {
+ 	// 15 seconds — short enough for a one-click UX, long enough to avoid
+ 	// useless wake-ups.
+ 	store.RunPendingPruneRequests()
++	store.RunPendingDeviceArchiveRequests()
+ 	pruneQueueTicker := time.NewTicker(15 * time.Second)
+ 	go func() {
+ 		for range pruneQueueTicker.C {
+ 			store.RunPendingPruneRequests()
++			store.RunPendingDeviceArchiveRequests()
+ 		}
+ 	}()
+ 
+diff --git a/cmd/ingestor/prune_geofilter.go b/cmd/ingestor/prune_geofilter.go
+index 38f75857fd6a008c90e43e4149e9f9d03ddaee5c..add5e6002a0a40eca05a9cacc340b88744afdbcb 100644
+--- a/cmd/ingestor/prune_geofilter.go
++++ b/cmd/ingestor/prune_geofilter.go
+@@ -68,7 +68,13 @@ func (s *Store) DeleteNodesByPubkeys(pubkeys []string) (int64, error) {
+ //
+ // Safe to call from a ticker — no-op when the queue is empty.
+ func (s *Store) RunPendingPruneRequests() {
+-	paths, err := prunequeue.ListPending(s.path)
++	runPendingPruneRequests(s.path, func(req *prunequeue.Request) (int64, error) {
++		return s.DeleteNodesByPubkeys(req.Pubkeys)
++	})
++}
++
++func runPendingPruneRequests(queuePath string, apply func(*prunequeue.Request) (int64, error)) {
++	paths, err := prunequeue.ListPending(queuePath)
+ 	if err != nil {
+ 		log.Printf("[prune-queue] list pending failed: %v", err)
+ 		return
+@@ -86,20 +92,20 @@ func (s *Store) RunPendingPruneRequests() {
+ 		log.Printf("[prune-queue] processing request %s: %d pubkey(s) (%s)",
+ 			req.ID, len(req.Pubkeys), req.Reason)
+ 		start := time.Now()
+-		deleted, derr := s.DeleteNodesByPubkeys(req.Pubkeys)
++		changed, applyErr := apply(req)
+ 		res := prunequeue.Result{
+ 			ID:          req.ID,
+ 			RequestedAt: req.RequestedAt,
+ 			CompletedAt: time.Now().UTC(),
+-			Deleted:     deleted,
++			Deleted:     changed,
+ 		}
+-		if derr != nil {
+-			res.Error = derr.Error()
+-			log.Printf("[prune-queue] request %s FAILED after %s: %v", req.ID, time.Since(start), derr)
++		if applyErr != nil {
++			res.Error = applyErr.Error()
++			log.Printf("[prune-queue] request %s FAILED after %s: %v", req.ID, time.Since(start), applyErr)
+ 		} else {
+-			log.Printf("[prune-queue] request %s deleted %d node(s) in %s", req.ID, deleted, time.Since(start))
++			log.Printf("[prune-queue] request %s affected %d record(s) in %s", req.ID, changed, time.Since(start))
+ 		}
+-		if werr := prunequeue.WriteResult(s.path, res); werr != nil {
++		if werr := prunequeue.WriteResult(queuePath, res); werr != nil {
+ 			log.Printf("[prune-queue] write result for %s failed: %v", req.ID, werr)
+ 		}
+ 	}
+diff --git a/cmd/server/admin_devices.go b/cmd/server/admin_devices.go
+new file mode 100644
+index 0000000000000000000000000000000000000000..3d17ac9a33809d841739bc0cc8d3b98295bc7e5b
+--- /dev/null
++++ b/cmd/server/admin_devices.go
+@@ -0,0 +1,164 @@
++package main
++
++import (
++	"encoding/json"
++	"log"
++	"net/http"
++	"time"
++
++	"github.com/meshcore-analyzer/prunequeue"
++	"github.com/meshcore-analyzer/users"
++)
++
++type adminDevice struct {
++	ID        string `json:"id"`
++	Name      string `json:"name"`
++	Kind      string `json:"kind"`
++	LastSeen  string `json:"lastSeen"`
++	LastHeard string `json:"lastHeard,omitempty"`
++}
++
++type adminDevicesResponse struct {
++	Devices []adminDevice `json:"devices"`
++	HasMore bool          `json:"hasMore"`
++}
++
++func (s *Server) handleAdminDevices(w http.ResponseWriter, r *http.Request, _ *users.User, _ *users.Session) {
++	w.Header().Set("Cache-Control", "no-store")
++	limit := queryLimit(r, 5000, 5000)
++	offset := max(queryInt(r, "offset", 0), 0)
++	rows, err := s.db.conn.QueryContext(r.Context(), `
++		SELECT public_key AS id, COALESCE(name, '') AS name, 'repeater' AS kind, COALESCE(last_seen, '') AS seen
++		FROM nodes WHERE role = 'repeater' AND public_key <> ''
++		UNION ALL
++		SELECT id, COALESCE(name, ''), 'observer', COALESCE(last_seen, '')
++		FROM observers WHERE COALESCE(inactive, 0) = 0 AND id <> ''
++		ORDER BY kind, id LIMIT ? OFFSET ?`, limit+1, offset)
++	if err != nil {
++		log.Printf("[device-archive] list devices: %v", err)
++		writeError(w, http.StatusInternalServerError, "could not load devices")
++		return
++	}
++	defer rows.Close()
++
++	resp := adminDevicesResponse{Devices: []adminDevice{}}
++	var repeaterIDs []string
++	for rows.Next() {
++		if len(resp.Devices) == limit {
++			resp.HasMore = true
++			break
++		}
++		var device adminDevice
++		if err := rows.Scan(&device.ID, &device.Name, &device.Kind, &device.LastSeen); err != nil {
++			log.Printf("[device-archive] read device: %v", err)
++			writeError(w, http.StatusInternalServerError, "could not load devices")
++			return
++		}
++		if device.Kind == "repeater" {
++			repeaterIDs = append(repeaterIDs, device.ID)
++		}
++		resp.Devices = append(resp.Devices, device)
++	}
++	if err := rows.Err(); err != nil {
++		log.Printf("[device-archive] read devices: %v", err)
++		writeError(w, http.StatusInternalServerError, "could not load devices")
++		return
++	}
++	rows.Close()
++	if s.store != nil && len(repeaterIDs) > 0 {
++		heard, _ := s.store.LastHeardMap(repeaterIDs)
++		for i := range resp.Devices {
++			device := &resp.Devices[i]
++			if device.Kind == "repeater" {
++				device.LastHeard, _ = lastHeardValue(device.LastSeen, heard[device.ID]).(string)
++			}
++		}
++	}
++	writeJSON(w, resp)
++}
++
++type deviceArchiveRequest struct {
++	ID       string  `json:"id"`
++	Kind     string  `json:"kind"`
++	LastSeen *string `json:"lastSeen"`
++}
++
++type deviceArchiveAccepted struct {
++	RequestID string `json:"requestId"`
++}
++
++func (s *Server) handleAdminDeviceArchive(w http.ResponseWriter, r *http.Request, u *users.User, _ *users.Session) {
++	w.Header().Set("Cache-Control", "no-store")
++	r.Body = http.MaxBytesReader(w, r.Body, 2048)
++	var body deviceArchiveRequest
++	if err := json.NewDecoder(r.Body).Decode(&body); err != nil ||
++		body.ID == "" || len(body.ID) > 128 ||
++		(body.Kind != "repeater" && body.Kind != "observer") ||
++		body.LastSeen == nil || len(*body.LastSeen) > 64 {
++		writeError(w, http.StatusBadRequest, "invalid device selection")
++		return
++	}
++
++	req := prunequeue.Request{
++		ID:          prunequeue.NewID(),
++		RequestedAt: time.Now().UTC(),
++		Reason:      body.Kind,
++		Pubkeys:     []string{body.ID},
++		LastSeen:    body.LastSeen,
++	}
++	if err := prunequeue.WriteRequest(prunequeue.DeviceArchiveQueuePath(s.db.path), req); err != nil {
++		log.Printf("[device-archive] enqueue request %s: %v", req.ID, err)
++		writeError(w, http.StatusInternalServerError, "could not queue device archive")
++		return
++	}
++	s.auth.audit(&u.ID, "device.archive.requested", nil, map[string]string{
++		"deviceId":  body.ID,
++		"kind":      body.Kind,
++		"requestId": req.ID,
++	})
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusAccepted)
++	_ = json.NewEncoder(w).Encode(deviceArchiveAccepted{RequestID: req.ID})
++}
++
++type deviceArchiveStatus struct {
++	RequestID string `json:"requestId"`
++	Status    string `json:"status"`
++	Changed   int64  `json:"changed"`
++}
++
++func (s *Server) handleAdminDeviceArchiveStatus(w http.ResponseWriter, r *http.Request, _ *users.User, _ *users.Session) {
++	w.Header().Set("Cache-Control", "no-store")
++	queuePath := prunequeue.DeviceArchiveQueuePath(s.db.path)
++	id := r.URL.Query().Get("id")
++	if _, err := prunequeue.ResultPath(queuePath, id); err != nil {
++		writeError(w, http.StatusBadRequest, "invalid request id")
++		return
++	}
++	// The worker publishes the result before removing the request marker.
++	pending, err := prunequeue.RequestExists(queuePath, id)
++	if err != nil {
++		log.Printf("[device-archive] check request %s: %v", id, err)
++		writeError(w, http.StatusInternalServerError, "could not check device archive")
++		return
++	}
++	if pending {
++		writeJSON(w, deviceArchiveStatus{RequestID: id, Status: "pending"})
++		return
++	}
++	result, err := prunequeue.ReadResult(queuePath, id)
++	if err != nil {
++		log.Printf("[device-archive] read result %s: %v", id, err)
++		writeError(w, http.StatusInternalServerError, "could not check device archive")
++		return
++	}
++	if result == nil {
++		writeError(w, http.StatusNotFound, "device archive request not found")
++		return
++	}
++	status := "done"
++	if result.Error != "" {
++		status = "error"
++	}
++	writeJSON(w, deviceArchiveStatus{RequestID: id, Status: status, Changed: result.Deleted})
++}
+diff --git a/cmd/server/admin_devices_test.go b/cmd/server/admin_devices_test.go
+new file mode 100644
+index 0000000000000000000000000000000000000000..c4feda4ed246c8e1fbfa856b41450cb48af1afb6
+--- /dev/null
++++ b/cmd/server/admin_devices_test.go
+@@ -0,0 +1,82 @@
++package main
++
++import (
++	"net/http"
++	"path/filepath"
++	"testing"
++
++	"github.com/meshcore-analyzer/prunequeue"
++	"github.com/meshcore-analyzer/users"
++)
++
++func TestAdminDeviceListAndArchive(t *testing.T) {
++	const endpoint = "/api/admin/devices"
++	fixture := newAuthFixture(t, "admin@example.org")
++	fixture.srv.db = setupTestDB(t)
++	t.Cleanup(func() { fixture.srv.db.conn.Close() })
++	fixture.srv.db.path = filepath.Join(t.TempDir(), "meshcore.db")
++	if _, err := fixture.srv.db.conn.Exec(`
++		INSERT INTO nodes (public_key, name, role, last_seen) VALUES
++			('key', 'Shared radio', 'repeater', '2026-01-01T00:00:00Z'),
++			('room', 'Room', 'room', NULL);
++		INSERT INTO observers (id, name, inactive) VALUES
++			('key', 'Shared radio', 0), ('inactive', 'Archived', 1);`); err != nil {
++		t.Fatal(err)
++	}
++	admin := fixture.registerAndActivate(t, "admin@example.org", "Admin", "strong password a")
++	member := fixture.registerAndActivate(t, "member@example.org", "Member", "strong password b")
++	expectStatus(t, fixture.do("GET", endpoint, nil), http.StatusUnauthorized)
++	expectStatus(t, fixture.do("GET", endpoint, nil, as(member)), http.StatusForbidden)
++	w := fixture.do("GET", endpoint, nil, as(admin))
++	expectStatus(t, w, http.StatusOK)
++	if w.Header().Get("Cache-Control") != "no-store" {
++		t.Fatal("admin device list must not be cached")
++	}
++	devices := decode[adminDevicesResponse](t, w).Devices
++	if len(devices) != 2 || devices[0].Kind != "observer" || devices[1].Kind != "repeater" {
++		t.Fatalf("expected active observer and repeater, got %+v", devices)
++	}
++	if devices[0].ID != devices[1].ID || devices[0].LastSeen != "" || devices[1].LastSeen == "" {
++		t.Fatalf("device kind or raw last-seen value lost: %+v", devices)
++	}
++
++	body := deviceArchiveRequest{ID: devices[1].ID, Kind: devices[1].Kind, LastSeen: &devices[1].LastSeen}
++	expectStatus(t, fixture.do("POST", endpoint, body, as(member)), http.StatusForbidden)
++	expectStatus(t, fixture.do("POST", endpoint, body, as(&client{cookie: admin.cookie})), http.StatusForbidden)
++	expectStatus(t, fixture.do("POST", endpoint, deviceArchiveRequest{ID: body.ID, Kind: body.Kind}, as(admin)), http.StatusBadRequest)
++	w = fixture.do("POST", endpoint, body, as(admin))
++	expectStatus(t, w, http.StatusAccepted)
++	id := decode[deviceArchiveAccepted](t, w).RequestID
++	queue := prunequeue.DeviceArchiveQueuePath(fixture.srv.db.path)
++	path, err := prunequeue.RequestPath(queue, id)
++	if err != nil {
++		t.Fatal(err)
++	}
++	req, err := prunequeue.ReadRequest(path)
++	if err != nil || len(req.Pubkeys) != 1 || req.Pubkeys[0] != body.ID || req.Reason != body.Kind || req.LastSeen == nil || *req.LastSeen != *body.LastSeen {
++		t.Fatalf("unexpected queue marker %+v: %v", req, err)
++	}
++	if exists, err := prunequeue.RequestExists(fixture.srv.db.path, id); err != nil || exists {
++		t.Fatalf("archive must not enter geo-prune queue: exists=%t err=%v", exists, err)
++	}
++	audit, err := fixture.st.AuditList(users.AuditFilter{Actions: []string{"device.archive.requested"}, Limit: 5})
++	if err != nil || len(audit) != 1 || audit[0].ActorUserID == nil || audit[0].Detail["requestId"] != id {
++		t.Fatalf("archive request missing from audit: %+v, %v", audit, err)
++	}
++
++	statusPath := endpoint + "/status?id=" + id
++	expectStatus(t, fixture.do("GET", statusPath, nil, as(member)), http.StatusForbidden)
++	w = fixture.do("GET", statusPath, nil, as(admin))
++	expectStatus(t, w, http.StatusOK)
++	if status := decode[deviceArchiveStatus](t, w); status.Status != "pending" {
++		t.Fatalf("unexpected queue state %+v", status)
++	}
++	if err := prunequeue.WriteResult(queue, prunequeue.Result{ID: id, Deleted: 1}); err != nil {
++		t.Fatal(err)
++	}
++	w = fixture.do("GET", statusPath, nil, as(admin))
++	expectStatus(t, w, http.StatusOK)
++	if status := decode[deviceArchiveStatus](t, w); status.Status != "done" || status.Changed != 1 {
++		t.Fatalf("unexpected finished state %+v", status)
++	}
++}
+diff --git a/cmd/server/auth_routes.go b/cmd/server/auth_routes.go
+index e74dd344685935111c139dbea48a0f3d6cc21b25..893dd2769a49aca1853af67bf00bef7e37530e8a 100644
+--- a/cmd/server/auth_routes.go
++++ b/cmd/server/auth_routes.go
+@@ -54,6 +54,9 @@ func (s *Server) registerAuthRoutes(r *mux.Router) {
+ 	r.HandleFunc("/api/admin/users/{id}/activate", s.withAdmin(s.handleAdminActivate)).Methods("POST")
+ 	r.HandleFunc("/api/admin/users/{id}/mail/{mailId}/refresh", s.withAdmin(s.handleAdminMailRefresh)).Methods("POST")
+ 	r.HandleFunc("/api/admin/audit", s.withAdmin(s.handleAdminAudit)).Methods("GET")
++	r.HandleFunc("/api/admin/devices", s.withAdmin(s.handleAdminDevices)).Methods("GET")
++	r.HandleFunc("/api/admin/devices", s.withAdmin(s.handleAdminDeviceArchive)).Methods("POST")
++	r.HandleFunc("/api/admin/devices/status", s.withAdmin(s.handleAdminDeviceArchiveStatus)).Methods("GET")
+ 	r.HandleFunc("/api/admin/stats", s.withAdmin(s.handleAdminStats)).Methods("GET")
+ 	r.HandleFunc("/api/admin/users-backup", s.withAdmin(s.handleAdminUsersBackup)).Methods("GET")
+ 	if s.auth.set.proposals.enabled {
+diff --git a/cmd/server/openapi.go b/cmd/server/openapi.go
+index 8eb61346e438574ca50e8bcd05a5a8f0083bf636..7fb233459700888c71fad6c234da3e449217155e 100644
+--- a/cmd/server/openapi.go
++++ b/cmd/server/openapi.go
+@@ -101,6 +101,9 @@ func routeDescriptions() map[string]routeMeta {
+ 		"POST /api/admin/users/{id}/activate":              {Summary: "Activate a pending user manually (admin)", Description: "For when mail keeps failing. The address stays unverified; recorded as activatedBy + audit row.", Tag: "users", Session: true},
+ 		"POST /api/admin/users/{id}/mail/{mailId}/refresh": {Summary: "Pull delivery events for one mail from the provider (admin)", Tag: "users", Session: true},
+ 		"GET /api/admin/audit":                             {Summary: "Global audit log (admin)", Description: "Newest first, keyset-paginated: {entries, next}. Pass next as before for the following page; next is null on the last page. Entry: {id, at, action, actor, target, detail}; actor and target are {id, displayName, email}, {id, deleted: true} for a removed account, or null for the system. Login rows (user.login, user.login.failed) are kept 90 days. 400 on an invalid parameter.", Tag: "users", Session: true, QueryParams: []paramMeta{{Name: "action", Description: "One action, or a group ending in .* (user.login.* matches user.login and user.login.failed)", Type: "string"}, {Name: "user", Description: "User id, as actor or target", Type: "integer"}, {Name: "from", Description: "RFC 3339 time, inclusive", Type: "string"}, {Name: "to", Description: "RFC 3339 time, inclusive", Type: "string"}, {Name: "before", Description: "Only entries with a smaller id (next of the previous page)", Type: "integer"}, {Name: "limit", Description: "Page size, default 100, capped at 500", Type: "integer"}}},
++		"GET /api/admin/devices":                           {Summary: "List active repeater and observer records (admin)", Description: "{devices: [{id, name, kind, lastSeen, lastHeard?}], hasMore}. kind is repeater or observer. lastSeen is the snapshot to send when archiving.", Tag: "users", Session: true, QueryParams: []paramMeta{{Name: "limit", Description: "Maximum records, capped at 5000", Type: "integer"}, {Name: "offset", Description: "Number of records to skip", Type: "integer"}}},
++		"POST /api/admin/devices":                          {Summary: "Request a device archive (admin)", Description: "Body {id, kind, lastSeen} from the device list. Returns 202 {requestId}. The ingestor checks the snapshot before applying the change. A fresh repeater advert or live observer report can restore it.", Tag: "users", Session: true},
++		"GET /api/admin/devices/status":                    {Summary: "Check a device archive request (admin)", Description: "{requestId, status, changed}. Status is pending, done, or error. changed is 1 when archived and 0 when there was no change.", Tag: "users", Session: true, QueryParams: []paramMeta{{Name: "id", Description: "Archive request ID", Type: "string", Required: true}}},
+ 		"GET /api/admin/stats":                             {Summary: "User figures for the admin overview (admin)", Description: "Accounts by status, active admins, pending accounts older than 24 hours (stuckPending), bouncing addresses, registrations in 7 and 30 days and per UTC day for 30 days (newPerDay, oldest first), users active in 7 and 30 days, logins and failed logins in 24 hours, mail sent in 7 days by latest delivery status (mail7d), and accounts with 5 or more failed logins in 24 hours (guessing: [{userId, displayName, failed}]).", Tag: "users", Session: true},
+ 		"GET /api/admin/observer-logins":                   {Summary: "List observer MQTT logins and bindings (admin)", Description: "{logins: [{userId, email, displayName, username, createdAt, revoked, lastAuthAt, observers: [pubkey]}], bindings: [{pubkey, userId|null, boundAt, boundBy, confirmedAt|null}]}. confirmedAt is when the owner's own login first published under the pubkey. Never contains passwords, hashes or ciphertext. Routes exist only when userManagement.observerLogins is enabled.", Tag: "users", Session: true},
+ 		"POST /api/admin/observer-logins/{id}/revoke":      {Summary: "Revoke a user's observer MQTT login (admin)", Description: "Takes effect at once for the broker hooks. 404 when the user has no login. Records an observer.login.revoke audit row.", Tag: "users", Session: true},
+diff --git a/internal/prunequeue/prunequeue.go b/internal/prunequeue/prunequeue.go
+index 4460cbcfcd0388e3be1422191bb8043c75fdbf9a..c2d95bdfdefe4fe60f3923840d3c827f47ae2c17 100644
+--- a/internal/prunequeue/prunequeue.go
++++ b/internal/prunequeue/prunequeue.go
+@@ -44,6 +44,7 @@ type Request struct {
+ 	RequestedAt time.Time `json:"requestedAt"`
+ 	Reason      string    `json:"reason,omitempty"` // human-readable, e.g. "geo-prune"
+ 	Pubkeys     []string  `json:"pubkeys"`
++	LastSeen    *string   `json:"lastSeen,omitempty"` // snapshot for device archive requests
+ }
+ 
+ // Result is what the ingestor writes to result-<id>.json after running
+@@ -77,6 +78,12 @@ func QueueDir(dbPath string) string {
+ 	return filepath.Join(filepath.Dir(dbPath), QueueDirName)
+ }
+ 
++// DeviceArchiveQueuePath scopes device archive markers to a separate
++// directory. Stock ingestors must never process them as geo-prune deletions.
++func DeviceArchiveQueuePath(dbPath string) string {
++	return filepath.Join(filepath.Dir(dbPath), "device-archive", filepath.Base(dbPath))
++}
++
+ // EnsureDir creates the queue directory if missing.
+ func EnsureDir(dbPath string) (string, error) {
+ 	dir := QueueDir(dbPath)
+diff --git a/public/admin-audit.js b/public/admin-audit.js
+index c141b1a5b62838a82fdc2bb0eb9d34cfe868c02e..67cf697927306eb7a3d4e96b77e9ee619275c7c5 100644
+--- a/public/admin-audit.js
++++ b/public/admin-audit.js
+@@ -24,7 +24,8 @@
+     ['user.export', 'Data exports'],
+     ['user.backup', 'users.db downloads'],
+     ['proposal.*', 'Channel proposals'],
+-    ['notify.*', 'Notification settings']
++    ['notify.*', 'Notification settings'],
++    ['device.archive.requested', 'Device archive requests']
+   ];
+   var DAY_MS = 24 * 60 * 60 * 1000;
+   var PERIODS = [['', 'Any time', 0], ['24h', 'Last 24 hours', DAY_MS], ['7d', 'Last 7 days', 7 * DAY_MS], ['30d', 'Last 30 days', 30 * DAY_MS]];
+diff --git a/public/admin-devices.js b/public/admin-devices.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..a87d08b423136fe70bf69ace915f5ab11da5b6b7
+--- /dev/null
++++ b/public/admin-devices.js
+@@ -0,0 +1,258 @@
++/* Device cleanup in the CoreScope admin area. */
++(function () {
++  'use strict';
++
++  var API = '/api/admin/devices';
++  var PAGE_SIZE = 40;
++  var STALE_MS = 24 * 60 * 60 * 1000;
++  var POLL_MS = 2000;
++  var MAX_POLLS = 30;
++  var view = null;
++
++  function readFilters(hash) {
++    var params = new URLSearchParams(String(hash || '').split('?')[1] || '');
++    var kind = params.get('kind');
++    return {
++      search: params.get('q') || '',
++      kind: kind === 'repeater' || kind === 'observer' ? kind : '',
++      stale: params.get('stale') === '1'
++    };
++  }
++
++  function filterHash(filters) {
++    var params = new URLSearchParams({ tab: 'devices' });
++    if (filters.search) params.set('q', filters.search);
++    if (filters.kind) params.set('kind', filters.kind);
++    if (filters.stale) params.set('stale', '1');
++    return '#/admin?' + params.toString();
++  }
++
++  function isStale(device, now) {
++    var seen = Date.parse(device.lastHeard || device.lastSeen);
++    return Number.isFinite(seen) && now - seen >= STALE_MS;
++  }
++
++  function filterDevices(devices, filters, now) {
++    var search = filters.search.trim().toLowerCase();
++    return devices.filter(function (device) {
++      return (!filters.kind || device.kind === filters.kind) &&
++        (!filters.stale || isStale(device, now)) &&
++        (!search || (device.name || '').toLowerCase().includes(search) || device.id.toLowerCase().includes(search));
++    });
++  }
++
++  function request(method, path, body) {
++    return CSAuth.request(method, path, body).then(function (response) {
++      if (!response.ok) throw new Error(CSAuth.errText(response));
++      return response.data;
++    });
++  }
++
++  function render(state) {
++    var now = Date.now();
++    var matching = filterDevices(state.devices, state.filters, now);
++    var lastPage = Math.max(0, Math.ceil(matching.length / PAGE_SIZE) - 1);
++    state.page = Math.min(state.page, lastPage);
++    var start = state.page * PAGE_SIZE;
++    var end = Math.min(start + PAGE_SIZE, matching.length);
++    var rows = document.createDocumentFragment();
++
++    matching.slice(start, end).forEach(function (device) {
++      var row = document.createElement('tr');
++      var name = row.insertCell();
++      var identity = document.createElement('code');
++      name.textContent = device.name || 'Unnamed device';
++      identity.textContent = device.id;
++      name.appendChild(identity);
++
++      var kindLabel = device.kind === 'repeater' ? 'Repeater' : 'Observer';
++      var kind = document.createElement('span');
++      kind.className = 'um-status admin-device-kind admin-device-' + device.kind;
++      kind.textContent = kindLabel;
++      row.insertCell().appendChild(kind);
++
++      var seen = row.insertCell();
++      var date = new Date(device.lastHeard || device.lastSeen || NaN);
++      seen.textContent = Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
++      if (isStale(device, now)) seen.className = 'admin-device-stale';
++
++      var button = document.createElement('button');
++      button.type = 'button';
++      button.className = 'account-btn account-btn-secondary';
++      button.textContent = 'Archive';
++      button.disabled = state.busy;
++      button.setAttribute('aria-label', 'Archive ' + kindLabel.toLowerCase() + ' ' + (device.name || device.id));
++      button.addEventListener('click', function () { openConfirm(state, device, button); });
++      row.insertCell().appendChild(button);
++      rows.appendChild(row);
++    });
++
++    state.body.replaceChildren(rows);
++    var empty = (state.filters.search || state.filters.kind || state.filters.stale)
++      ? 'No devices match these filters.'
++      : 'No active repeaters or observers.';
++    state.count.textContent = matching.length
++      ? (start + 1) + '–' + end + ' of ' + matching.length + ' devices'
++      : empty;
++    if (state.hasMore) state.count.textContent += ' The list is limited to 5,000 devices.';
++    state.pagination.hidden = lastPage === 0;
++    state.previous.disabled = state.page === 0;
++    state.next.disabled = state.page === lastPage;
++  }
++
++  function say(state, message, ok) {
++    if (view === state) CSAuth.say('adminDeviceMessage', message, ok);
++  }
++
++  async function load(state) {
++    var devices = await request('GET', API);
++    if (view !== state) return;
++    state.devices = devices.devices;
++    state.hasMore = devices.hasMore;
++  }
++
++  async function pollArchive(state, id) {
++    for (var attempt = 0; view === state && attempt < MAX_POLLS; attempt++) {
++      await new Promise(function (resolve) { setTimeout(resolve, POLL_MS); });
++      if (view !== state) return null;
++      var result = await request('GET', API + '/status?id=' + encodeURIComponent(id));
++      if (result.status === 'error') throw new Error('CoreScope could not archive this device.');
++      if (result.status === 'done') return result;
++    }
++    return null;
++  }
++
++  function openConfirm(state, device, button) {
++    if (state.busy || state.dialog.open) return;
++    state.selected = device;
++    state.trigger = button;
++    state.dialog.returnValue = '';
++    state.confirmDescription.textContent = 'Archive ' + (device.name || device.id) +
++      '? It will leave the active CoreScope list. A new report can bring it back.';
++    state.confirmIdentity.textContent = device.id;
++    state.dialog.showModal();
++  }
++
++  async function archiveSelected(state) {
++    if (!state.selected || state.busy) return;
++    var device = state.selected;
++    state.busy = true;
++    render(state);
++    say(state, 'Archiving device…', true);
++    var accepted = false;
++    try {
++      var queued = await request('POST', API, { id: device.id, kind: device.kind, lastSeen: device.lastSeen });
++      if (view !== state) return;
++      accepted = true;
++      var result = await pollArchive(state, queued.requestId);
++      if (view !== state) return;
++      if (!result) {
++        say(state, 'The request is still queued. Refresh this page to check the active list.', false);
++      } else if (result.changed > 0) {
++        say(state, 'Device archived.', true);
++      } else {
++        say(state, 'The device changed after the list was loaded. Review its latest activity before trying again.', false);
++      }
++    } catch (err) {
++      say(state, err.message || 'The archive could not be confirmed.', false);
++    } finally {
++      if (view === state) {
++        try {
++          await load(state);
++        } catch (_) {
++          if (accepted) say(state, 'Refresh this page to check the active list.', false);
++        }
++        state.busy = false;
++        if (view === state) {
++          render(state);
++          state.message.focus();
++        }
++      }
++    }
++  }
++
++  function updateFilters(state) {
++    clearTimeout(state.filterTimer);
++    if (view !== state) return;
++    state.filters = { search: state.search.value, kind: state.kind.value, stale: state.stale.checked };
++    state.page = 0;
++    history.replaceState(null, '', filterHash(state.filters));
++    render(state);
++  }
++
++  function mount(container) {
++    container.innerHTML = '<section class="admin-devices" aria-labelledby="adminDevicesTitle">' +
++      '<h3 id="adminDevicesTitle">Manage CoreScope</h3>' +
++      '<p class="account-hint">Archive devices you no longer expect to report. A new report can bring them back.</p>' +
++      '<div class="um-filters admin-device-filters">' +
++      '<label class="account-field">Find a device<input id="adminDeviceSearch" type="search" placeholder="Name or device ID"></label>' +
++      '<label class="account-field">Device type<select id="adminDeviceKind">' +
++      '<option value="">All types</option><option value="repeater">Repeaters</option><option value="observer">Observers</option></select></label>' +
++      '<label class="admin-device-stale-filter"><input id="adminDeviceStale" type="checkbox"> Stale only (24+ hours)</label></div>' +
++      '<p class="account-msg" id="adminDeviceMessage" role="status" tabindex="-1"></p>' +
++      '<div class="um-table-wrap"><table class="um-table"><thead><tr>' +
++      '<th scope="col">Device</th><th scope="col">Type</th><th scope="col">Last seen</th><th scope="col">Action</th>' +
++      '</tr></thead><tbody id="adminDeviceRows"></tbody></table></div>' +
++      '<div class="admin-device-footer"><p class="account-hint" id="adminDeviceCount" role="status">Loading devices…</p>' +
++      '<div id="adminDevicePagination" hidden><button type="button" class="account-btn account-btn-secondary" id="adminDevicesPrevious">Previous</button> ' +
++      '<button type="button" class="account-btn account-btn-secondary" id="adminDevicesNext">Next</button></div></div>' +
++      '<dialog id="adminDeviceConfirm" aria-labelledby="adminDeviceConfirmTitle" aria-describedby="adminDeviceConfirmDescription">' +
++      '<h4 id="adminDeviceConfirmTitle">Archive this device?</h4><p id="adminDeviceConfirmDescription"></p>' +
++      '<code id="adminDeviceConfirmIdentity"></code><form method="dialog" class="um-actions">' +
++      '<button value="cancel" class="account-btn account-btn-secondary" autofocus>Cancel</button>' +
++      '<button value="archive" class="account-btn account-btn-primary">Archive device</button></form></dialog></section>';
++
++    var state = view = {
++      devices: [], filters: readFilters(location.hash), page: 0, busy: false,
++      body: container.querySelector('#adminDeviceRows'),
++      count: container.querySelector('#adminDeviceCount'),
++      message: container.querySelector('#adminDeviceMessage'),
++      pagination: container.querySelector('#adminDevicePagination'),
++      previous: container.querySelector('#adminDevicesPrevious'),
++      next: container.querySelector('#adminDevicesNext'),
++      search: container.querySelector('#adminDeviceSearch'),
++      kind: container.querySelector('#adminDeviceKind'),
++      stale: container.querySelector('#adminDeviceStale'),
++      dialog: container.querySelector('#adminDeviceConfirm'),
++      confirmDescription: container.querySelector('#adminDeviceConfirmDescription'),
++      confirmIdentity: container.querySelector('#adminDeviceConfirmIdentity')
++    };
++    state.search.value = state.filters.search;
++    state.kind.value = state.filters.kind;
++    state.stale.checked = state.filters.stale;
++    state.search.addEventListener('input', function () {
++      clearTimeout(state.filterTimer);
++      state.filterTimer = setTimeout(function () { updateFilters(state); }, 120);
++    });
++    state.kind.addEventListener('change', function () { updateFilters(state); });
++    state.stale.addEventListener('change', function () { updateFilters(state); });
++    state.previous.addEventListener('click', function () { state.page--; render(state); });
++    state.next.addEventListener('click', function () { state.page++; render(state); });
++    state.dialog.addEventListener('close', function () {
++      if (view !== state) return;
++      if (state.dialog.returnValue === 'archive') {
++        archiveSelected(state);
++      } else if (state.trigger) {
++        state.trigger.focus();
++      }
++      state.selected = null;
++      state.trigger = null;
++    });
++    return load(state).then(function () {
++      if (view === state) render(state);
++    }).catch(function (err) {
++      if (view !== state) return;
++      state.count.textContent = '';
++      say(state, err.message || 'Could not load CoreScope devices.', false);
++    });
++  }
++
++  function unmount() {
++    var state = view;
++    view = null;
++    if (state) clearTimeout(state.filterTimer);
++  }
++
++  window.CSAdminDevices = { mount: mount, unmount: unmount,
++    _test: { readFilters: readFilters, filterHash: filterHash, filterDevices: filterDevices, isStale: isStale } };
++})();
+diff --git a/public/admin.css b/public/admin.css
+index bde33acf0273237038956c2aa06d1086f9349470..5f40dc9d711aff6f269fce66eff1d092ec27c04a 100644
+--- a/public/admin.css
++++ b/public/admin.css
+@@ -26,3 +26,18 @@
+ .admin-observer-logins h3 { margin: 20px 0 8px; font-size: 1rem; }
+ .admin-observer-logins select { min-height: 48px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); max-width: 16em; }
+ @media (pointer: fine) { .admin-observer-logins select { min-height: 36px; } }
++
++.admin-devices h3 { margin: 0 0 8px; }
++.admin-device-filters { align-items: end; }
++.admin-device-stale-filter { display: inline-flex; align-items: center; min-height: 48px; gap: 6px; font-size: var(--fs-sm); }
++.admin-device-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
++.admin-devices code { display: block; color: var(--text-muted); overflow-wrap: anywhere; font-size: var(--fs-sm); }
++.admin-device-kind { border-color: currentColor; }
++.admin-device-repeater, .admin-device-stale { color: var(--status-yellow-text); }
++.admin-device-observer { color: var(--link-color); }
++.admin-devices dialog { max-width: min(34rem, calc(100% - 2rem)); margin: auto; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
++.admin-devices dialog::backdrop { background: var(--shadow); }
++.admin-devices dialog h4 { margin: 0; }
++.admin-devices dialog form { margin-top: 16px; justify-content: end; }
++
++@media (pointer: fine) { .admin-device-stale-filter { min-height: 36px; } }
+diff --git a/public/admin.js b/public/admin.js
+index d500262c405e0fd575094d7ff2e34e1be8e068c0..701869b2da0450d22c2b1d080d77bf62f98cdbaa 100644
+--- a/public/admin.js
++++ b/public/admin.js
+@@ -4,6 +4,7 @@
+  *   overview  window.CSAdminOverview (admin-overview.js)
+  *   users     window.CSAdminUsers    (admin-users.js)
+  *   audit     window.CSAdminAudit    (admin-audit.js)
++ *   devices   window.CSAdminDevices  (admin-devices.js)
+  *   proposals window.CSAdminProposals (admin-proposals.js), only with channel proposals on
+  *   observer-logins window.CSAdminObserverLogins (admin-observer-logins.js), only with observer logins on
+  * Deep link: #/admin?tab=<tab>&<tab filters>. The old #/admin/users?... is
+@@ -16,6 +17,7 @@
+     { id: 'overview', label: 'Overview', mod: 'CSAdminOverview' },
+     { id: 'users', label: 'Users', mod: 'CSAdminUsers' },
+     { id: 'audit', label: 'Audit', mod: 'CSAdminAudit' },
++    { id: 'devices', label: 'Manage CoreScope', mod: 'CSAdminDevices' },
+     { id: 'proposals', label: 'Proposals', mod: 'CSAdminProposals', when: proposalsOn },
+     { id: 'observer-logins', label: 'Observer logins', mod: 'CSAdminObserverLogins', when: observerLoginsOn }
+   ];
+diff --git a/public/index.html b/public/index.html
+index a920edc7d9ce5933fada086cdeac016ac4edafa3..7ce40a9e8f19ae19d13aad5bb512127a86e0032a 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -268,6 +268,7 @@
+   <script src="admin-overview.js?v=__BUST__" onerror="console.error('Failed to load:', this.src)"></script>
+   <script src="admin-proposals.js?v=__BUST__" onerror="console.error('Failed to load:', this.src)"></script>
+   <script src="admin-observer-logins.js?v=__BUST__" onerror="console.error('Failed to load:', this.src)"></script>
++  <script src="admin-devices.js?v=__BUST__" onerror="console.error('Failed to load:', this.src)"></script>
+   <script src="admin.js?v=__BUST__" onerror="console.error('Failed to load:', this.src)"></script>
+   <script src="mobile-page-actions.js?v=__BUST__" onerror="console.error('Failed to load:', this.src)"></script>
+ </body>
+diff --git a/tests/unit/test-admin-dashboard-ui.js b/tests/unit/test-admin-dashboard-ui.js
+index 92248d874fed2524697bb33832665062c8f63ba6..3008a59bf233e5696ee9f3db6c5029fa9f149756 100644
+--- a/tests/unit/test-admin-dashboard-ui.js
++++ b/tests/unit/test-admin-dashboard-ui.js
+@@ -422,7 +422,7 @@ function loadShell(hash, opts) {
+   const listeners = {};
+   const me = { current: opts.me === undefined ? { id: 1, role: 'admin' } : opts.me };
+   const mods = {};
+-  ['CSAdminOverview', 'CSAdminUsers', 'CSAdminAudit', 'CSAdminProposals', 'CSAdminObserverLogins'].forEach((n) => {
++  ['CSAdminOverview', 'CSAdminUsers', 'CSAdminAudit', 'CSAdminProposals', 'CSAdminObserverLogins', 'CSAdminDevices'].forEach((n) => {
+     mods[n] = { mounted: 0, unmounted: 0, el: null, mount(el) { this.mounted++; this.el = el; }, unmount() { this.unmounted++; } };
+   });
+   const CSAuth = { ready: () => Promise.resolve(), isEnabled: () => opts.enabled !== false,
+@@ -929,6 +929,88 @@ test('the audit action filter offers notification settings', () => {
+   assert.strictEqual(auditT().readHash('#/admin?tab=audit&action=notify.*').action, 'notify.*');
+ });
+ 
++test('the audit action filter offers device archive requests', () => {
++  const t = auditT();
++  assert.strictEqual(t.readHash('#/admin?tab=audit&action=device.archive.requested').action, 'device.archive.requested');
++});
++
++test('Manage CoreScope is registered in the admin shell with its script loaded first', async () => {
++  const env = loadShell('#/admin?tab=devices');
++  await env.page.init(env.app, null);
++  assert.strictEqual(env.mods.CSAdminDevices.mounted, 1);
++  assert(env.app.innerHTML.includes('aria-current="page">Manage CoreScope</a>'));
++  const html = src('public/index.html');
++  const script = html.indexOf('<script src="admin-devices.js?v=__BUST__"');
++  assert(script >= 0 && script < html.indexOf('<script src="admin.js?v=__BUST__"'));
++});
++
++test('device filters preserve the route and find an exact record by ID or name', () => {
++  const env = loadTab('public/admin-devices.js', '', () => OK({}));
++  const helpers = env.ctx.CSAdminDevices._test;
++  const filters = helpers.readFilters('#/admin?tab=devices&q=Tower+One&kind=repeater&stale=1');
++  assert.strictEqual(helpers.filterHash(filters), '#/admin?tab=devices&q=Tower+One&kind=repeater&stale=1');
++  const old = { id: 'ABC123', kind: 'repeater', name: 'Tower One', lastSeen: '2026-10-05T12:00:00Z' };
++  const fresh = { ...old, id: 'ABC456', lastHeard: '2026-10-07T10:00:00Z' };
++  const observer = { ...old, id: 'ABC789', kind: 'observer' };
++  const unknown = { ...old, id: 'ABC000', lastSeen: null };
++  const devices = [old, fresh, observer, unknown];
++  assert.deepStrictEqual(Array.from(helpers.filterDevices(devices, filters, NOW)), [old]);
++  assert.deepStrictEqual(Array.from(helpers.filterDevices(devices, { search: 'abc789' }, NOW)), [observer]);
++});
++
++test('confirming an archive posts the exact device identity and waits for the result', async () => {
++  const a = { id: 'pk-1', kind: 'repeater', name: 'Same Name', lastSeen: '2026-10-07T10:00:00Z' };
++  const b = { id: 'pk-2', kind: 'observer', name: 'Same Name', lastSeen: '2026-10-07T09:00:00Z' };
++  const api = '/api/admin/devices';
++  let loads = 0;
++  let status = 0;
++  const env = loadTab('public/admin-devices.js', '#/admin?tab=devices', (p, body) => {
++    if (body) return OK({ requestId: 'job-1' });
++    if (p === api + '/status?id=job-1') return OK(++status === 1 ? { status: 'pending' } : { status: 'done', changed: 1 });
++    return OK({ devices: ++loads === 1 ? [a, b] : [b] });
++  }, { setTimeout: (fn) => setTimeout(fn, 0), clearTimeout });
++  const { document } = env.dom;
++  function element() {
++    return {
++      children: [], handlers: {}, textContent: '',
++      addEventListener(event, callback) { this.handlers[event] = callback; },
++      appendChild(child) { this.children.push(child); return child; },
++      insertCell() { return this.appendChild(element()); },
++      setAttribute() {},
++      focus() { this.focused = true; }
++    };
++  }
++  document.createElement = element;
++  document.createDocumentFragment = element;
++  document.getElementById('adminDeviceRows').replaceChildren = function (fragment) { this.children = fragment.children; };
++  const dialog = document.getElementById('adminDeviceConfirm');
++  dialog.showModal = () => { dialog.open = true; };
++  document.getElementById('adminDeviceMessage').focus = () => {};
++  const tab = env.ctx.CSAdminDevices;
++  await tab.mount({ querySelector: (selector) => document.getElementById(selector.slice(1)) });
++  const archive = env.els.adminDeviceRows.children[0].children[3].children[0];
++  archive.handlers.click();
++  assert(dialog.open);
++  assert.strictEqual(env.els.adminDeviceConfirmIdentity.textContent, a.id);
++  assert.deepStrictEqual(env.calls, [api], 'opening confirmation must not write');
++  dialog.open = false;
++  dialog.returnValue = 'cancel';
++  dialog.handlers.close();
++  assert(archive.focused);
++  assert.deepStrictEqual(env.calls, [api], 'cancelling must not write');
++  archive.handlers.click();
++  dialog.open = false;
++  dialog.returnValue = 'archive';
++  dialog.handlers.close();
++  for (let retry = 0; retry < 10 && loads < 2; retry++) await tick();
++  assert.deepStrictEqual(JSON.parse(JSON.stringify(env.bodies[1])), { id: a.id, kind: a.kind, lastSeen: a.lastSeen });
++  assert.deepStrictEqual(env.calls, [api, api, api + '/status?id=job-1', api + '/status?id=job-1', api]);
++  assert.strictEqual(env.els.adminDeviceMessage.textContent, 'Device archived.');
++  assert.strictEqual(env.els.adminDeviceRows.children.length, 1);
++  assert.strictEqual(env.els.adminDeviceRows.children[0].children[0].children[0].textContent, b.id);
++  tab.unmount();
++});
++
+ Promise.all(pending).then(() => {
+   console.log('\n' + passed + ' passed, ' + failed + ' failed');
+   process.exit(failed ? 1 : 0);
