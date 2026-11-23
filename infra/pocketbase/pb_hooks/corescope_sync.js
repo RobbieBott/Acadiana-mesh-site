@@ -31,12 +31,13 @@ function inRegion(n) {
   return BOUNDARY.some((poly) => inRing(n.lon, n.lat, poly[0]) && !poly.slice(1).some((hole) => inRing(n.lon, n.lat, hole)));
 }
 
-module.exports = function sync(app) {
+module.exports = function sync(app, auth) {
   const base = ($os.getenv("ANALYZER_URL") || "https://analyzer.acadianamesh.com").replace(/\/$/, "");
   const res = $http.send({ url: base + "/api/nodes?limit=5000", method: "GET", timeout: 60 });
   if (res.statusCode !== 200) throw new Error("analyzer returned HTTP " + res.statusCode);
 
-  const all = ((res.json && res.json.nodes) || [])
+  if (!res.json || !Array.isArray(res.json.nodes)) throw new Error("analyzer returned an invalid node list");
+  const all = res.json.nodes
     .filter((n) => n.role === "repeater" && /^[0-9a-fA-F]{64}$/.test(n.public_key || ""))
     .map((n) => Object.assign({}, n, { public_key: n.public_key.toLowerCase() }));
   const heard = {};
@@ -109,5 +110,9 @@ module.exports = function sync(app) {
     out.added.push(rec.getString("name"));
   });
 
+  out.completedAt = new Date().toISOString();
+  const activity = require(__hooks + "/activity.js");
+  activity.log(app, { category: "changes", action: "Ran CoreScope sync", ...(auth ? activity.who(auth) : { actor: "System" }),
+    detail: out.added.length + " added, " + out.rekeyed.length + " re-keyed, " + out.removed.length + " removed." });
   return out;
 };

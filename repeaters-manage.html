@@ -106,8 +106,11 @@ sitemap: false
             <h2 id="rm-rep-title">My Repeaters</h2>
             <p class="rd-muted" id="rm-rep-sub"></p>
           </div>
-          <div class="rm-actions">
-            <button type="button" class="btn btn-secondary" id="rm-sync" hidden title="Add repeaters located in the Lafayette area (us-la-lft)">Sync from CoreScope</button>
+          <div class="rm-actions rm-sync-actions">
+            <div class="rm-sync-control" id="rm-sync-control" hidden>
+              <button type="button" class="btn btn-secondary" id="rm-sync" aria-describedby="rm-sync-last">Sync repeaters from CoreScope</button>
+              <p class="rd-muted rm-sync-last" id="rm-sync-last" role="status">Checking last sync…</p>
+            </div>
             <button type="button" class="btn btn-primary" id="rm-add-repeater">+ Add repeater</button>
           </div>
         </div>
