@@ -66,7 +66,21 @@ routerAdd("PATCH", "/api/directory/permissions", (e) => {
   const mail = require(__hooks + "/owner_mail.js");
   if (!mail.isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can change permissions.");
   const body = e.requestInfo().body;
+  const before = mail.permissionList(e.app).find((row) => row.id === body.id);
   mail.changeAccess(e.app, body.id, body);
+  const activity = require(__hooks + "/activity.js");
+  const detail = [];
+  if (body.role !== undefined && body.role !== before?.role) detail.push("Role: " + before?.role + " → " + body.role);
+  if (body.enabled !== undefined && body.enabled !== before?.enabled) detail.push("Owner Emails: " + (body.enabled ? "allowed" : "denied"));
+  if (body.overrides !== undefined) {
+    const labels = require(__hooks + "/staff_access.js").permissions;
+    Object.keys(labels).filter((key) => before?.overrides?.[key] !== body.overrides[key]).forEach((key) => {
+      const value = body.overrides[key];
+      detail.push(labels[key] + ": " + (value === undefined ? "role default" : value ? "allowed" : "denied"));
+    });
+  }
+  if (detail.length) activity.log(e.app, { category: "changes", action: "Changed account permissions", ...activity.who(e.auth),
+    target: before?.name || "Directory account", targetId: body.id, detail: detail.join(" · ") });
   return e.json(200, { accounts: mail.permissionList(e.app), capabilities: require(__hooks + "/staff_access.js").permissions });
 }, $apis.requireAuth("users"));
 
@@ -78,6 +92,7 @@ routerAdd("PATCH", "/api/directory/permissions/{id}/email", (e) => {
   if (id === e.auth.id) throw new BadRequestError("Use the account email verification flow for your own account.");
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!email || email.length > 200) throw new BadRequestError("Enter a valid email.");
+  let target;
   e.app.runInTransaction((tx) => {
     const record = tx.findRecordById("users", id);
     if (record.email() !== body.previousEmail) throw new BadRequestError("The email changed. Reopen the account and try again.");
@@ -88,7 +103,12 @@ routerAdd("PATCH", "/api/directory/permissions/{id}/email", (e) => {
     record.setPassword($security.randomString(48));
     record.set("tokenKey", $security.randomString(50));
     tx.save(record);
+    target = record.getString("name");
   });
+  if (target !== undefined) {
+    const activity = require(__hooks + "/activity.js");
+    activity.log(e.app, { category: "changes", action: "Changed sign-in email", ...activity.who(e.auth), target, targetId: id });
+  }
   return e.json(200, { changed: true });
 }, $apis.requireAuth("users"));
 

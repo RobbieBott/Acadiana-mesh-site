@@ -49,7 +49,8 @@ routerAdd("POST", "/api/directory/message", (e) => {
     e.app.newMailClient().send(new MailerMessage({
       from: { address: meta.senderAddress, name: meta.senderName },
       to: [{ address: to, name: owner }],
-      headers: { "Reply-To": email },
+      headers: require(__hooks + "/mail_style.js").headers({ "Reply-To": email }, "Message to device owner",
+        e.auth ? e.auth.id : "", deviceName, record.id, "Public visitor"),
       subject: "Message about your " + device + " " + deviceName,
       html:
         "<p><strong>" + esc(name) + "</strong> (" + esc(email) + ") sent you a message about <strong>" + esc(deviceName) +

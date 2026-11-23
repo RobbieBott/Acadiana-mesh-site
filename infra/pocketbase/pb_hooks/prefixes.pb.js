@@ -72,6 +72,8 @@ onRecordAfterCreateSuccess((e) => {
         from: { address: meta.senderAddress, name: meta.senderName },
         to: [{ address: to }],
         subject: "Prefix " + e.record.getString("code") + " is reserved for you",
+        headers: require(__hooks + "/mail_style.js").headers(null, "Prefix reservation confirmation",
+          e.record.getString("user"), e.record.getString("code"), e.record.id, "Public visitor"),
         html: "<p>Hello " + esc(e.record.getString("reserved_by_name")) + ",</p>" +
           "<p>The repeater prefix <strong>" + esc(e.record.getString("code")) + "</strong> is now reserved for " +
           "<strong>" + esc(e.record.getString("label")) + "</strong> in the Acadiana Mesh repeater directory.</p>" +

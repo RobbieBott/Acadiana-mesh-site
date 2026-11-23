@@ -6,13 +6,13 @@ function esc(t) {
   return String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-function send(app, to, subject, html) {
+function send(app, to, subject, html, headers) {
   const meta = app.settings().meta;
   app.newMailClient().send(new MailerMessage({
     from: { address: meta.senderAddress, name: meta.senderName },
     to: [{ address: to }],
     subject: subject,
-    html: html,
+    html: html, headers,
   }));
 }
 
@@ -60,7 +60,7 @@ module.exports.approve = function (app, claimId, adminId, blockedEmail) {
         "<p>Hello " + esc(user.getString("name")) + ",</p>" +
         "<p>Your claim was approved: you can now update <strong>" + esc(repName) + "</strong> in the Acadiana Mesh repeater directory.</p>" +
         '<p>Sign in at <a href="https://acadianamesh.com/repeaters/manage/">acadianamesh.com/repeaters/manage</a> with this email address.</p>' +
-        "<p>Thanks,<br/>Acadiana Mesh</p>");
+        "<p>Thanks,<br/>Acadiana Mesh</p>", require(__hooks + "/mail_style.js").headers(null, "Repeater claim approved", adminId, repName, claimId));
     }
   } catch (err) {
     mailed = false;
@@ -80,7 +80,8 @@ module.exports.notifyAdmins = function (app, claim) {
         (claim.getString("callsign") ? " (" + esc(claim.getString("callsign").toUpperCase()) + ")" : "") +
         " &lt;" + esc(claim.getString("email")) + "&gt; asked to manage <strong>" + esc(repName) + "</strong>.</p>" +
         (claim.getString("note") ? "<p>Note: " + esc(claim.getString("note")) + "</p>" : "") +
-        '<p>Approve or decline it on the <a href="https://acadianamesh.com/repeaters/manage/#claims">Claims tab</a>.</p>');
+        '<p>Approve or decline it on the <a href="https://acadianamesh.com/repeaters/manage/#claims">Claims tab</a>.</p>',
+        require(__hooks + "/mail_style.js").headers(null, "New repeater claim", "", repName, claim.id, "Claim notification"));
     } catch (err) {
       console.log("[claims] admin notice failed: " + err);
     }

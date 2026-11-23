@@ -76,6 +76,9 @@ routerAdd("POST", "/test/run", (e) => {
   const body = e.requestInfo().body;
   const job = body.job;
   if (job === "queue") require(__hooks + "/owner_mail.js").processQueue(e.app);
+  else if (job === "queue-offline-fixture") require(__hooks + "/owner_mail.js").addBatch(e.app, "queued-offline-fixture", "offline", {
+    subject: "Cancelled fixture email", message: "This should be cancelled.", template: "offline"
+  }, {scope:"observer", emails:["member@example.com"], targets:[]});
   else if (job === "age") {
     for (const state of e.app.findAllRecords("owner_offline_state")) {
       state.set("last_seen", body.lastSeen);
@@ -406,6 +409,55 @@ def run(folder):
     assert not api(observer_record, owner)["contact_from"]
     assert not api(public_observer)["discord"]
     print("Verified observer profile updates, visibility, private relay, and removing the linked manager", flush=True)
+
+    activity = "/api/directory/activity"
+    api(activity, expected=401)
+    api(activity, member, expected=403)
+    api(activity + "/preview-status", member, {}, expected=403)
+    api(activity + "/status-emails", member, {"enabled": False, "previous": True}, "PATCH", expected=403)
+    api("/api/collections/directory_activity/records", owner, expected=403)
+    assert api(activity, owner)["enabled"]
+    mail_before = len(messages)
+    assert isinstance(api(activity + "/preview-status", owner, {})["count"], int)
+    assert len(messages) == mail_before
+    assert api(activity + "?category=status", owner)["events"][0]["action"] == "Ran status preview"
+    api("/test/run", owner, {"job": "queue-offline-fixture"})
+    assert not api(activity + "/status-emails", owner, {"enabled": False, "previous": True}, "PATCH")["enabled"]
+    api(activity + "/status-emails", owner, {"enabled": True, "previous": True}, "PATCH", expected=400)
+    assert api(ROUTE, owner)["history"][0]["counts"]["cancelled"] == 1
+    api("/test/run", owner, {"job": "queue"})
+    assert len(messages) == mail_before
+    assert api(activity + "/status-emails", owner, {"enabled": True, "previous": False}, "PATCH")["enabled"]
+    api(activity + "/status-emails", owner, {"enabled": False, "previous": True}, "PATCH")
+
+    api("/api/collections/users/request-password-reset", owner, {"email": "member@example.com"}, expected=204)
+    for _ in range(40):
+        if len(messages) > mail_before:
+            break
+        time.sleep(0.1)
+    assert len(messages) == mail_before + 1
+    api("/api/collections/prefixes/records", body={"code":"D13A", "label":"Fixture assignment",
+        "reserved_by_name":"Fixture guest", "reserved_by_email":"guest@example.com"}, expected=200)
+    for _ in range(40):
+        if len(messages) > mail_before + 1:
+            break
+        time.sleep(0.1)
+    assert len(messages) == mail_before + 2
+    for msg in messages:
+        html = next(part.get_payload(decode=True).decode() for part in msg.walk() if part.get_content_type() == "text/html")
+        assert html.count("data-acadiana-mail") == 1, msg["Subject"]
+        assert all(not key.lower().startswith("x-acadiana-internal-") for key in msg.keys()), msg.keys()
+
+    events = api(activity + "?category=email", owner)["events"]
+    assert any(e["action"] == "Owner notice email" and e["actorId"] == PEOPLE["sender"] and "Accepted" in e["detail"] for e in events)
+    assert any(e["action"] == "Password setup or reset" and e["targetId"] == PEOPLE["member"] for e in events)
+    assert any(e["action"] == "Prefix reservation confirmation" for e in events)
+    assert any(e["action"] == "Message to device owner" for e in events)
+    edits = api(activity + "?category=changes&q=phone", owner)["events"]
+    assert any(e["actorId"] == PEOPLE["member"] and e["action"] == "Updated account" for e in edits)
+    serialized = json.dumps(events + edits)
+    assert not any(secret in serialized for secret in ["visitor@example.com", "member@example.com", "555-0123", visitor["message"]])
+    print("Verified private audit events, attribution, shared mail styling, status preview, toggle and queue cancellation", flush=True)
 
     api(permissions + "/" + PEOPLE["member"] + "/email", admin,
         {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH", expected=403)
