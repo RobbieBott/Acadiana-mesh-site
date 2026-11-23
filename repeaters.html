@@ -65,8 +65,14 @@ permalink: /repeaters/
   </div>
   <div class="rd-toolbar">
     <label class="rd-search"><span class="sr-only">Search observers</span><input type="search" id="obs-search" placeholder="Search name, hardware or firmware" autocomplete="off"></label>
+    <div class="rd-chips" id="obs-status" role="group" aria-label="Filter observers by status">
+      <button type="button" class="rd-chip active" data-status="all" aria-pressed="true" disabled>All <span>—</span></button>
+      <button type="button" class="rd-chip" data-status="online" aria-pressed="false" disabled>Online <span>—</span></button>
+      <button type="button" class="rd-chip" data-status="stale" aria-pressed="false" disabled>Stale <span>—</span></button>
+      <button type="button" class="rd-chip" data-status="offline" aria-pressed="false" disabled>Offline <span>—</span></button>
+      <button type="button" class="rd-chip" data-status="unknown" aria-pressed="false" disabled>Unknown <span>—</span></button>
+    </div>
     <label class="rd-sort"><span>Region</span><select id="obs-region"><option value="LFT">LFT</option><option value="">All regions</option></select></label>
-    <label class="rd-sort"><span>Status</span><select id="obs-status"><option value="">All</option><option value="online">Online</option><option value="stale">Stale</option><option value="offline">Offline</option><option value="unknown">Unknown</option></select></label>
     <button class="btn btn-secondary" type="button" id="obs-refresh">Refresh</button>
   </div>
   <div class="rd-loading" id="obs-loading" role="status">Loading observers…</div>
