@@ -18,8 +18,14 @@ routerAdd("POST", "/api/directory/claims/{id}/approve", (e) => {
     return e.json(403, { message: "Repeater claim approval permission is required." });
   }
   try {
-    return e.json(200, require(`${__hooks}/claims.js`).approve(e.app, e.request.pathValue("id"), e.auth.id,
-      require(__hooks + "/staff_access.js").has(e.auth, "edit_repeaters") ? "" : e.auth.email().toLowerCase()));
+    const id = e.request.pathValue("id");
+    const result = require(__hooks + "/claims.js").approve(e.app, id, e.auth.id,
+      require(__hooks + "/staff_access.js").has(e.auth, "edit_repeaters") ? "" : e.auth.email().toLowerCase());
+    const activity = require(__hooks + "/activity.js");
+    activity.log(e.app, { category: "changes", action: "Approved repeater claim", ...activity.who(e.auth),
+      target: result.repeater, targetId: id, detail: result.user + " assigned. " +
+        (result.new_account ? "Account created. " : "") + (result.emailed ? "Approval or setup email accepted by mail transport." : "Approval email failed.") });
+    return e.json(200, result);
   } catch (err) {
     return e.json(400, { message: String(err).replace(/^Error: /, "") });
   }

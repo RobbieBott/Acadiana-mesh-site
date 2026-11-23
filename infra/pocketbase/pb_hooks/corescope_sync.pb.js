@@ -27,7 +27,11 @@ routerAdd("POST", "/api/directory/sync", (e) => {
     return e.json(403, { message: "CoreScope sync permission is required." });
   }
   try {
-    return e.json(200, require(`${__hooks}/corescope_sync.js`)(e.app));
+    const result = require(__hooks + "/corescope_sync.js")(e.app);
+    const activity = require(__hooks + "/activity.js");
+    activity.log(e.app, { category: "changes", action: "Ran CoreScope sync", ...activity.who(e.auth),
+      detail: result.added.length + " added, " + result.rekeyed.length + " re-keyed, " + result.removed.length + " removed." });
+    return e.json(200, result);
   } catch (err) {
     return e.json(502, { message: "Couldn't reach the analyzer: " + err });
   }

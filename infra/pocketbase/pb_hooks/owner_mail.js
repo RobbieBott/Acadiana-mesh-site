@@ -3,6 +3,8 @@ const BATCHES = "owner_mail_batches";
 const DELIVERIES = "owner_mail_deliveries";
 const TEMPLATES = { general: "Owner notice", network: "Network change", maintenance: "Maintenance", offline: "Device offline" };
 const SITE = "https://acadianamesh.com";
+const activity = require(__hooks + "/activity.js");
+const mailStyle = require(__hooks + "/mail_style.js");
 
 function one(app, collection, filter, params) {
   return app.findRecordsByFilter(collection, filter, "", 1, 0, params)[0];
@@ -183,15 +185,7 @@ function render(notice) {
     (notice.buttonMode === "custom" ? "Open link" : "Open Acadiana Mesh") + '</a>' : '';
   return {
     text: "Acadiana Mesh · " + tag + "\n\n" + notice.subject + "\n\n" + notice.message + (notice.signature ? "\n\n" + notice.signature : "") + (url ? "\n\n" + url : ""),
-    html: '<!doctype html><html lang="en"><body style="margin:0;background:#0d0d14;color:#e2e8f0;font:16px/1.55 Arial,sans-serif">' +
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px">' +
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#1a1a24;border-radius:12px;overflow:hidden">' +
-      '<tr><td style="background:#111118;color:#fff;padding:24px 28px;font-size:22px;font-weight:bold">' +
-      '<img src="' + SITE + '/assets/images/logo.png" width="36" alt="" style="vertical-align:middle;margin-right:10px">Acadiana Mesh</td></tr>' +
-      '<tr><td style="padding:26px 28px"><p style="margin:0;color:#ff6a1a;font-size:13px;font-weight:bold">' + tag + '</p>' +
-      '<h1 style="font-size:25px;line-height:1.25;margin:8px 0 20px">' + escape(notice.subject) + "</h1>" + paragraphs +
-      signature + button + '</td></tr>' +
-      '</table></td></tr></table></body></html>'
+    html: mailStyle.render(notice.subject, tag, paragraphs + signature + button)
   };
 }
 
@@ -261,7 +255,7 @@ function queue(app, actor, body) {
 
 function history(app) {
   return app.findRecordsByFilter(BATCHES, "id != ''", "-created", 20, 0).map((batch) => {
-    const counts = { pending: 0, sending: 0, accepted: 0, failed: 0, unknown: 0 };
+    const counts = { pending: 0, sending: 0, accepted: 0, failed: 0, unknown: 0, cancelled: 0 };
     const deliveries = app.findRecordsByFilter(DELIVERIES, "batch = {:id}", "", 0, 0, { id: batch.id });
     deliveries.forEach((row) => { counts[row.getString("status")]++; });
     const sender = batch.getString("sender");
@@ -292,6 +286,13 @@ function processQueue(app) {
     if (!job) break;
     const row = app.findRecordById(DELIVERIES, job);
     const batch = app.findRecordById(BATCHES, row.getString("batch"));
+    const offline = batch.getString("kind") === "offline";
+    if (offline && !activity.sending(app)) {
+      row.set("status", "cancelled");
+      app.save(row);
+      activity.log(app, { category: "email", action: "Cancelled status email", actor: "Offline monitor", targetId: batch.id });
+      continue;
+    }
     const subject = batch.getString("subject");
     const output = render({ subject, message: batch.getString("message"), template: batch.getString("template"),
       signature: batch.getString("signature"), buttonMode: batch.getString("button_mode"), buttonUrl: batch.getString("button_url") });
@@ -300,7 +301,9 @@ function processQueue(app) {
     try {
       app.newMailClient().send(new MailerMessage({
         from: { address: meta.senderAddress, name: meta.senderName },
-        to: [{ address: row.getString("email") }], subject, html: output.html, text: output.text
+        to: [{ address: row.getString("email") }], subject, html: output.html, text: output.text,
+        headers: mailStyle.headers(null, offline ? "Device offline email" : "Owner notice email",
+          batch.getString("sender"), offline ? subject : "", batch.id, offline ? "Offline monitor" : "")
       }));
     } catch (_) {
       // SMTP errors can be ambiguous. Retrying automatically could send twice.

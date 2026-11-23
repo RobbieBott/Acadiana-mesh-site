@@ -1,8 +1,8 @@
 // Approval and observer manager assignment are one transaction.
 function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function send(app,to,subject,html){
+function send(app,to,subject,html,headers){
   const meta=app.settings().meta;
-  app.newMailClient().send(new MailerMessage({from:{address:meta.senderAddress,name:meta.senderName},to:[{address:to}],subject,html}));
+  app.newMailClient().send(new MailerMessage({from:{address:meta.senderAddress,name:meta.senderName},to:[{address:to}],subject,html,headers}));
 }
 module.exports.approve=function(app,claimId,adminId,blockedEmail){
   let user,isNew=false,observerName;
@@ -29,14 +29,16 @@ module.exports.approve=function(app,claimId,adminId,blockedEmail){
   let mailed=true;
   try{
     if(!user.verified())$mails.sendRecordPasswordReset(app,user);
-    else send(app,user.email(),"Your observer claim was approved","<p>Hello "+esc(user.getString("name"))+",</p><p>You can now manage <strong>"+esc(observerName)+"</strong> in the Acadiana Mesh directory.</p><p><a href='https://acadianamesh.com/repeaters/manage/#observers'>Open My Observers</a></p>");
+    else send(app,user.email(),"Your observer claim was approved","<p>Hello "+esc(user.getString("name"))+",</p><p>You can now manage <strong>"+esc(observerName)+"</strong> in the Acadiana Mesh directory.</p><p><a href='https://acadianamesh.com/repeaters/manage/#observers'>Open My Observers</a></p>",
+      require(__hooks + "/mail_style.js").headers(null, "Observer claim approved", adminId, observerName, claimId));
   }catch(err){mailed=false;console.log("[observer claims] approval email failed: "+err);}
   return{approved:true,observer:observerName,user:user.getString("name"),new_account:isNew,emailed:mailed};
 };
 module.exports.notify=function(app,c){
   const admins=app.findRecordsByFilter("users","staff_permissions ~ '|approve-observer-claims|' && verified = true","",50,0);
   admins.forEach(a=>{
-    try{send(app,a.email(),"Observer claim awaiting approval","<p>"+esc(c.getString("name"))+" &lt;"+esc(c.getString("email"))+"&gt; asked to manage <strong>"+esc(c.getString("observer_name"))+"</strong>.</p><p>"+esc(c.getString("note"))+"</p><p><a href='https://acadianamesh.com/repeaters/manage/#claims'>Review claim</a></p>");}
+    try{send(app,a.email(),"Observer claim awaiting approval","<p>"+esc(c.getString("name"))+" &lt;"+esc(c.getString("email"))+"&gt; asked to manage <strong>"+esc(c.getString("observer_name"))+"</strong>.</p><p>"+esc(c.getString("note"))+"</p><p><a href='https://acadianamesh.com/repeaters/manage/#claims'>Review claim</a></p>",
+      require(__hooks + "/mail_style.js").headers(null, "New observer claim", "", c.getString("observer_name"), c.id, "Claim notification"));}
     catch(err){console.log("[observer claims] admin notice failed: "+err);}
   });
 };

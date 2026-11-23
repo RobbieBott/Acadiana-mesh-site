@@ -158,7 +158,7 @@ window.createOwnerMail = function (pb, $, onAccess) {
       var counts = row.counts;
       item.textContent = row.subject + ' · ' + row.sender + ' · ' + new Date(row.created.replace(' ', 'T')).toLocaleString() +
         ' · ' + counts.accepted + ' accepted by mail server, ' + (counts.pending + counts.sending) +
-        ' pending, ' + counts.failed + ' failed' + (counts.unknown ? ', ' + counts.unknown + ' unconfirmed' : '');
+        ' pending, ' + counts.failed + ' failed' + (counts.unknown ? ', ' + counts.unknown + ' unconfirmed' : '') + (counts.cancelled ? ', ' + counts.cancelled + ' cancelled' : '');
       if (row.devices.length) {
         var detail = document.createElement('details');
         var summary = document.createElement('summary');

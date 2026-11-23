@@ -1,4 +1,5 @@
 const mail = require(__hooks + "/owner_mail.js");
+const activity = require(__hooks + "/activity.js");
 const STATE = "owner_offline_state";
 const HOUR = 60 * 60 * 1000;
 
@@ -40,16 +41,25 @@ function snapshot(base, now) {
   return { observer: observerTimes, repeater: repeaterTimes };
 }
 
-function check(app) {
+function check(app, options = {}) {
   const now = Date.now();
-  const sending = $os.getenv("OWNER_OFFLINE_ALERTS") === "send";
+  const preview = !!options.preview;
+  const actor = options.auth ? activity.who(options.auth) : { actor: "Offline monitor" };
   const base = ($os.getenv("ANALYZER_URL") || "https://analyzer.acadianamesh.com").replace(/\/$/, "");
-  const times = snapshot(base, now);
+  let times;
+  try { times = snapshot(base, now); }
+  catch (error) {
+    activity.log(app, { category: "status", action: preview ? "Status preview skipped" : "Status scan skipped",
+      ...actor, detail: "Recent Lafayette observer and repeater telemetry is required." });
+    throw error;
+  }
   const collection = app.findCollectionByNameOrId(STATE);
   const list = mail.devices(app);
   const owners = mail.verifiedOwners(app, list);
   const events = [];
+  let sending = false;
   app.runInTransaction((tx) => {
+    sending = !preview && activity.sending(tx);
     for (const device of list) {
       const record = device.record;
       const identity = device.type === "repeater" ? record.getString("public_key").toLowerCase() : record.getString("observer_id");
@@ -67,8 +77,13 @@ function check(app) {
       const inactive = device.type === "repeater" &&
         ["Maintenance", "Retired", "Built Waiting For Install"].includes(record.getString("status"));
       const emails = Array.from(new Set(device.managers.map((id) => owners.get(id)?.email).filter(Boolean)));
-      const alert = !notified && now - last >= 24 * HOUR && !paused && !inactive && emails.length;
-      if (alert) {
+      const overdue = now - last >= 24 * HOUR && !paused && !inactive && emails.length;
+      if (preview && overdue) {
+        events.push({ device, last, count: emails.length, alreadyRecorded: notified });
+        continue;
+      }
+      if (preview) continue;
+      if (overdue && !notified) {
         const label = device.type === "repeater" ? "Repeater" : "Observer";
         if (sending) {
           const notice = {
@@ -82,7 +97,7 @@ function check(app) {
             scope: device.type, emails, targets: [{ id: device.id, name: device.name }]
           });
         }
-        events.push(device.id);
+        events.push({ device, last, count: emails.length });
         notified = true;
       }
       if (!same || last !== previous || notified !== current.getBool("notified")) {
@@ -94,7 +109,17 @@ function check(app) {
       }
     }
   });
-  events.forEach((id) => console.log("[owner alerts] " + (sending ? "queued " : "dry run: would alert for ") + id));
+  for (const { device, last, count, alreadyRecorded } of events) {
+    if (!preview) console.log("[owner alerts] " + (sending ? "queued " : "dry run: would alert for ") + device.id);
+    activity.log(app, { category: "status", ...actor, target: device.name, targetId: device.id,
+      action: alreadyRecorded ? "Preview: outage already recorded" : sending ? "Queued offline alert" : "Would send offline alert",
+      detail: (device.type === "observer" ? "Observer" : "Repeater") + " · Last report " + new Date(last).toISOString() +
+        " · " + count + (count === 1 ? " eligible recipient" : " eligible recipients") });
+  }
+  activity.log(app, { category: "status", action: preview ? "Ran status preview" : "Ran status scan", ...actor,
+    detail: list.length + " listings checked · " + events.length + (preview ? " overdue with eligible recipients" :
+      sending ? " alerts queued" : " potential alerts in log-only mode") });
+  return events.length;
 }
 
 module.exports = { check };
