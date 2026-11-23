@@ -219,6 +219,7 @@
     repeaters = [];
     managedObservers = [];
     liveObservers = [];
+    observerLiveReady = false;
     myDeviceLoads = { repeaters: 'loading', observers: 'loading' };
     renderMyDevices();
     $('rm-obs-q').value = '';
@@ -364,7 +365,8 @@
   var liveReady = false;
   var LIVE = {
     online: ['Online', 'ok'], stale: ['Stale', 'warn'], offline: ['Offline', 'bad'], unheard: ['Not heard', 'off'],
-    waiting: ['Waiting for install', 'info'], maintenance: ['Maintenance', 'warn'], retired: ['Retired', 'off'], checking: ['Checking…', 'off']
+    waiting: ['Waiting for install', 'info'], maintenance: ['Maintenance', 'warn'], retired: ['Retired', 'off'],
+    checking: ['Checking…', 'off'], unknown: ['Unknown', 'off']
   };
   function normName(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
   function matchLive(r) {
@@ -405,13 +407,27 @@
     return 'Heard ' + ago;
   }
 
+  function liveObserverStatus(observer, now) {
+    if (!observerLiveReady) return 'checking';
+    var seen = observer ? Date.parse(observer.last_seen) : NaN;
+    if (!Number.isFinite(seen)) return 'unknown';
+    // Match the public Observers tab: online under one hour, stale under one day.
+    var age = now - seen;
+    return age < 3600000 ? 'online' : age < 86400000 ? 'stale' : 'offline';
+  }
+
   function renderMyDevices() {
     var myRepeaters = myDeviceLoads.repeaters === 'ready' ? repeaters.filter(manages) : [];
     var myObservers = myDeviceLoads.observers === 'ready' ? managedObservers.filter(manages) : [];
+    var observerById = new Map(liveObservers.map(function (item) { return [String(item.id), item]; }));
+    var now = Date.now();
     var devices = myRepeaters.map(function (record) {
-      return { id: record.id, name: record.name, type: 'Repeater' };
+      return { id: record.id, name: record.name, type: 'Repeater', status: LIVE[liveStatus(record)] };
     }).concat(myObservers.map(function (record) {
-      return { id: record.id, name: record.display_name || record.observer_name || record.observer_id, type: 'Observer' };
+      return {
+        id: record.id, name: record.display_name || record.observer_name || record.observer_id, type: 'Observer',
+        status: LIVE[liveObserverStatus(observerById.get(String(record.observer_id)), now)]
+      };
     }));
     devices.sort(function (a, b) { return a.name.localeCompare(b.name) || a.type.localeCompare(b.type); });
 
@@ -424,9 +440,11 @@
 
     $('rm-my-devices-table').hidden = !devices.length;
     $('rm-my-devices-list').innerHTML = devices.map(function (device) {
-      return '<tr><td>' + esc(device.name) + '</td><td>' + device.type + '</td>' +
+      var typeColor = device.type === 'Repeater' ? 'warn' : 'info';
+      return '<tr><td>' + esc(device.name) + '</td><td><span class="rd-pill ' + typeColor + '">' + device.type + '</span></td>' +
+        '<td><span class="rd-pill ' + device.status[1] + '">' + device.status[0] + '</span></td>' +
         '<td class="rm-right"><button type="button" class="btn btn-secondary rm-sm" data-device-id="' + esc(device.id) +
-        '" data-device-type="' + device.type + '" aria-label="Edit ' + esc(device.name) + '">Edit</button></td></tr>';
+        '" data-device-type="' + device.type + '" aria-label="Edit ' + esc(device.name) + ' (' + device.type + ')">Edit</button></td></tr>';
     }).join('');
   }
 
@@ -1290,13 +1308,13 @@
 
   // Observer ownership lives in PocketBase, independent of the live analyzer.
   var managedObservers = [], liveObservers = [], observerClaims = [], peopleObserverStatus = 'Loading…';
-  var observerLoadVersion = 0;
+  var observerLoadVersion = 0, observerLiveReady = false;
   function fetchLiveObservers() {
     return fetch(ANALYZER + '/api/observers').then(function (response) {
       if (!response.ok) throw new Error('Analyzer unavailable');
       return response.json();
     }).then(function (body) {
-      return Array.isArray(body.observers) ? body.observers : null;
+      return Array.isArray(body.observers) ? body.observers.filter(function (item) { return item && item.id != null; }) : null;
     }).catch(function () { return null; });
   }
   function updateClaimCount(){
@@ -1308,13 +1326,20 @@
     var all = allObservers();
     $('rm-obs-title').textContent = all ? 'All Observers' : 'My Observers';
     $('rm-obs-msg').textContent = 'Loading observers…';
+    var telemetry = fetchLiveObservers().then(function (result) {
+      if (version === observerLoadVersion) {
+        liveObservers = result || [];
+        observerLiveReady = true;
+        renderMyDevices();
+      }
+      return result;
+    });
     return Promise.all([
       pb.collection('managed_observers').getFullList({ sort: 'observer_name' }),
-      all ? fetchLiveObservers() : Promise.resolve([])
+      all ? telemetry : Promise.resolve([])
     ]).then(function (result) {
       if (version !== observerLoadVersion) return;
       managedObservers = result[0];
-      liveObservers = result[1] || [];
       peopleObserverStatus = '';
       return (can('assign_observers') ? loadPeople() : Promise.resolve()).then(function () {
         if (version !== observerLoadVersion) return;
@@ -1336,8 +1361,8 @@
   function renderObservers() {
     renderMyDevices();
     var catalog = new Map();
-    liveObservers.forEach(function (item) {
-      if (item && item.id != null && String(item.id)) {
+    if (allObservers()) liveObservers.forEach(function (item) {
+      if (String(item.id)) {
         var id = String(item.id);
         catalog.set(id, { id: id, name: String(item.name || id), region: item.iata || '' });
       }
