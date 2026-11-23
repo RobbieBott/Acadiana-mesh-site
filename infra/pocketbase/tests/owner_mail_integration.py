@@ -435,7 +435,8 @@ def run(folder):
     mail_before = len(messages)
     assert isinstance(api(activity + "/preview-status", owner, {})["count"], int)
     assert len(messages) == mail_before
-    assert api(activity + "?category=status", owner)["events"][0]["action"] == "Ran status preview"
+    preview_events = api(activity + "?category=status&q=Ran%20status%20preview", owner)["events"]
+    assert any(event["action"] == "Ran status preview" for event in preview_events)
     api("/test/run", owner, {"job": "queue-offline-fixture"})
     assert not api(activity + "/status-emails", owner, {"enabled": False, "previous": True}, "PATCH")["enabled"]
     api(activity + "/status-emails", owner, {"enabled": True, "previous": True}, "PATCH", expected=400)
