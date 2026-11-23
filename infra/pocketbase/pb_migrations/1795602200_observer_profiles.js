@@ -19,11 +19,11 @@ migrate((app) => {
   const view = app.findCollectionByNameOrId("managed_observers_public");
   view.viewQuery = `
     SELECT o.id, o.observer_id, o.display_name, o.area, o.hardware, o.notes,
-      COALESCE(NULLIF(u.name, ''), o.public_owner) AS public_owner,
-      COALESCE(u.callsign, '') AS owner_callsign,
-      CASE WHEN o.show_phone THEN COALESCE(u.phone, '') ELSE '' END AS phone,
-      CASE WHEN o.show_discord THEN COALESCE(u.discord, '') ELSE '' END AS discord,
-      CASE WHEN o.show_email AND u.verified AND u.email != '' THEN 1 ELSE 0 END AS can_message
+      (COALESCE(NULLIF(u.name, ''), o.public_owner)) AS public_owner,
+      (COALESCE(u.callsign, '')) AS owner_callsign,
+      (CASE WHEN o.show_phone THEN COALESCE(u.phone, '') ELSE '' END) AS phone,
+      (CASE WHEN o.show_discord THEN COALESCE(u.discord, '') ELSE '' END) AS discord,
+      (CASE WHEN o.show_email AND u.verified AND u.email != '' THEN 1 ELSE 0 END) AS can_message
     FROM managed_observers o
     LEFT JOIN users u ON u.id = o.contact_from
       AND EXISTS (SELECT 1 FROM json_each(o.managers) WHERE value = u.id)
