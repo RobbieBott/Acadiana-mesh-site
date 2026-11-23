@@ -62,4 +62,38 @@ function assign(app, userId, input) {
   });
 }
 
-module.exports = {observerFeed, setIdentity, assign};
+function register(app, input, canAssign) {
+  const id = input.observer_id;
+  if (typeof id !== "string" || !id || id.length > 250) throw new BadRequestError("Invalid observer ID.");
+
+  const fields = ["display_name", "area", "hardware", "notes", "public_owner", "offline_pause_until"];
+  if (Object.keys(input).some((key) => !["observer_id", "managers", ...fields].includes(key))) {
+    throw new BadRequestError("Only observer listing details and manager assignments can be saved here.");
+  }
+  if (input.managers !== undefined && !canAssign) {
+    throw new ForbiddenError("Observer manager assignment permission is required.");
+  }
+  const managers = input.managers === undefined ? [] : readIds(input.managers);
+  if (fields.some((key) => input[key] !== undefined && typeof input[key] !== "string")) {
+    throw new BadRequestError("Invalid observer listing details.");
+  }
+
+  const live = observerFeed().find((entry) => entry && String(entry.id) === id);
+  if (!live) throw new BadRequestError("Observer not found in the analyzer.");
+
+  let saved;
+  app.runInTransaction((tx) => {
+    if (find(tx, id)) throw new BadRequestError("This observer is already registered. Refresh the page and reopen it.");
+    const record = new Record(tx.findCollectionByNameOrId("managed_observers"));
+    setIdentity(record, id, live);
+    for (const key of fields) {
+      if (input[key] !== undefined) record.set(key, input[key]);
+    }
+    record.set("managers", managers);
+    tx.save(record);
+    saved = record.publicExport();
+  });
+  return saved;
+}
+
+module.exports = {observerFeed, setIdentity, assign, register};

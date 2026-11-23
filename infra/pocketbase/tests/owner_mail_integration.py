@@ -100,6 +100,7 @@ class Analyzer(BaseHTTPRequestHandler):
             return
         if self.path == "/api/observers":
             data = {"observers": [{"id": "healthy", "name": "Unassigned live observer", "iata": "LFT", "last_seen": last(0)},
+                                  {"id": "edit-only", "name": "Editor fixture", "iata": "LFT", "last_seen": last(0)},
                                   {"id": "test-observer", "iata": "LFT", "last_seen": last(signals["observer"])}]}
         else:
             data = {"nodes": [{"role": "repeater", "public_key": ACTIVE, "last_heard": last(0)},
@@ -251,6 +252,19 @@ def run(folder):
     assert len(messages) == 3 and any("Fixture Observer" in msg["Subject"] for msg in messages)
     print("Verified log-only mode, recovery, stale-feed suppression, maintenance pause and one alert per outage", flush=True)
 
+    register = "/api/directory/observers"
+    listing = {"observer_id": "healthy", "display_name": "New observer listing", "notes": "A test listing"}
+    api(register, body=listing, expected=401)
+    api(register, member, listing, expected=403)
+    api(register, owner, dict(listing, observer_id="missing"), expected=400)
+    api(register, owner, dict(listing, observer_name="Spoofed"), expected=400)
+    saved = api(register, owner, listing, expected=201)
+    assert saved["observer_name"] == "Unassigned live observer" and saved["region"] == "LFT"
+    assert saved["display_name"] == listing["display_name"] and saved["notes"] == listing["notes"]
+    assert not saved["managers"]
+    api(register, owner, dict(listing, display_name="Do not overwrite"), expected=400)
+    assert api("/api/collections/managed_observers/records/" + saved["id"], owner)["display_name"] == listing["display_name"]
+
     assign = "/api/directory/people/" + PEOPLE["member"] + "/observers"
     api(assign, member, {"add": ["healthy"], "remove": []}, expected=403)
     api(assign, owner, {"add": ["missing"], "remove": []}, expected=400)
@@ -360,7 +374,12 @@ def run(folder):
     assert all("email" not in entry and "role" not in entry for entry in roster)
     api(permissions, owner, {"id": PEOPLE["member"], "overrides": {"read_prefixes": True}}, "PATCH")
     assert api(ROUTE + "/access", member)["staff"] == ["read_prefixes"]
-    print("Verified isolated observer approval, Admin blocks, narrow assignment roster, and grant replacement", flush=True)
+    api(register, member, listing, expected=403)
+    api(permissions, owner, {"id": PEOPLE["member"], "overrides": {"edit_observers": True}}, "PATCH")
+    api(register, member, dict(listing, managers=[PEOPLE["member"]]), expected=403)
+    edit_only = api(register, member, dict(listing, observer_id="edit-only"), expected=201)
+    assert not edit_only["managers"] and edit_only["observer_name"] == "Editor fixture"
+    print("Verified isolated observer approval, Admin blocks, narrow assignment roster, and registration access", flush=True)
 
     api(permissions + "/" + PEOPLE["member"] + "/email", admin,
         {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH", expected=403)
