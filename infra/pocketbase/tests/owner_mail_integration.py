@@ -334,6 +334,21 @@ def run(folder):
     assert not api(ROUTE + "/access", member)["owner"] and api(ROUTE + "/access", member)["sender"]
     assert api(ROUTE + "/preview", member, dict(draft, scope="owners", ids=[PEOPLE["member"]]))["count"] == 1
     api("/api/directory/sync", member, {}, expected=403)
+    api("/api/directory/sync", member, expected=403)
+    sync_route = "/api/directory/sync"
+    startup = api(sync_route, owner)["completedAt"]
+    assert startup
+    manual = api(sync_route, owner, {})["completedAt"]
+    stored = api(sync_route, owner)["completedAt"]
+    as_time = lambda value: datetime.fromisoformat(value.replace("Z", "+00:00"))
+    assert as_time(stored) >= as_time(startup)
+    assert abs((as_time(stored) - as_time(manual)).total_seconds()) < 2
+    signals["broken"] = True
+    try:
+        api(sync_route, owner, {}, expected=502)
+        assert api(sync_route, owner)["completedAt"] == stored
+    finally:
+        signals["broken"] = False
     api(permissions, member, {"id": PEOPLE["member"], "role": "admin"}, "PATCH", expected=403)
     api(permissions, owner, {"id": PEOPLE["member"], "enabled": False}, "PATCH")
     api(ROUTE, member, expected=403)

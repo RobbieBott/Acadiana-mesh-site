@@ -6,6 +6,7 @@
   var $=function(id){return doc.getElementById(id);};
   var base=(root.getAttribute('data-analyzer')||'').replace(/\/$/,'');
   var list=[], loading=false, current=null;
+  var selectedStatus='all', statusFilters=$('obs-status');
   var api=(root.getAttribute('data-api')||'').replace(/\/$/,'');
   var manage=root.getAttribute('data-manage')||'/repeaters/manage/';
   var dialog=$('obs-dialog');
@@ -16,18 +17,28 @@
   function number(v){return v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))?Number(v).toLocaleString():'—';}
   function name(o){return String(o.name||o.id||'Unnamed observer');}
   function region(o){return String(o.iata||'').trim().toUpperCase();}
+  function renderStatusFilters(count) {
+    statusFilters.querySelectorAll('[data-status]').forEach(function (button) {
+      var key=button.dataset.status, selected=key===selectedStatus;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', String(selected));
+      button.querySelector('span').textContent=count ? String(count[key]) : '—';
+      button.disabled=!count;
+    });
+  }
   function render(){
-    if(loading || !$('obs-error').hidden)return;
-    var now=Date.now(), chosen=$('obs-region').value, q=$('obs-search').value.trim().toLowerCase(), selected=$('obs-status').value;
+    if((loading && !$('obs-loading').hidden) || !$('obs-error').hidden)return;
+    var now=Date.now(), chosen=$('obs-region').value, q=$('obs-search').value.trim().toLowerCase();
     var scoped=list.filter(function(o){return !chosen||region(o)===chosen;});
-    var count={online:0,stale:0,offline:0,unknown:0};
+    var count={all:scoped.length,online:0,stale:0,offline:0,unknown:0};
     scoped.forEach(function(o){count[status(o,now)]++;});
+    renderStatusFilters(count);
     $('obs-count').textContent=String(scoped.length);
     $('obs-online').textContent=String(count.online);
     $('obs-stale').textContent=String(count.stale);
     $('obs-offline').textContent=String(count.offline+count.unknown);
     doc.querySelectorAll('.tab-count[data-count-from="obs-count"]').forEach(function(el){el.textContent=String(scoped.length);});
-    var shown=scoped.filter(function(o){return (!selected||status(o,now)===selected)&&(!q||[name(o),o.model,o.firmware,o.client_version,o.id,region(o)].join(' ').toLowerCase().indexOf(q)>=0);});
+    var shown=scoped.filter(function(o){return (selectedStatus==='all'||status(o,now)===selectedStatus)&&(!q||[name(o),o.model,o.firmware,o.client_version,o.id,region(o)].join(' ').toLowerCase().indexOf(q)>=0);});
     shown.sort(function(a,b){return (stamp(b)||0)-(stamp(a)||0)||name(a).localeCompare(name(b));});
     var labels={online:['Online','ok'],stale:['Stale','warn'],offline:['Offline','bad'],unknown:['Unknown','off']};
     $('obs-grid').innerHTML=shown.map(function(o){
@@ -36,22 +47,28 @@
     }).join('');
     $('obs-empty').hidden=shown.length!==0;
   }
-  function load(){
+  function load(background){
     if(loading)return;
     loading=true;
-    $('obs-loading').hidden=false;$('obs-error').hidden=true;$('obs-empty').hidden=true;$('obs-refresh').disabled=true;$('obs-grid').innerHTML='';
-    ['obs-count','obs-online','obs-stale','obs-offline'].forEach(function(id){$(id).textContent='—';});
-    doc.querySelectorAll('.tab-count[data-count-from="obs-count"]').forEach(function(el){el.textContent='';});
+    if(!background){
+      $('obs-loading').hidden=false;$('obs-error').hidden=true;$('obs-empty').hidden=true;$('obs-refresh').disabled=true;$('obs-grid').innerHTML='';
+      renderStatusFilters(null);
+      ['obs-count','obs-online','obs-stale','obs-offline'].forEach(function(id){$(id).textContent='—';});
+      doc.querySelectorAll('.tab-count[data-count-from="obs-count"]').forEach(function(el){el.textContent='';});
+    }
     return Promise.resolve().then(function(){if(!base)throw new Error('Analyzer URL missing');return request(base+'/api/observers');})
       .then(function(res){if(!res.ok)throw new Error('HTTP '+res.status);return res.json();})
       .then(function(data){
         if(!data||!Array.isArray(data.observers))throw new Error('Unexpected observer response');
         list=data.observers.filter(function(o){return o&&typeof o==='object';});
         var select=$('obs-region'), prior=select.value, regions=Array.from(new Set(list.map(region).filter(Boolean))).sort();
-        select.innerHTML='<option value="LFT">LFT</option><option value="">All regions</option>'+regions.filter(function(r){return r!=='LFT';}).map(function(r){return '<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+        var regionOptions='<option value="LFT">LFT</option><option value="">All regions</option>'+regions.filter(function(r){return r!=='LFT';}).map(function(r){return '<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+        if(select.innerHTML!==regionOptions)select.innerHTML=regionOptions;
         select.value=prior===''||prior==='LFT'||regions.indexOf(prior)>=0?prior:'LFT';
+        $('obs-error').hidden=true;
         loading=false;render();
       }).catch(function(){
+        if(background && $('obs-error').hidden)return;
         list=[];$('obs-error').textContent='The observer list could not be loaded. Please try Refresh or open the live analyzer.';$('obs-error').hidden=false;
       }).finally(function(){loading=false;$('obs-loading').hidden=true;$('obs-refresh').disabled=false;});
   }
@@ -162,7 +179,20 @@
 
   $('obs-search').addEventListener('input',render);
   $('obs-region').addEventListener('change',render);
-  $('obs-status').addEventListener('change',render);
-  $('obs-refresh').addEventListener('click',load);
+  statusFilters.addEventListener('click',function(e){
+    var button=e.target.closest('button[data-status]');
+    if(!button||button.disabled)return;
+    selectedStatus=button.dataset.status;
+    render();
+  });
+  $('obs-refresh').addEventListener('click',function(){return load(false);});
+  function refreshVisible(){
+    if(!doc.hidden && !$('observers').hidden && !dialog.open && !$('obs-grid').contains(doc.activeElement)){
+      return load(true);
+    }
+  }
+  doc.addEventListener('visibilitychange',refreshVisible);
+  window.addEventListener('hashchange',refreshVisible);
+  window.setInterval(refreshVisible,30000);
   return load();
 })(document, window.fetch.bind(window));

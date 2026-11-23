@@ -168,12 +168,13 @@
     $('rm-mail-tab').hidden = !access.sender;
     $('rm-permissions-tab').hidden = !isSiteOwner;
     $('rm-activity-tab').hidden = !isSiteOwner;
+    $('rm-corescope-tab').hidden = !isSiteOwner;
     document.querySelector('#rm-tabs [data-panel=people]').hidden = !peoplePanel();
     document.querySelector('#rm-tabs [data-panel=claims]').hidden = !repeaterClaims() && !observerClaimAccess();
     document.querySelectorAll('[data-admin-only]').forEach(function (element) { element.hidden = !can('read_prefixes','manage_prefixes'); });
     $('rm-me-role').textContent = isSiteOwner ? 'Site Owner' : isAdmin ? 'Admin' : 'User';
     $('rm-rep-title').textContent = allRepeaters() ? 'All Repeaters' : 'My Repeaters';
-    $('rm-sync').hidden = !can('sync_corescope');
+    $('rm-sync-control').hidden = !can('sync_corescope');
     $('rm-add-person').hidden = !can('invite_users');
     $('rm-repeater-claims').hidden = !repeaterClaims();
     $('rm-observer-claims').hidden = !observerClaimAccess();
@@ -193,9 +194,10 @@
   });
 
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['my-devices', 'repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'activity', 'account'];
+  var PANELS = ['my-devices', 'repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'activity', 'corescope', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || ((name === 'permissions' || name === 'activity') && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
+    var ownerPanel = name === 'permissions' || name === 'activity' || name === 'corescope';
+    if (PANELS.indexOf(name) < 0 || (ownerPanel && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -204,6 +206,7 @@
       a.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     if (name === 'my-devices') renderMyDevices();
+    if (name === 'repeaters' && can('sync_corescope')) loadSyncTime();
     if (name === 'observers') closeObserverEditor();
     if (name === 'owner-mail') ownerMail.open();
     if (name === 'permissions') loadPermissions();
@@ -410,9 +413,12 @@
     if (!liveReady) return '';
     var t = heardAt(matchLive(r));
     if (!t) return '';
-    var s = (Date.now() - t) / 1000;
-    var ago = s < 90 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
-    return 'Heard ' + ago;
+    return 'Heard ' + heardAge(t, Date.now());
+  }
+
+  function heardAge(timestamp, now) {
+    var s = (now - timestamp) / 1000;
+    return s < 90 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
   }
 
   function liveObserverStatus(observer, now) {
@@ -544,10 +550,29 @@
     openEditor(repeaters.find(function (r) { return r.id === b.getAttribute('data-edit'); }));
   });
   $('rm-add-repeater').addEventListener('click', function () { openEditor(null); });
+  var syncCompletedAt = 0;
+  var syncDate = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+  });
+  function showSyncTime(value, fallback) {
+    var timestamp = Date.parse(String(value || '').replace(' ', 'T'));
+    if (timestamp >= syncCompletedAt) syncCompletedAt = timestamp;
+    $('rm-sync-last').textContent = syncCompletedAt ? 'Last successful sync ' + syncDate.format(syncCompletedAt) : fallback;
+  }
+  function loadSyncTime() {
+    return pb.send('/api/directory/sync').then(function (r) {
+      showSyncTime(r.completedAt, 'No successful sync recorded');
+    }).catch(function () {
+      showSyncTime(null, 'Last sync time unavailable');
+    });
+  }
   $('rm-sync').addEventListener('click', function () {
     var btn = this;
+    var label = btn.textContent;
     btn.disabled = true; btn.textContent = 'Syncing…';
     pb.send('/api/directory/sync', { method: 'POST' }).then(function (r) {
+      showSyncTime(r.completedAt, 'Last sync time unavailable');
       var parts = [];
       if (r.added.length) parts.push('added ' + r.added.length + (r.added.length === 1 ? ' repeater' : ' repeaters'));
       if (r.rekeyed.length) parts.push('updated the public key on ' + r.rekeyed.join(', '));
@@ -555,7 +580,7 @@
       toast(parts.length ? 'CoreScope sync: ' + parts.join('; ') + '.' : 'CoreScope sync: already up to date (' + r.heard_in_region + ' repeaters in the Lafayette area).');
       return loadAll();
     }).catch(function (err) { toast(errText(err), 'bad', true); })
-      .then(function () { btn.disabled = false; btn.textContent = 'Sync from CoreScope'; });
+      .then(function () { btn.disabled = false; btn.textContent = label; });
   });
 
   // ── repeater editor ──────────────────────────────────────────
@@ -1480,7 +1505,8 @@
       if (version === observerLoadVersion) {
         liveObservers = result || [];
         observerLiveReady = true;
-        renderMyDevices();
+        if (all) renderMyDevices();
+        else renderObservers();
       }
       return result;
     });
@@ -1511,6 +1537,7 @@
   function renderObservers() {
     renderMyDevices();
     var catalog = new Map();
+    var telemetryById = new Map(liveObservers.map(function (item) { return [String(item.id), item]; }));
     if (allObservers()) liveObservers.forEach(function (item) {
       if (String(item.id)) {
         var id = String(item.id);
@@ -1533,6 +1560,7 @@
     $('rm-obs-summary').textContent = allObservers()
       ? catalog.size + ' observers · ' + managedObservers.length + ' registered in the directory'
       : 'These are the observers assigned to you.';
+    var now = Date.now();
     $('rm-obs-list').innerHTML = rows.map(function (item) {
       var record = item.record;
       var canOpen = record || can('edit_observers');
@@ -1540,14 +1568,19 @@
       var analyzer = ANALYZER + '/#/observers/' + encodeURIComponent(item.id);
       var name = canOpen ? '<button type="button" class="rm-rowlink"' + open + '>' + esc(item.name) + '</button>' : esc(item.name);
       var status = !record ? ['Unregistered', 'off'] : (record.managers || []).length ? ['Managed', 'ok'] : ['Needs manager', 'warn'];
+      var telemetry = telemetryById.get(String(item.id));
+      var live = LIVE[liveObserverStatus(telemetry, now)];
+      var seen = telemetry ? Date.parse(telemetry.last_seen) : NaN;
+      var report = Number.isFinite(seen) ? '<div class="rm-sub">Heard ' + heardAge(seen, now) + '</div>' : '';
       var action = canOpen
         ? '<button type="button" class="btn btn-secondary rm-sm"' + open + '>' +
           (!record || canEditObserver(record) || can('assign_observers') ? 'Edit' : 'View') + '</button>'
         : '<a class="rm-link" href="' + esc(analyzer) + '" target="_blank" rel="noopener">Open in analyzer ↗</a>';
       return '<tr><td>' + name + (item.region ? '<div class="rm-sub">' + esc(item.region) + '</div>' : '') + '</td>' +
+        '<td><span class="rd-pill ' + live[1] + '">' + live[0] + '</span>' + report + '</td>' +
         '<td><span class="rd-pill ' + status[1] + '">' + status[0] + '</span></td>' +
         '<td class="rm-hide-sm">' + esc(record && record.public_owner || '—') + '</td><td class="rm-right">' + action + '</td></tr>';
-    }).join('') || '<tr><td colspan="4" class="rd-muted">' +
+    }).join('') || '<tr><td colspan="5" class="rd-muted">' +
       (query ? 'No observers match.' : allObservers() ? 'No observers available.' : 'No observers are assigned to you yet.') + '</td></tr>';
   }
 

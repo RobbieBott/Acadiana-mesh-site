@@ -20,6 +20,7 @@ sitemap: false
       <a href="#owner-mail" role="tab" data-panel="owner-mail" id="rm-mail-tab" hidden>Owner Emails</a>
       <a href="#permissions" role="tab" data-panel="permissions" id="rm-permissions-tab" hidden>Permissions</a>
       <a href="#activity" role="tab" data-panel="activity" id="rm-activity-tab" hidden>Activity Log</a>
+      <a href="#corescope" role="tab" data-panel="corescope" id="rm-corescope-tab" aria-controls="rm-p-corescope" hidden>Manage CoreScope</a>
       <a href="#account" role="tab" data-panel="account">My Account</a>
     </nav>
   </section>
@@ -105,8 +106,11 @@ sitemap: false
             <h2 id="rm-rep-title">My Repeaters</h2>
             <p class="rd-muted" id="rm-rep-sub"></p>
           </div>
-          <div class="rm-actions">
-            <button type="button" class="btn btn-secondary" id="rm-sync" hidden title="Add repeaters located in the Lafayette area (us-la-lft)">Sync from CoreScope</button>
+          <div class="rm-actions rm-sync-actions">
+            <div class="rm-sync-control" id="rm-sync-control" hidden>
+              <button type="button" class="btn btn-secondary" id="rm-sync" aria-describedby="rm-sync-last">Sync repeaters from CoreScope</button>
+              <p class="rd-muted rm-sync-last" id="rm-sync-last" role="status">Checking last sync…</p>
+            </div>
             <button type="button" class="btn btn-primary" id="rm-add-repeater">+ Add repeater</button>
           </div>
         </div>
@@ -161,7 +165,7 @@ sitemap: false
           <p class="rd-muted" id="rm-obs-msg" role="status"></p>
           <div class="rd-table-wrap">
             <table class="rd-table rm-table">
-              <thead><tr><th>Observer</th><th>Directory status</th><th class="rm-hide-sm">Owner</th><th></th></tr></thead>
+              <thead><tr><th scope="col">Observer</th><th scope="col">Live status</th><th scope="col">Directory status</th><th scope="col" class="rm-hide-sm">Owner</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
               <tbody id="rm-obs-list"></tbody>
             </table>
           </div>
@@ -494,6 +498,21 @@ sitemap: false
           <span id="rm-activity-page" class="rd-muted"></span>
           <button type="button" class="btn btn-secondary rm-sm" id="rm-activity-next" disabled>Next</button>
         </div>
+      </section>
+
+      <section class="rm-panel" id="rm-p-corescope" data-panel="corescope" aria-labelledby="rm-corescope-tab" hidden>
+        <div class="rm-head">
+          <div>
+            <h2>Manage CoreScope</h2>
+            <p class="rd-muted">Find stale repeaters and observers in CoreScope and remove them from the analyzer’s active lists.</p>
+          </div>
+        </div>
+        <section class="rm-card">
+          <p>Sign in with your CoreScope administrator account. A fresh report can bring a device back. Manage public directory listings in the Repeaters and Observers tabs.</p>
+          <div class="rm-actions">
+            <a class="btn btn-primary" href="{{ site.analyzer_url }}/#/admin?tab=devices">Open CoreScope device management</a>
+          </div>
+        </section>
       </section>
 
       <!-- Account -->
