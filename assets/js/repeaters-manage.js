@@ -1256,14 +1256,14 @@
       function field(key,label,max){return '<label class="rm-field"><span>'+label+'</span><input name="'+key+'" maxlength="'+max+'" value="'+esc(o[key]||'')+'"></label>';}
       var link=ANALYZER+'/#/observers/'+encodeURIComponent(o.observer_id);
       var assigned=o.managers||[];
-      var options=can('assign_observers')?'<fieldset class="rm-field"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
+      var options=can('assign_observers')?'<fieldset class="rm-group rm-form"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
         return '<label class="rm-check"><input type="checkbox" name="managers" value="'+esc(p.id)+'" '+(assigned.indexOf(p.id)>=0?'checked':'')+'> '+esc(p.name||p.email)+'</label>';
       }).join('')+'</div><p class="rm-hint">Manager assignments update when you save.</p></fieldset>':'';
       var editable = canEditObserver(o);
       return '<form class="rm-card rm-form" data-observer-edit="'+esc(o.id)+'"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
-        '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-form"><legend class="rm-label">Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
+        '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-group rm-form"><legend>Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
         '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+
-        '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small>Alerts resume at the start of this date in Central time.</small></label></fieldset>'+options+
+        '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small class="rm-hint">Alerts resume at the start of this date in Central time.</small></label></fieldset>'+options+
         '<div class="rm-actions rm-actions-end">' +
         (isSiteOwner ? '<button type="button" class="rm-danger" data-delete-observer="' + esc(o.id) + '">Delete observer</button>' : '') +
         (editable || can('assign_observers') ? '<button type="submit" class="btn btn-primary">Save observer</button>' : '') + '</div></form>';
