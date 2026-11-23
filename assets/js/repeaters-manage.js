@@ -168,6 +168,7 @@
     $('rm-mail-tab').hidden = !access.sender;
     $('rm-permissions-tab').hidden = !isSiteOwner;
     $('rm-activity-tab').hidden = !isSiteOwner;
+    $('rm-corescope-tab').hidden = !isSiteOwner;
     document.querySelector('#rm-tabs [data-panel=people]').hidden = !peoplePanel();
     document.querySelector('#rm-tabs [data-panel=claims]').hidden = !repeaterClaims() && !observerClaimAccess();
     document.querySelectorAll('[data-admin-only]').forEach(function (element) { element.hidden = !can('read_prefixes','manage_prefixes'); });
@@ -193,9 +194,10 @@
   });
 
   // ── layout / tabs ────────────────────────────────────────────
-  var PANELS = ['my-devices', 'repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'activity', 'account'];
+  var PANELS = ['my-devices', 'repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'activity', 'corescope', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || ((name === 'permissions' || name === 'activity') && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
+    var ownerPanel = name === 'permissions' || name === 'activity' || name === 'corescope';
+    if (PANELS.indexOf(name) < 0 || (ownerPanel && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
