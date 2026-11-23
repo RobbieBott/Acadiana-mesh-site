@@ -11,6 +11,7 @@ sitemap: false
     <h1>Manage Repeaters &amp; Observers</h1>
     <p>Sign in to keep your repeaters and observers up to date. You choose which contact details show on the <a href="{{ '/repeaters/' | relative_url }}">public directory</a>.</p>
     <nav class="wiki-tabs" id="rm-tabs" role="tablist" aria-label="Manage sections" hidden>
+      <a href="#my-devices" role="tab" id="rm-my-devices-tab" data-panel="my-devices" aria-controls="rm-p-my-devices">My Devices</a>
       <a href="#repeaters" role="tab" data-panel="repeaters">Repeaters</a>
       <a href="#observers" role="tab" data-panel="observers">Observers</a>
       <a href="#claims" role="tab" data-panel="claims" data-admin>Claims <span class="tab-count" id="rm-claims-count"></span></a>
@@ -84,8 +85,20 @@ sitemap: false
         <button type="button" class="rm-link" id="rm-signout">Sign out</button>
       </div>
 
+      <section class="rm-panel" id="rm-p-my-devices" role="tabpanel" aria-labelledby="rm-my-devices-tab" hidden>
+        <h2>My Devices</h2>
+        <p class="rd-muted">Repeaters and observers assigned to your account.</p>
+        <p class="rd-muted" id="rm-my-devices-status" role="status">Loading your devices…</p>
+        <div class="rd-table-wrap" id="rm-my-devices-table" hidden>
+          <table class="rd-table rm-table">
+            <thead><tr><th scope="col">Device</th><th scope="col">Type</th><th scope="col">Action</th></tr></thead>
+            <tbody id="rm-my-devices-list"></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Repeaters list -->
-      <section class="rm-panel" id="rm-p-repeaters" data-panel="repeaters">
+      <section class="rm-panel" id="rm-p-repeaters" data-panel="repeaters" hidden>
         <div class="rm-head">
           <div>
             <h2 id="rm-rep-title">My Repeaters</h2>
