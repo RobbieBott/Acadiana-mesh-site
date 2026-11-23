@@ -23,8 +23,8 @@ onBootstrap((e) => {
 });
 
 routerAdd("POST", "/api/directory/sync", (e) => {
-  if (!e.auth || e.auth.getString("role") !== "admin") {
-    return e.json(403, { message: "Only admins can run the sync." });
+  if (!require(__hooks + "/staff_access.js").has(e.auth, "sync_corescope")) {
+    return e.json(403, { message: "CoreScope sync permission is required." });
   }
   try {
     return e.json(200, require(`${__hooks}/corescope_sync.js`)(e.app));

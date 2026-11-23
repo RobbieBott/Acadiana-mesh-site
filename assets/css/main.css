@@ -1239,3 +1239,12 @@ ul { list-style: none; }
   .rm-maint-form .rm-field, .rm-maint-form .btn { flex: 1 1 100%; }
   .rm-card { padding: 1rem; }
 }
+
+.rm-permission-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.65rem;
+  min-width: 20rem;
+  margin-top: 0.6rem;
+}
+.rm-permission-options select { min-height: 2.35rem; }

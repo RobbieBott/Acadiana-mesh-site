@@ -1,3 +1,12 @@
+onRecordValidate((e) => {
+  const field = e.record.collection().fields.getByName("staff_permissions");
+  if (field) {
+    const staff = require(__hooks + "/staff_access.js");
+    e.record.set("staff_permissions", staff.encode(staff.effective(e.record)));
+  }
+  e.next();
+}, "users");
+
 /// <reference path="../pb_data/types.d.ts" />
 onRecordCreateRequest((e) => {
   if (e.auth && e.auth.collection().name !== "_superusers") {
@@ -5,6 +14,7 @@ onRecordCreateRequest((e) => {
       throw new ForbiddenError("Create a User first. Only the Site Owner can change roles in Permissions.");
     }
     e.record.set("role", "user");
+    e.record.set("staff_overrides", {});
     e.record.setVerified(false);
   }
   e.next();
@@ -15,6 +25,10 @@ onRecordUpdateRequest((e) => {
   const mail = require(__hooks + "/owner_mail.js");
   if (!e.auth) throw new ForbiddenError("Sign in to manage a directory account.");
   const record = e.record;
+  if (["staff_permissions", "staff_overrides"].some((field) =>
+      record.getString(field) !== record.original().getString(field))) {
+    throw new ForbiddenError("Only the Site Owner can change permissions.");
+  }
   if (record.getString("role") !== record.original().getString("role")) {
     throw new ForbiddenError("Only the Site Owner can change roles in Permissions.");
   }
@@ -45,7 +59,7 @@ onRecordDeleteRequest((e) => {
 routerAdd("GET", "/api/directory/permissions", (e) => {
   const mail = require(__hooks + "/owner_mail.js");
   if (!mail.isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can view permissions.");
-  return e.json(200, { accounts: mail.permissionList(e.app) });
+  return e.json(200, { accounts: mail.permissionList(e.app), capabilities: require(__hooks + "/staff_access.js").permissions });
 }, $apis.requireAuth("users"));
 
 routerAdd("PATCH", "/api/directory/permissions", (e) => {
@@ -53,7 +67,7 @@ routerAdd("PATCH", "/api/directory/permissions", (e) => {
   if (!mail.isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can change permissions.");
   const body = e.requestInfo().body;
   mail.changeAccess(e.app, body.id, body);
-  return e.json(200, { accounts: mail.permissionList(e.app) });
+  return e.json(200, { accounts: mail.permissionList(e.app), capabilities: require(__hooks + "/staff_access.js").permissions });
 }, $apis.requireAuth("users"));
 
 routerAdd("PATCH", "/api/directory/permissions/{id}/email", (e) => {
@@ -80,9 +94,86 @@ routerAdd("PATCH", "/api/directory/permissions/{id}/email", (e) => {
 
 onRecordEnrich((e) => {
   const auth = e.requestInfo.auth;
-  if (auth && auth.collection().name === "users" && auth.getString("role") === "admin") {
+  const staff = require(__hooks + "/staff_access.js");
+  if (auth && auth.collection().name === "users" && (staff.has(auth, "read_people") || staff.has(auth, "edit_people"))) {
     // People can still display contact addresses without the auth-record manage grant.
     e.record.ignoreEmailVisibility(true);
   }
   e.next();
 }, "users");
+
+routerAdd("GET", "/api/directory/assignment-people", (e) => {
+  const staff = require(__hooks + "/staff_access.js");
+  if (!staff.has(e.auth, "assign_repeaters") && !staff.has(e.auth, "assign_observers")) {
+    throw new ForbiddenError("Manager assignment permission is required.");
+  }
+  const records = e.app.findAllRecords("users").map((record) => ({
+    id: record.id, name: record.getString("name") || "Directory user", callsign: record.getString("callsign")
+  })).sort((a, b) => a.name.localeCompare(b.name));
+  return e.json(200, { people: records });
+}, $apis.requireAuth("users"));
+
+onRecordUpdateRequest((e) => {
+  const staff = require(__hooks + "/staff_access.js");
+  if (e.auth && e.auth.collection().name === "_superusers") return e.next();
+  const record = e.record;
+  const original = record.original();
+  const oldManagers = original.getStringSlice("managers");
+  const nextManagers = record.getStringSlice("managers");
+  const assign = staff.has(e.auth, "assign_repeaters");
+  const manages = e.auth && oldManagers.includes(e.auth.id);
+  if (!assign && JSON.stringify(oldManagers.slice().sort()) !== JSON.stringify(nextManagers.slice().sort())) {
+    throw new ForbiddenError("Repeater manager assignment permission is required.");
+  }
+  if (assign && !manages && nextManagers.includes(e.auth.id) && !staff.has(e.auth, "edit_repeaters")) {
+    throw new ForbiddenError("You cannot assign yourself to a repeater you do not manage.");
+  }
+  if (!manages && !staff.has(e.auth, "edit_repeaters")) {
+    const changes = e.requestInfo().body;
+    if (Object.keys(changes).some((field) => !["managers", "managers+", "+managers", "managers-"].includes(field))) {
+      throw new ForbiddenError("You can assign managers but cannot edit this listing.");
+    }
+  }
+  if (assign && !record.getString("owner_name") && !original.getString("owner_name") && nextManagers.length) {
+      const added = nextManagers.find((id) => !oldManagers.includes(id));
+      if (added) {
+        const person = e.app.findRecordById("users", added);
+        record.set("owner_name", person.getString("name"));
+        if (!record.getString("owner_callsign")) record.set("owner_callsign", person.getString("callsign"));
+      }
+  }
+  const profile = record.getString("contact_from");
+  if (profile && profile !== original.getString("contact_from") &&
+      profile !== e.auth.id && !staff.has(e.auth, "read_people") && !staff.has(e.auth, "edit_people")) {
+    throw new ForbiddenError("Only your own profile can be linked.");
+  }
+  if (Object.prototype.hasOwnProperty.call(e.requestInfo().body, "owner_name") && !record.getString("owner_name")) {
+    throw new BadRequestError("The owner name is required.");
+  }
+  e.next();
+}, "repeaters");
+
+onRecordUpdateRequest((e) => require(__hooks + "/staff_access.js").decline(e, "approve_repeater_claims"), "claims");
+onRecordUpdateRequest((e) => require(__hooks + "/staff_access.js").decline(e, "approve_observer_claims"), "observer_claims");
+
+onRecordCreateRequest((e) => {
+  const staff = require(__hooks + "/staff_access.js");
+  const profile = e.record.getString("contact_from");
+  if (profile && e.auth && profile !== e.auth.id &&
+      !staff.has(e.auth, "read_people") && !staff.has(e.auth, "edit_people")) {
+    throw new ForbiddenError("Only your own profile can be linked.");
+  }
+  e.next();
+}, "repeaters");
+
+
+onRecordEnrich((e) => {
+  const auth = e.requestInfo.auth;
+  const staff = require(__hooks + "/staff_access.js");
+  if (auth && staff.has(auth, "assign_repeaters") &&
+      !staff.has(auth, "read_repeaters") && !staff.has(auth, "edit_repeaters") &&
+      !e.record.getStringSlice("managers").includes(auth.id)) {
+    e.record.hide("contact_email", "contact_phone", "contact_discord", "contact_from");
+  }
+  e.next();
+}, "repeaters");

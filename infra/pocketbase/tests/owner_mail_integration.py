@@ -182,8 +182,8 @@ def start(folder, mode):
 def run(folder):
     start(folder, "log")
     owner, sender, admin, member = [login(name) for name in PEOPLE]
-    assert api(ROUTE + "/access", owner) == {"owner": True, "sender": True}
-    assert api(ROUTE + "/access", admin) == {"owner": False, "sender": False}
+    assert api(ROUTE + "/access", owner)["owner"] and api(ROUTE + "/access", owner)["sender"]
+    assert not api(ROUTE + "/access", admin)["owner"] and not api(ROUTE + "/access", admin)["sender"]
     api(ROUTE, admin, expected=403)
     api(ROUTE, member, expected=403)
     grant = {"id": PEOPLE["sender"], "enabled": True}
@@ -313,7 +313,7 @@ def run(folder):
     api(permissions, admin, mail_only, "PATCH", expected=403)
     api(permissions, owner, mail_only, "PATCH")
     api(permissions, owner, mail_only, "PATCH", expected=400)
-    assert api(ROUTE + "/access", member) == {"owner": False, "sender": True}
+    assert not api(ROUTE + "/access", member)["owner"] and api(ROUTE + "/access", member)["sender"]
     assert api(ROUTE + "/preview", member, dict(draft, scope="owners", ids=[PEOPLE["member"]]))["count"] == 1
     api("/api/directory/sync", member, {}, expected=403)
     api(permissions, member, {"id": PEOPLE["member"], "role": "admin"}, "PATCH", expected=403)
@@ -337,6 +337,31 @@ def run(folder):
     assert api(permissions, owner, {"id": created["id"], "role": "admin"}, "PATCH")["accounts"]
     assert api(users + "/" + created["id"], owner)["role"] == "admin"
     api(permissions, owner, {"id": PEOPLE["siteowner"], "role": "user"}, "PATCH", expected=400)
+    api(permissions, owner, {"id": PEOPLE["member"], "overrides": {"approve_observer_claims": True}}, "PATCH")
+    assert api(ROUTE + "/access", member)["staff"] == ["approve_observer_claims"]
+    assert api("/api/collections/users/records", member)["totalItems"] == 1
+    api("/api/directory/assignment-people", member, expected=403)
+    api("/api/directory/sync", member, {}, expected=403)
+    repeater_claim = api("/api/collections/claims/records", body={
+        "repeater": REPEATER, "name": "Guest repeater claimant", "email": "repeaterclaim@example.com"
+    })
+    assert api("/api/collections/claims/records", member)["totalItems"] == 0
+    api("/api/directory/claims/" + repeater_claim["id"] + "/approve", member, {}, expected=403)
+    observer_claim = api("/api/collections/observer_claims/records", body={
+        "observer_id": "healthy", "name": "Guest observer claimant", "email": "observerclaim@example.com"
+    })
+    assert api("/api/collections/observer_claims/records", member)["totalItems"] == 1
+    api("/api/directory/observer-claims/" + observer_claim["id"] + "/approve", member, {})
+    api(permissions, owner, {"id": PEOPLE["admin"], "overrides": {"sync_corescope": False}}, "PATCH")
+    api("/api/directory/sync", admin, {}, expected=403)
+    assert "edit_repeaters" in api(ROUTE + "/access", admin)["staff"]
+    api(permissions, owner, {"id": PEOPLE["member"], "overrides": {"assign_repeaters": True}}, "PATCH")
+    roster = api("/api/directory/assignment-people", member)["people"]
+    assert all("email" not in entry and "role" not in entry for entry in roster)
+    api(permissions, owner, {"id": PEOPLE["member"], "overrides": {"read_prefixes": True}}, "PATCH")
+    assert api(ROUTE + "/access", member)["staff"] == ["read_prefixes"]
+    print("Verified isolated observer approval, Admin blocks, narrow assignment roster, and grant replacement", flush=True)
+
     api(permissions + "/" + PEOPLE["member"] + "/email", admin,
         {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH", expected=403)
     api(permissions + "/" + PEOPLE["member"] + "/email", owner,

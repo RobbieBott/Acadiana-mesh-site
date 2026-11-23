@@ -145,26 +145,51 @@
 
   var isSiteOwner = false;
   var permissionRevision = 0;
+  var staff = new Set();
+  var permissionDefinitions = {};
+  var claimRepeaterNames = new Map();
+  function can() { return Array.from(arguments).some(function (key) { return staff.has(key); }); }
+  function peoplePanel() { return can('read_people','edit_people','invite_users','assign_repeaters','assign_observers') || isSiteOwner; }
+  function repeaterClaims() { return can('read_repeater_claims','approve_repeater_claims'); }
+  function observerClaimAccess() { return can('read_observer_claims','approve_observer_claims'); }
+  function allRepeaters() { return can('read_repeaters','edit_repeaters','assign_repeaters','manage_maintenance'); }
+  function allObservers() { return can('read_observers','edit_observers','assign_observers'); }
+  function manages(record) { return (record.managers || []).includes(me.id); }
+  function canEditRepeater(record) { return !record || can('edit_repeaters') || manages(record); }
+  function canEditObserver(record) { return can('edit_observers') || manages(record); }
   var ownerMail = window.createOwnerMail(pb, $, function (access) {
     isSiteOwner = !!access.owner;
+    staff = new Set(access.staff || []);
     $('rm-mail-tab').hidden = !access.sender;
     $('rm-permissions-tab').hidden = !isSiteOwner;
-    if (isSiteOwner && isAdmin) {
-      renderPeople();
-      renderObservers();
-      if (editing) $('rm-delete').hidden = false;
-    }
-    if (isSiteOwner && location.hash === '#permissions') showPanel('permissions', false);
-    if (!isSiteOwner && !$('rm-p-permissions').hidden) showPanel('repeaters', false);
-    if (access.owner) $('rm-me-role').textContent = 'Site Owner';
-    if (access.sender && location.hash === '#owner-mail') showPanel('owner-mail', false);
-    if (!access.sender && !$('rm-p-owner-mail').hidden) showPanel('repeaters', false);
+    document.querySelector('#rm-tabs [data-panel=people]').hidden = !peoplePanel();
+    document.querySelector('#rm-tabs [data-panel=claims]').hidden = !repeaterClaims() && !observerClaimAccess();
+    document.querySelectorAll('[data-admin-only]').forEach(function (element) { element.hidden = !can('read_prefixes','manage_prefixes'); });
+    $('rm-me-role').textContent = isSiteOwner ? 'Site Owner' : isAdmin ? 'Admin' : 'User';
+    $('rm-rep-title').textContent = allRepeaters() ? 'All Repeaters' : 'My Repeaters';
+    $('rm-sync').hidden = !can('sync_corescope');
+    $('rm-add-person').hidden = !can('invite_users');
+    $('rm-repeater-claims').hidden = !repeaterClaims();
+    $('rm-observer-claims').hidden = !observerClaimAccess();
+    root.classList.toggle('rm-is-admin', allRepeaters());
+    if (!pb.authStore.isValid) return;
+    var destination = location.hash.slice(1);
+    showPanel(destination || 'repeaters', false);
+    loadAll().then(function () {
+      var match = location.hash.match(/^#edit-([a-z0-9]+)$/);
+      if (match) {
+        var record = repeaters.find(function (item) { return item.id === match[1]; });
+        if (record) openEditor(record);
+      }
+    });
+    loadObservers();
+    if (observerClaimAccess()) loadObserverClaims();
   });
 
   // ── layout / tabs ────────────────────────────────────────────
   var PANELS = ['repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'account'];
   function showPanel(name, push) {
-    if (PANELS.indexOf(name) < 0 || (name === 'permissions' && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || ((name === 'people' || name === 'claims') && !isAdmin)) name = 'repeaters';
+    if (PANELS.indexOf(name) < 0 || (name === 'permissions' && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -192,25 +217,12 @@
     $('rm-app').hidden = false;
     $('rm-tabs').hidden = false;
     $('rm-loading').hidden = true;
-    root.classList.toggle('rm-is-admin', isAdmin);
-    document.querySelectorAll('#rm-tabs [data-admin], [data-admin-only]').forEach(function (a) { a.hidden = !isAdmin; });
     $('rm-me-name').textContent = me.name || me.email;
-    $('rm-me-role').textContent = isAdmin ? 'Admin' : 'User';
-    $('rm-rep-title').textContent = isAdmin ? 'All Repeaters' : 'My Repeaters';
-    $('rm-sync').hidden = !isAdmin;
     var af = $('rm-account-form');
     af.name.value = me.name || ''; af.callsign.value = me.callsign || ''; af.email.value = me.email || '';
     af.phone.value = me.phone || ''; af.discord.value = me.discord || '';
-    var start = location.hash.replace('#', '');
-    showPanel(start || 'repeaters', false);
     ownerMail.signIn();
-    loadAll().then(function () {
-      var m = location.hash.match(/^#edit-([a-z0-9]+)$/);
-      if (m) { var r = repeaters.find(function (x) { return x.id === m[1]; }); if (r) openEditor(r); }
-    });
     loadLive();
-    loadObservers();
-    if (isAdmin) loadObserverClaims();
   }
 
   function signedOut() {
@@ -225,13 +237,34 @@
 
   // ── data ─────────────────────────────────────────────────────
   function loadAll() {
+    var privateRecords = pb.collection('repeaters').getFullList({ sort: 'name', expand: 'managers,contact_from' });
+    var readPublic = repeaterClaims() || can('manage_maintenance');
+    var publicRecords = readPublic ? pb.collection('repeaters_public').getFullList({ sort: 'name', fields: 'id,name,owner_name,status,area' }) : Promise.resolve([]);
     var jobs = [
-      pb.collection('repeaters').getFullList({ sort: 'name', expand: 'managers,contact_from' }).then(function (l) { repeaters = l; }),
-      pb.collection('prefixes').getFullList({ sort: 'code' }).then(function (l) { prefixes = l; })
+      Promise.all([privateRecords, publicRecords]).then(function (lists) {
+        var publicList = lists[1];
+        claimRepeaterNames = new Map(publicList.map(function (r) { return [r.id, r]; }));
+        repeaters = lists[0];
+        if (can('manage_maintenance')) {
+          var privateIds = new Set(repeaters.map(function (r) { return r.id; }));
+          repeaters = repeaters.concat(publicList.filter(function (r) { return !privateIds.has(r.id); }));
+        }
+      }),
+      pb.collection('prefixes').getFullList({ sort: 'code' }).then(function (l) { prefixes = l; }),
+      loadPeople()
     ];
-    if (isAdmin) jobs.push(pb.collection('users').getFullList({ sort: 'name' }).then(function (l) { people = l; }));
-    if (isAdmin) jobs.push(loadClaims());
+    if (repeaterClaims()) jobs.push(loadClaims());
     return Promise.all(jobs).then(renderAll).catch(function (err) { toast(errText(err), 'bad', true); });
+  }
+  function loadPeople() {
+    if (can('read_people','edit_people')) {
+      return pb.collection('users').getFullList({ sort: 'name' }).then(function (l) { people = l; });
+    }
+    if (can('assign_repeaters','assign_observers')) {
+      return pb.send('/api/directory/assignment-people').then(function (r) { people = r.people; });
+    }
+    people = [];
+    return Promise.resolve();
   }
   function renderAll() { renderRepeaters(); renderPeople(); renderPrefixes(); renderClaims(); }
 
@@ -246,28 +279,29 @@
     return fmtDate(v);
   }
   function renderClaims() {
-    if (!isAdmin) return;
+    if (!repeaterClaims()) return;
     var pending = claims.filter(function (c) { return c.status === 'pending'; });
     updateClaimCount();
     $('rm-claims-body').innerHTML = pending.map(function (c) {
-      var rep = (c.expand && c.expand.repeater) || {};
+      var rep = (c.expand && c.expand.repeater) || claimRepeaterNames.get(c.repeater) || {};
       return '<tr><td><strong>' + esc(rep.name || '—') + '</strong>' + (rep.owner_name ? '<div class="rm-sub">Owner: ' + esc(rep.owner_name) + '</div>' : '<div class="rm-sub">No owner yet</div>') + '</td>' +
         '<td>' + esc(c.name) + (c.callsign ? ' <span class="rd-mono">' + esc(c.callsign.toUpperCase()) + '</span>' : '') + '<div class="rm-sub">' + esc(c.email) + '</div>' +
         (c.note ? '<div class="rm-sub rm-show-sm">“' + esc(c.note) + '”</div>' : '') + '</td>' +
         '<td class="rm-hide-sm">' + (c.note ? esc(c.note) : '<span class="rd-muted">—</span>') + '</td>' +
         '<td class="rm-hide-sm rd-muted">' + esc(ago(c.created)) + '</td>' +
-        '<td class="rm-right rm-nowrap"><button type="button" class="btn btn-primary rm-sm" data-approve="' + esc(c.id) + '">Approve</button> ' +
-        '<button type="button" class="rm-link rm-x" data-decline="' + esc(c.id) + '">Decline</button></td></tr>';
+        '<td class="rm-right rm-nowrap">' + (can('approve_repeater_claims') ? '<button type="button" class="btn btn-primary rm-sm" data-approve="' + esc(c.id) + '">Approve</button> ' +
+        '<button type="button" class="rm-link rm-x" data-decline="' + esc(c.id) + '">Decline</button>' : '') + '</td></tr>';
     }).join('') || '<tr><td colspan="5" class="rd-muted">No claims waiting.</td></tr>';
     var done = claims.filter(function (c) { return c.status !== 'pending'; }).slice(0, 15);
     $('rm-claims-done').innerHTML = done.map(function (c) {
-      var rep = (c.expand && c.expand.repeater) || {}, by = (c.expand && c.expand.handled_by) || {};
+      var rep = (c.expand && c.expand.repeater) || claimRepeaterNames.get(c.repeater) || {}, by = (c.expand && c.expand.handled_by) || {};
       return '<li><span class="rd-pill ' + (c.status === 'approved' ? 'ok' : 'off') + '">' + (c.status === 'approved' ? 'Approved' : 'Declined') + '</span> ' +
         esc(c.name) + ' → ' + esc(rep.name || '—') + ' <span class="rd-muted">' + (by.name ? 'by ' + esc(by.name) + ', ' : '') + esc(ago(c.updated)) + '</span></li>';
     }).join('') || '<li class="rd-muted">Nothing yet.</li>';
   }
   $('rm-claims-body').addEventListener('click', function (e) {
     var ok = e.target.closest('[data-approve]'), no = e.target.closest('[data-decline]');
+    if (!can('approve_repeater_claims')) return;
     if (ok) {
       var id = ok.getAttribute('data-approve');
       confirmClick(ok, 'Approve', function () {
@@ -359,7 +393,7 @@
     var rows = repeaters.filter(function (r) {
       return !q || [r.name, r.area, r.owner_name, r.owner_callsign, r.prefix, r.prefix_2byte, r.prefix_3byte].join(' ').toLowerCase().indexOf(q) >= 0;
     });
-    $('rm-rep-sub').textContent = isAdmin
+    $('rm-rep-sub').textContent = allRepeaters()
       ? repeaters.length + ' repeaters. ' + repeaters.filter(function (r) { return !r.owner_name; }).length + ' still need an owner.'
       : repeaters.length ? 'These are the repeaters assigned to you.' : '';
     $('rm-rep-body').innerHTML = rows.map(function (r) {
@@ -370,9 +404,9 @@
         '<td class="rm-hide-sm">' + (r.owner_name ? esc(r.owner_name) : '<span class="rd-pill warn">Needs owner</span>') + '</td>' +
         '<td class="rm-hide-sm rm-admin-col">' + (esc(managerNames(r).join(', ')) || '<span class="rd-muted">—</span>') + '</td>' +
         '<td class="rm-hide-sm rd-muted">' + esc(fmtDate(r.updated)) + '</td>' +
-        '<td class="rm-right"><button type="button" class="btn btn-secondary rm-sm" data-edit="' + esc(r.id) + '">Edit</button></td></tr>';
+        '<td class="rm-right"><button type="button" class="btn btn-secondary rm-sm" data-edit="' + esc(r.id) + '">' + (canEditRepeater(r) || can('assign_repeaters') ? 'Edit' : 'View') + '</button></td></tr>';
     }).join('') || '<tr><td colspan="6" class="rd-muted">' +
-      (repeaters.length ? 'No repeaters match.' : (isAdmin ? 'No repeaters yet.' : 'No repeaters are assigned to you yet. Add one, or ask an admin to link your existing repeater to your account.')) +
+      (repeaters.length ? 'No repeaters match.' : (allRepeaters() ? 'No repeaters yet.' : 'No repeaters are assigned to you yet. Add one, or ask an admin to link your existing repeater to your account.')) +
       '</td></tr>';
   }
   $('rm-rep-q').addEventListener('input', renderRepeaters);
@@ -477,9 +511,9 @@
   }
 
   function managersHtml(r) {
-    if (!isAdmin) return '';
+    if (!can('assign_repeaters')) return '';
     var ids = (r && r.managers) || [];
-    return '<fieldset class="rm-group"><legend>Managers</legend><p class="rm-hint rm-note">People who can edit this repeater. Admins can edit every repeater.</p>' +
+    return '<fieldset class="rm-group"><legend>Managers</legend><p class="rm-hint rm-note">People assigned to edit this repeater.</p>' +
       '<div class="rm-checklist">' + (people.map(function (u) {
         return '<label class="rm-check"><input type="checkbox" name="managers" value="' + esc(u.id) + '"' + (ids.indexOf(u.id) >= 0 ? ' checked' : '') + '> ' +
           esc(u.name || u.email) + (u.role === 'admin' ? ' <span class="rd-muted">(admin)</span>' : '') + '</label>';
@@ -502,6 +536,14 @@
         '<div class="rm-grid">' + g.fields.map(function (f) { return fieldHtml(f, defaults); }).join('') + '</div></fieldset>';
     }).join('') + managersHtml(r);
     followSetup(r);
+    var editable = canEditRepeater(r);
+    $('rm-editor-fields').querySelectorAll('input,select,textarea,button').forEach(function (field) {
+      if (!editable && field.name !== 'managers') field.disabled = true;
+    });
+    $('rm-editor').querySelectorAll('button[type=submit]').forEach(function (button) {
+      button.hidden = !editable && !can('assign_repeaters');
+    });
+    $('rm-maint-form').hidden = !r || (!can('manage_maintenance') && !manages(r));
     // "Let people message me" turns on by itself when an email is added to a
     // repeater that had none, unless the owner has set the box themselves.
     var em = $('rm-f-contact_email');
@@ -524,7 +566,7 @@
     var linked = r ? (r.contact_from || '') : '';
     var other = linked && linked !== me.id;
     var otherName = other && r.expand && r.expand.contact_from ? (r.expand.contact_from.name || r.expand.contact_from.email) : '';
-    var startOn = r ? !!linked : !isAdmin;   // new repeaters you add follow your profile
+    var startOn = r ? !!linked : !can('assign_repeaters');   // new repeaters you add follow your profile
     var box = document.createElement('div');
     box.className = 'rm-follow rm-wide-field';
     box.innerHTML = '<label class="rm-check"><input type="checkbox" id="rm-follow"' + (startOn ? ' checked' : '') + '> ' +
@@ -600,7 +642,7 @@
         if (f.show) data[f.show] = !!form.elements[f.show].checked;
       });
     });
-    if (isAdmin) {
+    if (can('assign_repeaters')) {
       data.managers = Array.prototype.filter.call(form.querySelectorAll('input[name=managers]'), function (c) { return c.checked; })
         .map(function (c) { return c.value; });
     }
@@ -610,14 +652,18 @@
   $('rm-editor').addEventListener('submit', function (e) {
     e.preventDefault();
     var form = this;
-    var data = collect(form);
-    if (!data.name) { toast('Give the repeater a name.', 'bad'); form.name.focus(); return; }
-    if (!data.owner_name) { toast('The owner name is required.', 'bad'); form.owner_name.focus(); return; }
-    if (data.public_key && !/^[0-9a-f]{64}$/.test(data.public_key)) { toast('The public key should be 64 characters, 0–9 and a–f.', 'bad'); form.public_key.focus(); return; }
-    if (!data.prefix_3byte && data.public_key) data.prefix_3byte = data.public_key.slice(0, 6).toUpperCase();
-    if (!editing && !isAdmin) data.managers = [me.id];
-    if (!editing) data.source = 'manual';
-    followData(data);
+    var editable = canEditRepeater(editing);
+    var data = editable ? collect(form) : { managers: Array.from(form.querySelectorAll('input[name=managers]:checked'), function (c) { return c.value; }) };
+    if (!editable && !can('assign_repeaters')) return;
+    if (editable) {
+      if (!data.name) { toast('Give the repeater a name.', 'bad'); form.name.focus(); return; }
+      if (!data.owner_name) { toast('The owner name is required.', 'bad'); form.owner_name.focus(); return; }
+      if (data.public_key && !/^[0-9a-f]{64}$/.test(data.public_key)) { toast('The public key must be 64 hex characters.', 'bad'); form.public_key.focus(); return; }
+      if (!data.prefix_3byte && data.public_key) data.prefix_3byte = data.public_key.slice(0, 6).toUpperCase();
+      if (!editing && !can('assign_repeaters')) data.managers = [me.id];
+      if (!editing) data.source = 'manual';
+      followData(data);
+    }
     busy(form, true);
     var req = editing
       ? pb.collection('repeaters').update(editing.id, data, { expand: 'managers,contact_from' })
@@ -670,7 +716,7 @@
       $('rm-maint-list').innerHTML = items.map(function (m) {
         return '<li><span class="rd-log-date">' + esc(fmtDate(m.date)) + '</span><span>' + esc(m.notes) +
           (m.author ? ' <span class="rd-muted">— ' + esc(m.author) + '</span>' : '') +
-          ' <button type="button" class="rm-link rm-x" data-del-maint="' + esc(m.id) + '">Remove</button></span></li>';
+          (can('manage_maintenance') || manages(r) ? ' <button type="button" class="rm-link rm-x" data-del-maint="' + esc(m.id) + '">Remove</button>' : '') + '</span></li>';
       }).join('') || '<li class="rd-muted">No entries yet.</li>';
     }).catch(function (err) { $('rm-maint-list').innerHTML = '<li class="rd-muted">' + esc(errText(err)) + '</li>'; });
   }
@@ -686,7 +732,7 @@
   });
   $('rm-maint-list').addEventListener('click', function (e) {
     var b = e.target.closest('[data-del-maint]');
-    if (!b) return;
+    if (!b || !editing || (!can('manage_maintenance') && !manages(editing))) return;
     confirmClick(b, 'Remove', function () {
       pb.collection('maintenance').delete(b.getAttribute('data-del-maint'))
         .then(function () { loadMaint(editing); })
@@ -697,7 +743,7 @@
   // ── people (admins) ──────────────────────────────────────────
   function repsFor(uid) { return repeaters.filter(function (r) { return (r.managers || []).indexOf(uid) >= 0; }); }
   function renderPeople() {
-    if (!isAdmin) return;
+    if (!peoplePanel()) return;
     $('rm-people-body').innerHTML = people.map(function (u) {
       var reps = repsFor(u.id);
       var observerNames = managedObservers.filter(function (observer) {
@@ -711,13 +757,13 @@
         (self ? ' <span class="rd-muted">(you)</span>' : '') +
         '<div class="rm-sub rm-show-sm">' + esc(u.email) + '</div>' +
         (observerSummary ? '<div class="rm-sub rm-show-sm">Observers · ' + esc(observerSummary) + '</div>' : '') +
-        (!u.verified ? '<div class="rm-sub"><span class="rd-pill warn">Hasn’t signed in yet</span></div>' : '') + '</td>' +
+        (u.verified === false ? '<div class="rm-sub"><span class="rd-pill warn">Hasn’t signed in yet</span></div>' : '') + '</td>' +
         '<td class="rm-hide-sm">' + esc(u.email) + '</td>' +
-        '<td><span class="rd-pill ' + (u.role === 'admin' ? 'ok' : 'info') + '">' + (u.role === 'admin' ? 'Admin' : 'User') + '</span></td>' +
+        '<td>' + (u.role ? '<span class="rd-pill ' + (u.role === 'admin' ? 'ok' : 'info') + '">' + (u.role === 'admin' ? 'Admin' : 'User') + '</span>' : '—') + '</td>' +
         '<td class="rm-hide-sm">' + (reps.length ? esc(reps.map(function (r) { return r.name; }).join(', ')) : '<span class="rd-muted">—</span>') + '</td>' +
         '<td class="rm-hide-sm">' + (observerNames ? esc(observerNames) : '<span class="rd-muted">' + esc(peopleObserverStatus || '—') + '</span>') + '</td>' +
-        '<td class="rm-right rm-nowrap"><button type="button" class="btn btn-secondary rm-sm" data-person="' + esc(u.id) + '">Edit</button>' +
-        (!u.verified ? ' <button type="button" class="rm-link" data-invite="' + esc(u.id) + '">Resend invite</button>' : '') +
+        '<td class="rm-right rm-nowrap">' + (can('edit_people','assign_repeaters','assign_observers') ? '<button type="button" class="btn btn-secondary rm-sm" data-person="' + esc(u.id) + '">Edit</button>' : '') +
+        (u.verified === false && can('invite_users') ? ' <button type="button" class="rm-link" data-invite="' + esc(u.id) + '">Resend invite</button>' : '') +
         (isSiteOwner && !self ? ' <button type="button" class="rm-link rm-x" data-remove="' + esc(u.id) + '">Remove</button>' : '') + '</td></tr>';
     }).join('') || '<tr><td colspan="6" class="rd-muted">No people yet.</td></tr>';
   }
@@ -795,9 +841,13 @@
     $('rm-person-email-hint').hidden = !u || f.email.disabled;
     delete $('rm-person-submit').dataset.confirmEmail;
     f.callsign.value = u ? u.callsign || '' : '';
+    f.name.disabled = f.callsign.disabled = !!u && !can('edit_people');
+    $('rm-person-rep-field').hidden = !can('assign_repeaters');
+    $('rm-person-obs-field').hidden = !can('assign_observers');
     $('rm-person-reps').innerHTML = personRepsHtml(u ? repsFor(u.id).map(function (r) { return r.id; }) : []);
-    loadPersonObservers(u && u.id);
-    f.name.focus();
+    if (can('assign_observers')) loadPersonObservers(u && u.id);
+    else personObserverSelection = null;
+    if (!f.name.disabled) f.name.focus();
   }
   $('rm-person-obs-q').addEventListener('input', function () {
     var q = this.value.trim().toLowerCase();
@@ -814,12 +864,12 @@
 
   // add/remove a manager on each repeater whose checkbox changed
   function syncRepeaters(user, wanted) {
+    if (!can('assign_repeaters')) return Promise.resolve();
     var jobs = [];
     repeaters.forEach(function (r) {
       var has = (r.managers || []).indexOf(user.id) >= 0, want = wanted.indexOf(r.id) >= 0;
       if (has === want) return;
       var body = want ? { 'managers+': user.id } : { 'managers-': user.id };
-      if (want && !r.owner_name) { body.owner_name = user.name; if (user.callsign && !r.owner_callsign) body.owner_callsign = user.callsign; }
       jobs.push(pb.collection('repeaters').update(r.id, body, { expand: 'managers' }).then(function (rec) {
         var i = repeaters.findIndex(function (x) { return x.id === rec.id; }); repeaters[i] = rec;
       }));
@@ -840,8 +890,9 @@
         remove: Array.from(personObserverSelection).filter(function (id) { return !checked.has(id); })
       };
     }
-    if (!name) { toast('Enter their name.', 'bad'); return; }
-    var changeEmail = editingPerson && !f.email.disabled && email.toLowerCase() !== editingPerson.email.toLowerCase();
+    if (!editingPerson && !can('invite_users')) return;
+    if (!f.name.disabled && !name) { toast('Enter their name.', 'bad'); return; }
+    var changeEmail = editingPerson && !f.email.disabled && email.toLowerCase() !== (editingPerson.email || '').toLowerCase();
     if ((!editingPerson || changeEmail) && !/^\S+@\S+\.\S+$/.test(email)) { toast('Enter a valid email.', 'bad'); return; }
     var button = $('rm-person-submit');
     if (changeEmail && button.dataset.confirmEmail !== email) {
@@ -855,7 +906,7 @@
     if (editingPerson) {
       var body = { name: name, callsign: callsign };
       var person = editingPerson;
-      job = (person.name || '') !== name || (person.callsign || '') !== callsign
+      job = can('edit_people') && ((person.name || '') !== name || (person.callsign || '') !== callsign)
         ? pb.collection('users').update(person.id, body) : Promise.resolve(person);
       if (changeEmail) job = job.then(function () {
         return pb.send('/api/directory/permissions/' + encodeURIComponent(person.id) + '/email', {
@@ -904,7 +955,7 @@
   $('rm-people-body').addEventListener('click', function (e) {
     var edit = e.target.closest('[data-person]'), inv = e.target.closest('[data-invite]'), rm = e.target.closest('[data-remove]');
     if (edit) openPersonForm(people.find(function (u) { return u.id === edit.getAttribute('data-person'); }));
-    if (inv) {
+    if (inv && can('invite_users')) {
       var u = people.find(function (x) { return x.id === inv.getAttribute('data-invite'); });
       pb.collection('users').requestPasswordReset(u.email).then(function () { toast('Invite sent to ' + u.email + '. Its link lets them choose a password.'); })
         .catch(function (err) { toast(errText(err), 'bad'); });
@@ -922,6 +973,14 @@
     }
   });
 
+  function permissionSelect(key, label, overrides, owner) {
+    var value = Object.prototype.hasOwnProperty.call(overrides, key) ? String(overrides[key]) : 'inherit';
+    return '<label class="rm-field"><span>' + esc(label) + '</span><select data-capability="' + esc(key) + '"' +
+      (owner ? ' disabled' : '') + '>' +
+      [['inherit','Role default'],['true','Grant'],['false','Block']].map(function (option) {
+        return '<option value="' + option[0] + '"' + (value === option[0] ? ' selected' : '') + '>' + option[1] + '</option>';
+      }).join('') + '</select></label>';
+  }
   function permissionRow(account) {
     var caption = esc(account.name);
     var role = account.owner ? '<span class="rd-pill ok">Site Owner</span>' :
@@ -929,17 +988,36 @@
       (account.role === 'admin' ? ' selected' : '') + '>Admin</option></select>';
     var checkbox = '<input type="checkbox" name="enabled" aria-label="Owner Emails for ' + caption + '"' +
       (account.enabled ? ' checked' : '') + ((account.owner || (!account.verified && !account.enabled)) ? ' disabled' : '') + '>';
-    return '<tr data-permission-account="' + esc(account.id) + '" data-role="' + esc(account.role) + '" data-enabled="' + account.enabled + '">' +
+    var overrides = account.overrides || {};
+    var choices = Object.keys(permissionDefinitions).map(function (key) {
+      return permissionSelect(key, permissionDefinitions[key], overrides, account.owner);
+    }).join('');
+    return '<tr data-permission-account="' + esc(account.id) + '" data-role="' + esc(account.role) + '" data-enabled="' + account.enabled +
+      '" data-overrides="' + esc(JSON.stringify(overrides)) + '">' +
       '<td><strong>' + caption + '</strong><div class="rm-sub">' + esc(account.email) + '</div>' +
       (account.verified ? '' : '<div class="rm-sub rd-muted">Email verification pending</div>') + '</td>' +
       '<td>' + role + '</td><td>' + checkbox + '</td><td>' +
+      (account.owner ? 'All staff permissions' : '<details><summary>Staff permissions <span class="rd-muted" data-effective-staff>' +
+        account.staff.length + ' allowed</span></summary><div class="rm-permission-options">' + choices + '</div></details>') + '</td><td>' +
       (account.owner ? '' : '<button type="button" class="btn btn-secondary rm-sm" data-permission-save disabled>Save</button>') + '</td></tr>';
+  }
+  function permissionInput(row) {
+    var overrides = {};
+    var controls = Array.from(row.querySelectorAll('[data-capability]'));
+    controls.forEach(function (field) {
+      if (field.value !== 'inherit') overrides[field.dataset.capability] = field.value === 'true';
+    });
+    return { role: row.querySelector('[name=role]').value, enabled: row.querySelector('[name=enabled]').checked, overrides: overrides };
+  }
+  function sameOverrides(a, b) {
+    return Object.keys(permissionDefinitions).every(function (key) { return a[key] === b[key]; });
   }
   function loadPermissions() {
     var version = ++permissionRevision;
     $('rm-permissions-status').textContent = 'Loading permissions…';
     pb.send('/api/directory/permissions').then(function (result) {
       if (version !== permissionRevision) return;
+      permissionDefinitions = result.capabilities;
       $('rm-permissions-body').innerHTML = result.accounts.map(permissionRow).join('');
       $('rm-permissions-status').textContent = '';
     }).catch(function (error) {
@@ -950,33 +1028,40 @@
   $('rm-permissions-body').addEventListener('change', function (event) {
     var row = event.target.closest('[data-permission-account]');
     var button = row && row.querySelector('[data-permission-save]');
-    if (button) button.disabled = row.querySelector('[name=role]').value === row.dataset.role &&
-      row.querySelector('[name=enabled]').checked === (row.dataset.enabled === 'true');
+    if (!button) return;
+    var input = permissionInput(row);
+    button.disabled = input.role === row.dataset.role && input.enabled === (row.dataset.enabled === 'true') &&
+      sameOverrides(input.overrides, JSON.parse(row.dataset.overrides));
+    row.querySelector('[data-effective-staff]').textContent = Object.keys(permissionDefinitions).filter(function (key) {
+      return input.overrides[key] === true || (input.overrides[key] === undefined && input.role === 'admin');
+    }).length + ' allowed';
   });
   $('rm-permissions-body').addEventListener('click', function (event) {
     var button = event.target.closest('[data-permission-save]');
     if (!button || button.disabled || !isSiteOwner) return;
     var row = button.closest('[data-permission-account]');
-    var role = row.querySelector('[name=role]');
-    var emailAccess = row.querySelector('[name=enabled]');
     var id = row.dataset.permissionAccount;
     var version = permissionRevision;
-    var input = { id: id, previousRole: row.dataset.role, previousEnabled: row.dataset.enabled === 'true' };
-    if (role.value !== input.previousRole) input.role = role.value;
-    if (emailAccess.checked !== input.previousEnabled) input.enabled = emailAccess.checked;
-    var disabled = emailAccess.disabled;
-    button.disabled = role.disabled = emailAccess.disabled = true;
+    var previous = { role: row.dataset.role, enabled: row.dataset.enabled === 'true', overrides: JSON.parse(row.dataset.overrides) };
+    var next = permissionInput(row);
+    var input = { id: id, previousRole: previous.role, previousEnabled: previous.enabled, previousOverrides: previous.overrides };
+    if (next.role !== previous.role) input.role = next.role;
+    if (next.enabled !== previous.enabled) input.enabled = next.enabled;
+    if (!sameOverrides(next.overrides, previous.overrides)) input.overrides = next.overrides;
+    var controls = Array.from(row.querySelectorAll('select,input,button')).filter(function (field) { return !field.disabled; });
+    controls.forEach(function (field) { field.disabled = true; });
     pb.send('/api/directory/permissions', { method: 'PATCH', body: input }).then(function (result) {
       if (version !== permissionRevision) return;
       var account = result.accounts.find(function (item) { return item.id === id; });
       if (!account) { loadPermissions(); return; }
+      var wasOpen = row.querySelector("details").open;
       row.outerHTML = permissionRow(account);
+      if (wasOpen) $("rm-permissions-body").querySelector('[data-permission-account="' + id + '"] details').open = true;
       $('rm-permissions-status').textContent = 'Saved permissions for ' + account.name + '.';
       return loadAll();
     }).catch(function (error) {
       if (version !== permissionRevision) return;
-      button.disabled = role.disabled = false;
-      emailAccess.disabled = disabled;
+      controls.forEach(function (field) { field.disabled = false; });
       $('rm-permissions-status').textContent = errText(error);
     });
   });
@@ -991,20 +1076,23 @@
     return '';
   }
   function renderPrefixes() {
-    $('rm-prefix-title').textContent = isAdmin ? 'Reserved Prefixes' : 'My Reserved Prefixes';
+    var manageAll = can('manage_prefixes');
+    var viewAll = can('read_prefixes','manage_prefixes');
+    $('rm-prefix-title').textContent = viewAll ? 'Reserved Prefixes' : 'My Reserved Prefixes';
     $('rm-prefix-sub').textContent = 'A prefix is 4 characters (2 bytes) or 6 characters (3 bytes), 0–9 and A–F, and can’t start with 00 or FF. ' +
-      (isAdmin ? 'Anyone can reserve up to 5 from the public Prefixes page. Admins have no limit and can replace old 1-byte reservations, which are marked; reserve them again with 2 bytes, then remove the old one.'
+      (manageAll ? 'Anyone can reserve up to 5 from the public Prefixes page. Admins have no limit and can replace old 1-byte reservations, which are marked; reserve them again with 2 bytes, then remove the old one.'
         : 'Reserve one before you generate your repeater’s key, then generate a key that starts with it. You can hold up to 5.');
-    var cols = isAdmin ? 5 : 4;
+    var cols = viewAll ? 5 : 4;
     $('rm-prefix-body').innerHTML = prefixes.map(function (p) {
+      var own = p.user === me.id || String(p.reserved_by_email || '').toLowerCase() === me.email.toLowerCase();
       var who = [p.reserved_by_name, p.reserved_by_callsign, p.reserved_by_email].filter(Boolean).map(esc).join(' · ');
       return '<tr data-prefix-row="' + esc(p.id) + '"><td><span class="rd-mono">' + esc(p.code) + '</span>' + (p.code.length === 2 ? ' <span class="rd-pill warn">1-byte</span>' : prefixProblem(String(p.code).toUpperCase()) ? ' <span class="rd-pill bad" title="Not a valid prefix. Remove it and reserve a 4- or 6-character one.">Invalid</span>' : '') + '</td>' +
         '<td><span class="rm-prefix-label">' + esc(p.label) + '</span></td>' +
-        (isAdmin ? '<td class="rd-muted">' + (who || '—') + '</td>' : '') +
+        (viewAll ? '<td class="rd-muted">' + (who || '—') + '</td>' : '') +
         '<td class="rd-muted rm-since rm-hide-sm">' + esc(fmtDate(p.created)) + '</td>' +
-        '<td class="rm-right"><button type="button" class="rm-link" data-rename-prefix="' + esc(p.id) + '">Rename</button> ' +
-        '<button type="button" class="rm-link rm-x" data-del-prefix="' + esc(p.id) + '">' + (isAdmin ? 'Remove' : 'Release') + '</button></td></tr>';
-    }).join('') || '<tr><td colspan="' + cols + '" class="rd-muted">' + (isAdmin ? 'No reservations yet.' : 'You haven’t reserved a prefix yet. Reserve one above, or from the public Prefixes page.') + '</td></tr>';
+        '<td class="rm-right">' + (own || manageAll ? '<button type="button" class="rm-link" data-rename-prefix="' + esc(p.id) + '">Rename</button> ' +
+        '<button type="button" class="rm-link rm-x" data-del-prefix="' + esc(p.id) + '">' + (manageAll ? 'Remove' : 'Release') + '</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="' + cols + '" class="rd-muted">' + (viewAll ? 'No reservations yet.' : 'You haven’t reserved a prefix yet. Reserve one above, or from the public Prefixes page.') + '</td></tr>';
   }
   $('rm-prefix-form').code.addEventListener('input', function () {
     var code = this.value.trim().toUpperCase();
@@ -1017,7 +1105,7 @@
     if (bad) { toast(bad, 'bad'); f.code.focus(); return; }
     if (!label) { toast('Say what the prefix is for, like the repeater’s name or location.', 'bad'); f.label.focus(); return; }
     var data = { code: code, label: label };
-    if (isAdmin) {
+    if (can('manage_prefixes')) {
       var email = f.email.value.trim();
       if (email) { data.reserved_by_email = email; var u = people.find(function (x) { return (x.email || '').toLowerCase() === email.toLowerCase(); }); if (u) { data.user = u.id; data.reserved_by_name = u.name; data.reserved_by_callsign = u.callsign || ''; } }
     } else {
@@ -1027,7 +1115,7 @@
     pb.collection('prefixes').create(data).then(function (p) {
       prefixes.push(p); prefixes.sort(function (a, b) { return a.code.localeCompare(b.code); });
       f.reset(); $('rm-prefix-hint').textContent = ''; renderPrefixes();
-      toast('Reserved ' + code + '.' + (isAdmin ? '' : ' A confirmation email is on its way.'));
+      toast('Reserved ' + code + '.' + (can('manage_prefixes') ? '' : ' A confirmation email is on its way.'));
     }).catch(function (err) {
       toast(err && err.status === 429 ? 'Too many reservations in a short time. Please wait a few minutes.' : errText(err), 'bad');
     }).then(function () { busy(f, false); });
@@ -1062,7 +1150,7 @@
       pb.collection('prefixes').delete(id).then(function () {
         var gone = prefixes.find(function (p) { return p.id === id; });
         prefixes = prefixes.filter(function (p) { return p.id !== id; }); renderPrefixes();
-        if (gone) toast((isAdmin ? 'Removed ' : 'Released ') + gone.code + '.');
+        if (gone) toast((can('manage_prefixes') ? 'Removed ' : 'Released ') + gone.code + '.');
       }).catch(function (err) { toast(errText(err), 'bad'); });
     });
   });
@@ -1146,12 +1234,12 @@
     $('rm-claims-count').textContent=n||'';
   }
   function loadObservers(){
-    $('rm-obs-title').textContent=isAdmin?'All Managed Observers':'My Observers';
+    $('rm-obs-title').textContent=allObservers()?'All Managed Observers':'My Observers';
     $('rm-obs-msg').textContent='Loading observers…';
     return pb.collection('managed_observers').getFullList({sort:'observer_name'}).then(function(records){
       managedObservers=records;
       peopleObserverStatus='';
-      if(isAdmin)return pb.collection('users').getFullList({sort:'name'}).then(function(p){people=p;});
+      if (can('assign_observers')) return loadPeople();
     }).then(function(){
       $('rm-obs-msg').textContent='';
       renderObservers();
@@ -1168,16 +1256,17 @@
       function field(key,label,max){return '<label class="rm-field"><span>'+label+'</span><input name="'+key+'" maxlength="'+max+'" value="'+esc(o[key]||'')+'"></label>';}
       var link=ANALYZER+'/#/observers/'+encodeURIComponent(o.observer_id);
       var assigned=o.managers||[];
-      var options=isAdmin?'<fieldset class="rm-field"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
+      var options=can('assign_observers')?'<fieldset class="rm-field"><legend>Assigned managers</legend><div class="rm-checklist">'+people.map(function(p){
         return '<label class="rm-check"><input type="checkbox" name="managers" value="'+esc(p.id)+'" '+(assigned.indexOf(p.id)>=0?'checked':'')+'> '+esc(p.name||p.email)+'</label>';
-      }).join('')+'</div><p class="rm-hint">Only admins can add or remove managers.</p></fieldset>':'';
+      }).join('')+'</div><p class="rm-hint">Manager assignments update when you save.</p></fieldset>':'';
+      var editable = canEditObserver(o);
       return '<form class="rm-card rm-form" data-observer-edit="'+esc(o.id)+'"><h3>'+esc(o.observer_name)+'</h3><p class="rd-muted">'+esc(o.region||'Unknown region')+' · <a href="'+esc(link)+'" target="_blank" rel="noopener">Open in analyzer ↗</a></p>'+
-        '<p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
-        '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+options+
-        '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small>Alerts resume at the start of this date in Central time.</small></label>'+
+        '<fieldset' + (editable ? '' : ' disabled') + ' class="rm-form"><legend class="rm-label">Listing details</legend><p class="rd-muted">The fields below are public. Do not enter private contact details or precise private locations.</p><div class="rm-grid">'+field('display_name','Directory display name',100)+field('area','General area',100)+field('hardware','Hardware',200)+field('public_owner','Public owner name / callsign (optional)',100)+'</div>'+
+        '<label class="rm-field"><span>Public notes</span><textarea name="notes" maxlength="2000" rows="3">'+esc(o.notes||'')+'</textarea></label>'+
+        '<label class="rm-field"><span>Pause offline alerts until</span><input type="date" name="offline_pause_until" value="'+esc((o.offline_pause_until||'').slice(0,10))+'"><small>Alerts resume at the start of this date in Central time.</small></label></fieldset>'+options+
         '<div class="rm-actions rm-actions-end">' +
         (isSiteOwner ? '<button type="button" class="rm-danger" data-delete-observer="' + esc(o.id) + '">Delete observer</button>' : '') +
-        '<button type="submit" class="btn btn-primary">Save observer</button></div></form>';
+        (editable || can('assign_observers') ? '<button type="submit" class="btn btn-primary">Save observer</button>' : '') + '</div></form>';
     }).join('')||'<p class="rd-muted">No observers assigned yet. <a href="/repeaters/#observers">Claim an observer</a>.</p>';
   }
   $('rm-obs-list').addEventListener('click', function (event) {
@@ -1192,9 +1281,14 @@
   });
   $('rm-obs-list').addEventListener('submit',function(e){
     var form=e.target.closest('[data-observer-edit]');if(!form)return;e.preventDefault();
-    var body={};['display_name','area','hardware','public_owner','notes'].forEach(function(k){body[k]=form.elements[k].value.trim();});
-    body.offline_pause_until=ownerMail.pauseValue(form.elements.offline_pause_until.value);
-    if(isAdmin)body.managers=Array.from(form.querySelectorAll('input[name=managers]:checked')).map(function(x){return x.value;});
+    var record = managedObservers.find(function (item) { return item.id === form.dataset.observerEdit; });
+    if (!record) return;
+    var body = {};
+    if (canEditObserver(record)) {
+      ['display_name','area','hardware','public_owner','notes'].forEach(function (key) { body[key] = form.elements[key].value.trim(); });
+      body.offline_pause_until = ownerMail.pauseValue(form.elements.offline_pause_until.value);
+    }
+    if (can('assign_observers')) body.managers = Array.from(form.querySelectorAll('input[name=managers]:checked'),function (input) { return input.value; });
     busy(form,true);
     pb.collection('managed_observers').update(form.getAttribute('data-observer-edit'),body).then(function(o){
       var i=managedObservers.findIndex(function(x){return x.id===o.id;});if(i>=0)managedObservers[i]=o;
@@ -1203,7 +1297,7 @@
     }).catch(function(err){toast(errText(err),'bad');}).then(function(){busy(form,false);});
   });
   function loadObserverClaims(){
-    if(!isAdmin)return Promise.resolve();
+    if(!observerClaimAccess())return Promise.resolve();
     return pb.collection('observer_claims').getList(1,200,{sort:'-created'}).then(function(r){
       observerClaims=r.items;$('rm-obs-claims-msg').textContent='';renderObserverClaims();updateClaimCount();
     }).catch(function(err){$('rm-obs-claims-msg').textContent='Observer claims unavailable: '+errText(err);});
@@ -1212,7 +1306,7 @@
     $('rm-obs-claims-body').innerHTML=observerClaims.filter(function(c){return c.status==='pending';}).map(function(c){
       return '<tr><td><strong><a href="'+esc(ANALYZER+'/#/observers/'+encodeURIComponent(c.observer_id))+'" target="_blank" rel="noopener">'+esc(c.observer_name||c.observer_id)+'</a></strong><div class="rm-sub">'+esc(c.region)+'</div></td>'+
         '<td>'+esc(c.name)+' '+esc(c.callsign)+'<div class="rm-sub">'+esc(c.email)+'</div><div class="rm-sub rm-show-sm">'+esc(c.note)+'</div></td>'+
-        '<td class="rm-hide-sm">'+esc(c.note||'—')+'</td><td class="rm-right rm-nowrap"><button type="button" class="btn btn-primary rm-sm" data-obs-approve="'+esc(c.id)+'">Approve</button> <button type="button" class="rm-link rm-x" data-obs-decline="'+esc(c.id)+'">Decline</button></td></tr>';
+        '<td class="rm-hide-sm">'+esc(c.note||'—')+'</td><td class="rm-right rm-nowrap">' + (can('approve_observer_claims') ? '<button type="button" class="btn btn-primary rm-sm" data-obs-approve="'+esc(c.id)+'">Approve</button> <button type="button" class="rm-link rm-x" data-obs-decline="'+esc(c.id)+'">Decline</button>' : '') + '</td></tr>';
     }).join('')||'<tr><td colspan="4" class="rd-muted">No observer claims waiting.</td></tr>';
     $('rm-obs-claims-done').innerHTML=observerClaims.filter(function(c){return c.status!=='pending';}).slice(0,15).map(function(c){
       return '<li><span class="rd-pill '+(c.status==='approved'?'ok':'off')+'">'+(c.status==='approved'?'Approved':'Declined')+'</span> '+esc(c.name)+' → '+esc(c.observer_name||c.observer_id)+'</li>';
@@ -1220,7 +1314,7 @@
   }
   $('rm-obs-claims-body').addEventListener('click',function(e){
     var yes=e.target.closest('[data-obs-approve]'), no=e.target.closest('[data-obs-decline]'), btn=yes||no;
-    if(!btn||!isAdmin)return;
+    if(!btn||!can('approve_observer_claims'))return;
     var id=btn.getAttribute(yes?'data-obs-approve':'data-obs-decline');
     confirmClick(btn,yes?'Approve':'Decline',function(){
       btn.disabled=true;

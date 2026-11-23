@@ -5,7 +5,7 @@
 
 onRecordCreateRequest((e) => {
   const rec = e.record;
-  const isAdmin = !!(e.auth && e.auth.getString("role") === "admin");
+  const isAdmin = require(__hooks + "/staff_access.js").has(e.auth, "manage_prefixes");
   const code = rec.getString("code").trim().toUpperCase();
   rec.set("code", code);
   rec.set("reserved_by_email", rec.getString("reserved_by_email").trim().toLowerCase());

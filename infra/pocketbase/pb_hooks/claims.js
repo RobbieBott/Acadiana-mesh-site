@@ -16,12 +16,13 @@ function send(app, to, subject, html) {
   }));
 }
 
-module.exports.approve = function (app, claimId, adminId) {
+module.exports.approve = function (app, claimId, adminId, blockedEmail) {
   let user = null, isNew = false, repName = "";
   app.runInTransaction((tx) => {
     const claim = tx.findRecordById("claims", claimId);
     if (claim.getString("status") !== "pending") throw new Error("This claim was already handled.");
     const email = claim.getString("email").toLowerCase();
+    if (email === blockedEmail) throw new Error("You cannot approve your own claim.");
     try { user = tx.findAuthRecordByEmail("users", email); } catch (_) { user = null; }
     if (!user) {
       user = new Record(tx.findCollectionByNameOrId("users"));
@@ -71,7 +72,7 @@ module.exports.approve = function (app, claimId, adminId) {
 module.exports.notifyAdmins = function (app, claim) {
   let repName = "";
   try { repName = app.findRecordById("repeaters", claim.getString("repeater")).getString("name"); } catch (_) {}
-  const admins = app.findRecordsByFilter("users", "role = 'admin' && verified = true", "", 50, 0);
+  const admins = app.findRecordsByFilter("users", "staff_permissions ~ '|approve-repeater-claims|' && verified = true", "", 50, 0);
   admins.forEach((a) => {
     try {
       send(app, a.email(), "Repeater claim: " + repName,

@@ -4,12 +4,13 @@ function send(app,to,subject,html){
   const meta=app.settings().meta;
   app.newMailClient().send(new MailerMessage({from:{address:meta.senderAddress,name:meta.senderName},to:[{address:to}],subject,html}));
 }
-module.exports.approve=function(app,claimId,adminId){
+module.exports.approve=function(app,claimId,adminId,blockedEmail){
   let user,isNew=false,observerName;
   app.runInTransaction(tx=>{
     const c=tx.findRecordById("observer_claims",claimId);
     if(c.getString("status")!=="pending")throw new Error("Already handled");
     const email=c.getString("email").toLowerCase();
+    if(email===blockedEmail)throw new Error("You cannot approve your own claim.");
     try{user=tx.findAuthRecordByEmail("users",email);}catch(_){user=null;}
     if(!user){
       user=new Record(tx.findCollectionByNameOrId("users"));user.setEmail(email);user.setPassword($security.randomString(32));
@@ -34,7 +35,7 @@ module.exports.approve=function(app,claimId,adminId){
   return{approved:true,observer:observerName,user:user.getString("name"),new_account:isNew,emailed:mailed};
 };
 module.exports.notify=function(app,c){
-  const admins=app.findRecordsByFilter("users","role = 'admin' && verified = true","",50,0);
+  const admins=app.findRecordsByFilter("users","staff_permissions ~ '|approve-observer-claims|' && verified = true","",50,0);
   admins.forEach(a=>{
     try{send(app,a.email(),"Observer claim awaiting approval","<p>"+esc(c.getString("name"))+" &lt;"+esc(c.getString("email"))+"&gt; asked to manage <strong>"+esc(c.getString("observer_name"))+"</strong>.</p><p>"+esc(c.getString("note"))+"</p><p><a href='https://acadianamesh.com/repeaters/manage/#claims'>Review claim</a></p>");}
     catch(err){console.log("[observer claims] admin notice failed: "+err);}
