@@ -23,8 +23,7 @@ module.exports.approve=function(app,claimId,adminId,blockedEmail){
       obs=new Record(tx.findCollectionByNameOrId("managed_observers"));
       obs.set("observer_id",id);obs.set("observer_name",observerName);obs.set("region",c.getString("region"));
     }
-    const managers=obs.getStringSlice("managers");
-    if(managers.indexOf(user.id)<0)obs.set("managers",managers.concat([user.id]));
+    require(__hooks + "/observer_directory.js").addManager(obs, user.id);
     tx.save(obs);c.set("status","approved");c.set("user",user.id);c.set("handled_by",adminId);tx.save(c);
   });
   let mailed=true;

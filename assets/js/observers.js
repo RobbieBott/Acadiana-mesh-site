@@ -76,6 +76,39 @@
       .then(function(r){if(!r.ok)throw new Error('Directory unavailable');return r.json();})
       .then(function(d){if(!Array.isArray(d.items))throw new Error('Unexpected directory response');return d.items[0]||null;});
   }
+  function messageOwner(id, user) {
+    var directory = $('obs-directory');
+    directory.insertAdjacentHTML('beforeend',
+      '<p><button type="button" class="btn btn-secondary" id="obs-message-open">Message the owner</button></p>' +
+      '<form class="rd-claim" id="obs-message-form" hidden><div class="rd-claim-grid">' +
+      '<label><span>Your name</span><input name="name" maxlength="100" autocomplete="name" required value="' + esc(user && user.name || '') + '"></label>' +
+      '<label><span>Your email</span><input name="email" type="email" maxlength="200" autocomplete="email" required value="' + esc(user && user.email || '') + '"></label></div>' +
+      '<input name="website" type="text" hidden tabindex="-1" autocomplete="off">' +
+      '<label><span>Message</span><textarea name="message" minlength="10" maxlength="2000" rows="4" required></textarea></label>' +
+      '<div class="rd-claim-actions"><button class="rd-btn" type="submit">Send message</button></div><p class="rd-claim-msg" role="status"></p></form>');
+    var form = $('obs-message-form');
+    $('obs-message-open').addEventListener('click', function () {
+      this.hidden = true;
+      form.hidden = false;
+      form.elements.name.focus();
+    });
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var button = form.querySelector('button[type=submit]'), message = form.querySelector('[role=status]');
+      if (button.disabled) return;
+      button.disabled = true;
+      var body = { observer: id };
+      ['name', 'email', 'message', 'website'].forEach(function (key) { body[key] = form.elements[key].value.trim(); });
+      request(api + '/api/directory/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (response) {
+          if (response.ok) return;
+          if (response.status === 429) throw new Error('Too many messages. Try again in a few minutes.');
+          return response.json().then(function (result) { throw new Error(result.message || 'Could not send the message.'); });
+        }).then(function () { message.textContent = 'Message sent.'; })
+        .catch(function (error) { button.disabled = false; message.textContent = error.message || 'Could not send the message.'; });
+    });
+  }
+
   function openObserver(o){
     current=o;
     var now=Date.now(),s=status(o,now),labels={online:['Online','ok'],stale:['Stale','warn'],offline:['Offline','bad'],unknown:['Unknown','off']};
@@ -92,7 +125,7 @@
       .then(function(records){
         if(current!==o||!dialog.open)return;
         var pub=records[0]||{},mine=records[1],u=a&&a.record;
-        var info=detailRow('Directory name',pub.display_name)+detailRow('Area',pub.area)+detailRow('Hardware',pub.hardware)+detailRow('Public owner',pub.public_owner)+detailRow('Notes',pub.notes);
+        var info=detailRow('Directory name',pub.display_name)+detailRow('Area',pub.area)+detailRow('Hardware',pub.hardware)+detailRow('Public owner',pub.public_owner)+detailRow('Callsign',pub.owner_callsign)+detailRow('Phone',pub.phone)+detailRow('Discord',pub.discord)+detailRow('Notes',pub.notes);
         $('obs-directory').innerHTML=(info?'<dl>'+info+'</dl>':'<p class="rd-muted">No additional directory details yet.</p>')+
           (mine?'<a class="btn btn-primary" href="'+esc(manage)+'#observers">Manage this observer</a>':
           '<button type="button" class="btn btn-primary" id="obs-claim-open">Claim this observer</button>'+
@@ -102,6 +135,7 @@
           '<label><span>Callsign</span><input name="callsign" maxlength="20" value="'+esc(u&&u.callsign||'')+'"></label></div>'+
           '<label><span>How do you know it is yours?</span><textarea name="note" maxlength="1000" rows="3"></textarea></label>'+
           '<div class="rd-claim-actions"><button class="rd-btn" type="submit">Send claim</button></div><p class="rd-claim-msg" role="status"></p></form>');
+        if(pub.can_message)messageOwner(pub.id,u);
         if(mine)return;
         $('obs-claim-open').addEventListener('click',function(){this.hidden=true;$('obs-claim-form').hidden=false;$('obs-claim-form').elements.name.focus();});
         $('obs-claim-form').addEventListener('submit',function(e){

@@ -1,5 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
-// "Message the owner": the visitor's message is emailed to the repeater's
+// "Message the owner": the visitor's message is emailed to the owner's
 // contact address with Reply-To set to the visitor, so the owner's address
 // stays private until they reply. Only for owners who ticked "Let people
 // message me". Rate limited (3 per IP per 10 min, see migration 1795600900);
@@ -19,27 +19,46 @@ routerAdd("POST", "/api/directory/message", (e) => {
   if (!/^[^\s@<>,;"]+@[^\s@<>,;"]+\.[a-z]{2,}$/i.test(email)) return e.json(400, { message: "Please enter a valid email address." });
   if (message.length < 10) return e.json(400, { message: "Please write a little more (at least 10 characters)." });
 
-  let rep;
-  try { rep = e.app.findRecordById("repeaters", String(body.repeater || "")); } catch (_) { return e.json(404, { message: "Repeater not found." }); }
-  const to = rep.getString("contact_email");
-  if (!rep.getBool("show_email") || !to) return e.json(400, { message: "This owner isn't accepting messages." });
+  const observer = typeof body.observer === "string" && body.observer !== "";
+  const device = observer ? "observer" : "repeater";
+  let record;
+  try {
+    record = e.app.findRecordById(observer ? "managed_observers" : "repeaters", observer ? body.observer : String(body.repeater || ""));
+  } catch (_) {
+    return e.json(404, { message: observer ? "Observer not found." : "Repeater not found." });
+  }
+  let to = observer ? "" : record.getString("contact_email");
+  let owner = observer ? "" : record.getString("owner_name");
+  if (observer && record.getBool("show_email")) {
+    const linked = record.getString("contact_from");
+    if (linked && record.getStringSlice("managers").includes(linked)) {
+      try {
+        const user = e.app.findRecordById("users", linked);
+        if (user.verified()) {
+          to = user.email();
+          owner = user.getString("name");
+        }
+      } catch (_) {}
+    }
+  }
+  if (!record.getBool("show_email") || !to) return e.json(400, { message: "This owner isn't accepting messages." });
 
   const meta = e.app.settings().meta;
-  const repName = rep.getString("name");
+  const deviceName = observer ? record.getString("display_name") || record.getString("observer_name") : record.getString("name");
   try {
     e.app.newMailClient().send(new MailerMessage({
       from: { address: meta.senderAddress, name: meta.senderName },
-      to: [{ address: to, name: rep.getString("owner_name") }],
+      to: [{ address: to, name: owner }],
       headers: { "Reply-To": email },
-      subject: "Message about your repeater " + repName,
+      subject: "Message about your " + device + " " + deviceName,
       html:
-        "<p><strong>" + esc(name) + "</strong> (" + esc(email) + ") sent you a message about <strong>" + esc(repName) +
-        "</strong> through the Acadiana Mesh repeater directory:</p>" +
+        "<p><strong>" + esc(name) + "</strong> (" + esc(email) + ") sent you a message about <strong>" + esc(deviceName) +
+        "</strong> through the Acadiana Mesh directory:</p>" +
         '<blockquote style="border-left:3px solid #f94d00;margin:0;padding:8px 12px;white-space:pre-wrap">' + esc(message) + "</blockquote>" +
         "<p>Reply to this email to answer them. Your email address isn't shown to them until you reply.</p>" +
-        '<p style="color:#666;font-size:12px">To stop getting these, untick “Let people message me” on your repeater at ' +
+        '<p style="color:#666;font-size:12px">To stop getting these, untick “Let people message me” on your listing at ' +
         '<a href="https://acadianamesh.com/repeaters/manage/">acadianamesh.com/repeaters/manage</a>.</p>',
-      text: name + " (" + email + ") sent you a message about " + repName + ":\n\n" + message +
+      text: name + " (" + email + ") sent you a message about " + deviceName + ":\n\n" + message +
         "\n\nReply to this email to answer them.",
     }));
   } catch (err) {

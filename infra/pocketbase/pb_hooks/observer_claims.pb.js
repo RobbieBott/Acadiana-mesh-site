@@ -36,6 +36,9 @@ onRecordUpdateRequest((e)=>{
       throw new ForbiddenError("You can assign managers but cannot edit this listing.");
     }
   }
+  if (e.auth && e.auth.collection().name !== "_superusers") {
+    require(__hooks + "/observer_directory.js").validateProfile(r, old, e.requestInfo().body, e.auth, assign);
+  }
   e.next();
 },"managed_observers");
 routerAdd("POST","/api/directory/observer-claims/{id}/approve",(e)=>{
@@ -66,5 +69,5 @@ routerAdd("POST", "/api/directory/observers", (e) => {
     throw new ForbiddenError("Observer listing edit permission is required.");
   }
   const directory = require(__hooks + "/observer_directory.js");
-  return e.json(201, directory.register(e.app, e.requestInfo().body, staff.has(e.auth, "assign_observers")));
+  return e.json(201, directory.register(e.app, e.requestInfo().body, e.auth, staff.has(e.auth, "assign_observers")));
 }, $apis.requireAuth("users"));

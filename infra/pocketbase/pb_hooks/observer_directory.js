@@ -27,6 +27,44 @@ function readIds(value) {
   return Array.from(new Set(value));
 }
 
+const visibility = ["show_phone", "show_discord", "show_email"];
+
+function setManagers(record, managers) {
+  record.set("managers", managers);
+  const linked = record.getString("contact_from");
+  if (linked && !managers.includes(linked)) {
+    record.set("contact_from", "");
+    for (const field of visibility) record.set(field, false);
+  }
+}
+
+function addManager(record, id) {
+  const managers = record.getStringSlice("managers");
+  if (!managers.length && !record.getString("public_owner")) record.set("contact_from", id);
+  if (!managers.includes(id)) setManagers(record, managers.concat(id));
+}
+
+function validateProfile(record, old, body, auth, canAssign) {
+  const previous = old ? old.getString("contact_from") : "";
+  const linked = record.getString("contact_from");
+  const switched = linked !== previous;
+  const managers = record.getStringSlice("managers");
+  if (linked && !managers.includes(linked)) {
+    if (switched) throw new BadRequestError("Choose a profile from the assigned managers.");
+    setManagers(record, managers);
+    return;
+  }
+  if (switched && linked && linked !== auth.id && !canAssign) {
+    throw new ForbiddenError("You can link only your own profile.");
+  }
+  for (const field of visibility) {
+    if (linked && record.getBool(field) !== !!(old && old.getBool(field)) && linked !== auth.id && !canAssign) {
+      throw new ForbiddenError("You can change public contact settings only for your own profile.");
+    }
+    if (!linked || (switched && !Object.prototype.hasOwnProperty.call(body, field))) record.set(field, false);
+  }
+}
+
 function assign(app, userId, input) {
   const add = readIds(input.add);
   const remove = readIds(input.remove);
@@ -44,9 +82,8 @@ function assign(app, userId, input) {
         record = new Record(collection);
         setIdentity(record, id, live.get(id));
       }
-      const managers = record.getStringSlice("managers");
-      if (!managers.includes(userId)) {
-        record.set("managers", managers.concat(userId));
+      if (!record.getStringSlice("managers").includes(userId)) {
+        addManager(record, userId);
         tx.save(record);
       }
     }
@@ -55,19 +92,19 @@ function assign(app, userId, input) {
       if (!record) continue;
       const managers = record.getStringSlice("managers");
       if (managers.includes(userId)) {
-        record.set("managers", managers.filter((manager) => manager !== userId));
+        setManagers(record, managers.filter((manager) => manager !== userId));
         tx.save(record);
       }
     }
   });
 }
 
-function register(app, input, canAssign) {
+function register(app, input, auth, canAssign) {
   const id = input.observer_id;
   if (typeof id !== "string" || !id || id.length > 250) throw new BadRequestError("Invalid observer ID.");
 
-  const fields = ["display_name", "area", "hardware", "notes", "public_owner", "offline_pause_until"];
-  if (Object.keys(input).some((key) => !["observer_id", "managers", ...fields].includes(key))) {
+  const fields = ["display_name", "area", "hardware", "notes", "public_owner", "offline_pause_until", "contact_from"];
+  if (Object.keys(input).some((key) => !["observer_id", "managers", ...fields, ...visibility].includes(key))) {
     throw new BadRequestError("Only observer listing details and manager assignments can be saved here.");
   }
   if (input.managers !== undefined && !canAssign) {
@@ -78,6 +115,10 @@ function register(app, input, canAssign) {
     throw new BadRequestError("Invalid observer listing details.");
   }
 
+  if (visibility.some((key) => input[key] !== undefined && typeof input[key] !== "boolean")) {
+    throw new BadRequestError("Invalid public contact settings.");
+  }
+
   const live = observerFeed().find((entry) => entry && String(entry.id) === id);
   if (!live) throw new BadRequestError("Observer not found in the analyzer.");
 
@@ -86,14 +127,15 @@ function register(app, input, canAssign) {
     if (find(tx, id)) throw new BadRequestError("This observer is already registered. Refresh the page and reopen it.");
     const record = new Record(tx.findCollectionByNameOrId("managed_observers"));
     setIdentity(record, id, live);
-    for (const key of fields) {
+    for (const key of [...fields, ...visibility]) {
       if (input[key] !== undefined) record.set(key, input[key]);
     }
     record.set("managers", managers);
+    validateProfile(record, null, input, auth, canAssign);
     tx.save(record);
     saved = record.publicExport();
   });
   return saved;
 }
 
-module.exports = {observerFeed, setIdentity, assign, register};
+module.exports = {observerFeed, setIdentity, assign, register, validateProfile, addManager};
