@@ -161,13 +161,13 @@
   function manages(record) { return (record.managers || []).includes(me.id); }
   function canEditRepeater(record) { return !record || can('edit_repeaters') || manages(record); }
   function canEditObserver(record) { return can('edit_observers') || manages(record); }
-  var activity = window.createDirectoryActivity(pb, $, function () { return isSiteOwner; });
+  var activity = window.createDirectoryActivity(pb, $, function () { return isAdmin; }, function () { return isSiteOwner; });
   var ownerMail = window.createOwnerMail(pb, $, function (access) {
     isSiteOwner = !!access.owner;
     staff = new Set(access.staff || []);
     $('rm-mail-tab').hidden = !access.sender;
     $('rm-permissions-tab').hidden = !isSiteOwner;
-    $('rm-activity-tab').hidden = !isSiteOwner;
+    $('rm-activity-tab').hidden = !isAdmin;
     $('rm-corescope-tab').hidden = !isSiteOwner;
     document.querySelector('#rm-tabs [data-panel=people]').hidden = !peoplePanel();
     document.querySelector('#rm-tabs [data-panel=claims]').hidden = !repeaterClaims() && !observerClaimAccess();
@@ -196,8 +196,8 @@
   // ── layout / tabs ────────────────────────────────────────────
   var PANELS = ['my-devices', 'repeaters', 'observers', 'claims', 'people', 'prefixes', 'owner-mail', 'permissions', 'activity', 'corescope', 'account'];
   function showPanel(name, push) {
-    var ownerPanel = name === 'permissions' || name === 'activity' || name === 'corescope';
-    if (PANELS.indexOf(name) < 0 || (ownerPanel && !isSiteOwner) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
+    var ownerPanel = name === 'permissions' || name === 'corescope';
+    if (PANELS.indexOf(name) < 0 || (ownerPanel && !isSiteOwner) || (name === 'activity' && !isAdmin) || (name === 'owner-mail' && !ownerMail.canSend()) || (name === 'people' && !peoplePanel()) || (name === 'claims' && !repeaterClaims() && !observerClaimAccess())) name = 'repeaters';
     PANELS.forEach(function (p) { $('rm-p-' + p).hidden = p !== name; });
     $('rm-p-editor').hidden = true;
     document.querySelectorAll('#rm-tabs [data-panel]').forEach(function (a) {
@@ -249,6 +249,7 @@
     observerLoadVersion++;
     ownerMail.signOut();
     isSiteOwner = false;
+    isAdmin = false;
     activity.reset();
     permissionRevision++;
     permissionAccounts = [];

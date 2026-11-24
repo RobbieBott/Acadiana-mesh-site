@@ -115,7 +115,14 @@ function setSending(app, auth, enabled, previous) {
   });
 }
 
-function list(app, category, page, query) {
+function clear(app, auth) {
+  app.runInTransaction((tx) => {
+    tx.db().newQuery("DELETE FROM directory_activity").execute();
+    write(tx, { category: "changes", action: "Cleared activity log", ...who(auth) });
+  });
+}
+
+function list(app, category, page, query, includeEmailMode) {
   const params = {};
   const filters = [];
   if (TYPES.includes(category)) { filters.push("category = {:category}"); params.category = category; }
@@ -126,7 +133,7 @@ function list(app, category, page, query) {
   const size = 40;
   const rows = app.findRecordsByFilter(COLLECTION, filters.join(" && "), "-created,-id", size + 1, (page - 1) * size, params);
   return {
-    enabled: sending(app), more: rows.length > size,
+    ...(includeEmailMode ? { enabled: sending(app) } : {}), more: rows.length > size,
     events: rows.slice(0, size).map((r) => ({
       created: r.getString("created"), category: r.getString("category"), action: r.getString("action"),
       actor: r.getString("actor"), actorId: r.getString("actor_id"), target: r.getString("target"),
@@ -135,4 +142,4 @@ function list(app, category, page, query) {
   };
 }
 
-module.exports = { log, who, accountActor, target, recordRequest, sending, setSending, list };
+module.exports = { log, who, accountActor, target, recordRequest, sending, setSending, clear, list };

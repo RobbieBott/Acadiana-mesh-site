@@ -428,6 +428,11 @@ def run(folder):
     activity = "/api/directory/activity"
     api(activity, expected=401)
     api(activity, member, expected=403)
+    api(activity, method="DELETE", expected=401)
+    api(activity, member, method="DELETE", expected=403)
+    api(activity, admin, method="DELETE", expected=403)
+    api(activity + "/preview-status", admin, {}, expected=403)
+    api(activity + "/status-emails", admin, {"enabled": False, "previous": True}, "PATCH", expected=403)
     api(activity + "/preview-status", member, {}, expected=403)
     api(activity + "/status-emails", member, {"enabled": False, "previous": True}, "PATCH", expected=403)
     api("/api/collections/directory_activity/records", owner, expected=403)
@@ -471,9 +476,19 @@ def run(folder):
     assert any(e["action"] == "Message to device owner" for e in events)
     edits = api(activity + "?category=changes&q=phone", owner)["events"]
     assert any(e["actorId"] == PEOPLE["member"] and e["action"] == "Updated account" for e in edits)
+    admin_activity = api(activity + "?category=changes&q=phone", admin)
+    assert admin_activity["events"] == edits and "enabled" not in admin_activity
     serialized = json.dumps(events + edits)
     assert not any(secret in serialized for secret in ["visitor@example.com", "member@example.com", "555-0123", visitor["message"]])
     print("Verified private audit events, attribution, shared mail styling, status preview, toggle and queue cancellation", flush=True)
+
+    delivery_history = api(ROUTE, owner)["history"]
+    api(activity, owner, method="DELETE", expected=204)
+    cleared = api(activity, admin)["events"]
+    assert len(cleared) == 1 and cleared[0]["action"] == "Cleared activity log" and cleared[0]["actorId"] == PEOPLE["siteowner"]
+    assert api(activity, owner)["enabled"] is False
+    assert api(ROUTE, owner)["history"] == delivery_history
+    print("Verified read-only Admin access and Site Owner-only clearing with an audit entry", flush=True)
 
     api(permissions + "/" + PEOPLE["member"] + "/email", admin,
         {"email": "changed@example.com", "previousEmail": "member@example.com"}, "PATCH", expected=403)

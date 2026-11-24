@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'infra/pocketbase/**'
+      - 'assets/js/directory-activity.js'
       - 'assets/js/owner-mail.js'
       - 'assets/js/repeaters-manage.js'
       - 'repeaters-manage.html'
@@ -16,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Check frontend JavaScript
-        run: node --check assets/js/owner-mail.js && node --check assets/js/repeaters-manage.js
+        run: |
+          node --check assets/js/directory-activity.js
+          node --check assets/js/owner-mail.js
+          node --check assets/js/repeaters-manage.js
       - name: Test against PocketBase and an isolated SMTP server
         run: python3 infra/pocketbase/tests/owner_mail_integration.py
