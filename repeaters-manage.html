@@ -445,6 +445,13 @@ sitemap: false
                   <td><span class="rd-pill warn">With Owner Emails</span></td><td><span class="rd-pill warn">With Owner Emails</span></td><td><span class="rd-pill ok">Included</span></td></tr>
               </tbody>
               <tbody>
+                <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">Activity Log</th></tr>
+                <tr><th scope="row">View and search activity</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill info">Read only</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+                <tr><th scope="row">Clear activity or manage automatic status emails</th>
+                  <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
+              </tbody>
+              <tbody>
                 <tr class="rm-permission-category"><th scope="rowgroup" colspan="4">Site Owner controls</th></tr>
                 <tr><th scope="row">Change roles and grant or revoke Owner Emails</th>
                   <td><span class="rd-pill off">No access</span></td><td><span class="rd-pill off">No access</span></td><td><span class="rd-pill ok">Allowed</span></td></tr>
@@ -468,8 +475,9 @@ sitemap: false
             <h2>Activity Log</h2>
             <p class="rd-muted">Directory changes, email delivery attempts, and automatic offline alerts.</p>
           </div>
+          <button type="button" class="rm-danger" id="rm-activity-clear" hidden>Clear activity log</button>
         </div>
-        <section class="rm-card" aria-labelledby="rm-activity-alerts">
+        <section class="rm-card" id="rm-activity-controls" aria-labelledby="rm-activity-alerts" hidden>
           <h3 id="rm-activity-alerts">Automatic status emails</h3>
           <p class="rd-muted">Preview overdue devices before enabling alerts. Enabling sends email for future qualifying outages. Switching back to log only cancels queued alerts that have not started sending.</p>
           <div class="rm-actions">

@@ -1,10 +1,11 @@
-/* Site Owner activity and automatic offline email controls. */
-window.createDirectoryActivity = function (pb, $, isOwner) {
+/* Directory activity with Site Owner-only controls. */
+window.createDirectoryActivity = function (pb, $, canView, isOwner) {
   var page = 1, version = 0, pending = false;
   var form = $('rm-activity-filter');
   var table = $('rm-activity-body');
   var mode = $('rm-activity-mode');
   var toggle = $('rm-activity-toggle');
+  var clear = $('rm-activity-clear');
   var status = $('rm-activity-status');
   var previous = $('rm-activity-prev'), next = $('rm-activity-next');
   var enabled;
@@ -15,6 +16,8 @@ window.createDirectoryActivity = function (pb, $, isOwner) {
 
   function renderMode() {
     var known = typeof enabled === 'boolean';
+    $('rm-activity-controls').hidden = clear.hidden = !isOwner();
+    clear.disabled = pending;
     mode.textContent = known ? (enabled ? 'Status emails are on' : 'Status emails are in log-only mode') : '';
     mode.className = 'rd-pill ' + (enabled ? 'ok' : 'warn');
     mode.hidden = !known;
@@ -39,14 +42,14 @@ window.createDirectoryActivity = function (pb, $, isOwner) {
   }
 
   function load(message) {
-    if (!isOwner()) return Promise.resolve();
+    if (!canView()) return Promise.resolve();
     var request = ++version;
     var query = new URLSearchParams({ page: String(page), category: form.elements.category.value, q: form.elements.q.value.trim() });
     previous.disabled = next.disabled = true;
     status.textContent = 'Loading activity…';
     $('rm-activity-table').setAttribute('aria-busy', 'true');
     return pb.send('/api/directory/activity?' + query.toString(), { requestKey: null }).then(function (result) {
-      if (request !== version || !isOwner()) return;
+      if (request !== version || !canView()) return;
       enabled = result.enabled;
       table.replaceChildren.apply(table, result.events.map(row));
       previous.disabled = page === 1;
@@ -54,22 +57,22 @@ window.createDirectoryActivity = function (pb, $, isOwner) {
       $('rm-activity-page').textContent = 'Page ' + page;
       status.textContent = message || (result.events.length ? '' : 'No activity matches these filters.');
     }).catch(function (error) {
-      if (request === version && isOwner()) status.textContent = describe(error);
+      if (request === version && canView()) status.textContent = describe(error);
     }).finally(function () {
-      if (request !== version || !isOwner()) return;
+      if (request !== version || !canView()) return;
       $('rm-activity-table').removeAttribute('aria-busy');
       renderMode();
     });
   }
 
-  function change(action, options, message) {
+  function change(path, options, category, message) {
     if (!isOwner() || pending) return;
     pending = true;
     renderMode();
     status.textContent = 'Working…';
-    return pb.send('/api/directory/activity/' + action, options).then(function (result) {
+    return pb.send('/api/directory/activity' + path, options).then(function (result) {
       if (!isOwner()) return;
-      form.elements.category.value = 'status';
+      form.elements.category.value = category;
       form.elements.q.value = '';
       page = 1;
       return load(message(result));
@@ -86,20 +89,24 @@ window.createDirectoryActivity = function (pb, $, isOwner) {
   previous.addEventListener('click', function () { if (page > 1) { page--; load(); } });
   next.addEventListener('click', function () { page++; load(); });
   $('rm-activity-preview').addEventListener('click', function () {
-    change('preview-status', { method: 'POST' }, function (result) {
+    change('/preview-status', { method: 'POST' }, 'status', function (result) {
       return 'Preview complete. ' + result.count + (result.count === 1 ? ' listing is overdue.' : ' listings are overdue.');
     });
   });
   toggle.addEventListener('click', function () {
     if (typeof enabled !== 'boolean') return;
-    change('status-emails', { method: 'PATCH', body: { enabled: !enabled, previous: enabled } }, function (result) {
+    change('/status-emails', { method: 'PATCH', body: { enabled: !enabled, previous: enabled } }, 'status', function (result) {
       enabled = result.enabled;
       return enabled ? 'Status emails are enabled for future outages.' : 'Status emails are in log-only mode.';
     });
   });
+  clear.addEventListener('click', function () {
+    if (!isOwner() || pending || !window.confirm('Permanently clear all activity history, including entries outside the current filters? The log will record who cleared it.')) return;
+    change('', { method: 'DELETE' }, '', function () { return 'Activity log cleared.'; });
+  });
 
   return {
-    open: function () { load(); },
+    open: function () { renderMode(); load(); },
     reset: function () {
       version++;
       page = 1;

@@ -7,10 +7,17 @@ onRecordDeleteRequest((e) => require(__hooks + "/activity.js").recordRequest(e, 
   "users", "repeaters", "managed_observers", "claims", "observer_claims", "prefixes", "maintenance", "sync_ignore");
 
 routerAdd("GET", "/api/directory/activity", (e) => {
-  if (!require(__hooks + "/staff_access.js").isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can view activity.");
+  if (e.auth.getString("role") !== "admin") throw new ForbiddenError("Only Admins and the Site Owner can view activity.");
   const q = e.request.url.query();
   const page = Math.min(10000, Math.max(1, parseInt(q.get("page"), 10) || 1));
-  return e.json(200, require(__hooks + "/activity.js").list(e.app, q.get("category"), page, q.get("q")));
+  const owner = require(__hooks + "/staff_access.js").isOwner(e.auth);
+  return e.json(200, require(__hooks + "/activity.js").list(e.app, q.get("category"), page, q.get("q"), owner));
+}, $apis.requireAuth("users"));
+
+routerAdd("DELETE", "/api/directory/activity", (e) => {
+  if (!require(__hooks + "/staff_access.js").isOwner(e.auth)) throw new ForbiddenError("Only the Site Owner can clear activity.");
+  require(__hooks + "/activity.js").clear(e.app, e.auth);
+  return e.noContent(204);
 }, $apis.requireAuth("users"));
 
 routerAdd("PATCH", "/api/directory/activity/status-emails", (e) => {
